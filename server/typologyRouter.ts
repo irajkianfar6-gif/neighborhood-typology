@@ -84,7 +84,7 @@ function buildRoutes(service: TypologyService, options: { satelliteCatalog?: Pic
   const router = express.Router();
 
   router.get('/data-catalog', (_req, res) => {
-    const catalogPath = path.resolve(process.cwd(), 'public', 'data', 'typology', 'source_catalog.json');
+    const catalogPath = path.resolve(process.env.ARA_PUBLIC_DATA_DIR || path.join(process.cwd(), 'public', 'data'), 'typology', 'source_catalog.json');
     if (!fs.existsSync(catalogPath)) {
       res.status(404).json({ success: false, error: { code: 'CATALOG_NOT_BUILT', message: 'Run scripts/build_typology_catalog.py first.' } });
       return;
@@ -97,7 +97,7 @@ function buildRoutes(service: TypologyService, options: { satelliteCatalog?: Pic
   });
 
   router.get('/data-catalog/summary', (_req, res) => {
-    const catalogPath = path.resolve(process.cwd(), 'public', 'data', 'typology', 'source_catalog.json');
+    const catalogPath = path.resolve(process.env.ARA_PUBLIC_DATA_DIR || path.join(process.cwd(), 'public', 'data'), 'typology', 'source_catalog.json');
     if (!fs.existsSync(catalogPath)) {
       res.status(404).json({ success: false, error: { code: 'CATALOG_NOT_BUILT', message: 'Run scripts/build_typology_catalog.py first.' } });
       return;

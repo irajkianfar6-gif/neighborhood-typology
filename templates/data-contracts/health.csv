@@ -1,0 +1,2 @@
+﻿indicator_code,neighborhood_id,block_id,postal_prefix,numerator,denominator,value,unit,period_start,period_end,group_key,group_value,source_org,dataset_id,extraction_date,contact
+P4,tehran:m605,,,27000,31594,85.5,%,,2025-06-30,,,معاونت بهداشت دانشگاه علوم پزشکی,phc-catchment-1404,,

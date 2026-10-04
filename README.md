@@ -19,6 +19,11 @@ View your app in AI Studio: https://ai.studio/apps/f10591a0-9368-4a5b-8091-fdf5c
 3. Run the app:
    `npm run dev`
 
+## تحلیل فقط با نام محله (ARA-NB-2.0)
+
+`POST /api/decision-support/neighborhoods/analyze` با `{"name":"یوسف آباد"}` — مرز رسمی نسخه‌دار، شواهد مستند با منبع/تاریخ/پایایی،
+دروازهٔ انتشار و امتناع صریح در نبود داده. راهنمای کامل: [docs/NEIGHBORHOOD_PIPELINE_FA.md](docs/NEIGHBORHOOD_PIPELINE_FA.md).
+
 ## API and production
 
 For local development, run the API in a second terminal:

@@ -23,21 +23,9 @@ import DecisionRegistryView from './DecisionRegistryView';
 import { downloadReport, downloadReportJSON } from '../algorithm/reportGenerator';
 import { analyzeDecisionSupport } from '../algorithm/decisionSupportApi';
 import type { SurveyResponse } from '../algorithm/perceptualSurvey';
-import {
-  buildSourceStatuses,
-  combineToAlgorithmIndicators,
-  fetchClimateHistorical,
-  fetchExternalDataHealth,
-  fetchGeocode,
-  fetchHealthFacilities,
-  fetchOpenMeteoAirQuality,
-  fetchOSMPois,
-  fetchUNESCOEducation,
-  fetchWHOHealthIndicators,
-  fetchWalkabilityScore,
-  fetchWorldBankIndicators,
-  type RealDataSource,
-} from '../algorithm/realDataConnectors';
+import { fetchOpenMeteoAirQuality, type RealDataSource } from '../algorithm/realDataConnectors';
+import { analyzeNeighborhoodByName, LEVEL_FA, type DecisionCardV2, type NeighborhoodCandidate } from '../algorithm/neighborhoodApi';
+import NeighborhoodEvidencePanel, { CandidatePicker } from './NeighborhoodEvidencePanel';
 import { getSatelliteFeatures, getSatelliteStatusSummary, type SatelliteFeatureRecord, type SatelliteStatusSummary } from '../lib/satelliteApi';
 
 type SectionKey = 'summary' | 'diagnosis' | 'action' | 'evidence';
@@ -147,6 +135,9 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
   const [rawData, setRawData] = useState<Record<string, unknown> | null>(null);
   const [sourceStatuses, setSourceStatuses] = useState<RealDataSource[]>([]);
   const [lastCoords, setLastCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [v2Card, setV2Card] = useState<DecisionCardV2 | null>(null);
+  const [pendingChoice, setPendingChoice] = useState<{ query: string; candidates: NeighborhoodCandidate[] } | null>(null);
+  const [typeAbstained, setTypeAbstained] = useState(false);
   const [fetchProgress, setFetchProgress] = useState(0);
   const [surveyResponses, setSurveyResponses] = useState<SurveyResponse[]>([]);
   const [surveySavedNotice, setSurveySavedNotice] = useState(false);
@@ -164,9 +155,9 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
     if (initialLoading !== undefined) setLoading(initialLoading);
   }, [initialLoading]);
 
-  const handleAnalyze = useCallback(async () => {
+  const handleAnalyze = useCallback(async (neighborhoodId?: string) => {
     const requestedName = neighborhoodName.trim();
-    if (!requestedName || loading) return;
+    if ((!requestedName && !neighborhoodId) || loading) return;
 
     setLoading(true);
     setAnalysisError(null);
@@ -179,82 +170,52 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
     setActiveView('overview');
 
     try {
-      setDataSourceStatus(['جست‌وجوی مختصات محله آغاز شد']);
-      setFetchProgress(5);
-      const geo = await fetchGeocode(requestedName);
-      if (!geo) throw new Error('مکان معتبر برای این محله در کاتالوگ محلی پیدا نشد؛ نام شهر را نیز وارد کنید.');
-      const lat = geo.lat;
-      const lng = geo.lng;
-      const aoi: [number, number, number, number] = [lng - 0.02, lat - 0.02, lng + 0.02, lat + 0.02];
-      setLastCoords({ lat, lng });
+      setPendingChoice(null);
+      setV2Card(null);
+      setDataSourceStatus(['شناسایی محله در گزتیر (مرز نسخه‌دار) آغاز شد']);
       setFetchProgress(10);
-
-      setDataSourceStatus(prev => [...prev, `مختصات ${lat.toFixed(4)}، ${lng.toFixed(4)} تأیید شد`]);
-
-      setDataSourceStatus(prev => [...prev, `دریافت هم‌زمان از ${TOTAL_DATA_SOURCES} منبع داده آغاز شد`]);
-      setFetchProgress(15);
-      const [air, pois, walkability, worldBank, who, unesco, climate, healthFacilities, satelliteStatus, satelliteFeatures] = await Promise.all([
-        fetchOpenMeteoAirQuality(lat, lng).catch(() => null),
-        fetchOSMPois(lat, lng).catch(() => null),
-        fetchWalkabilityScore(lat, lng).catch(() => null),
-        fetchWorldBankIndicators().catch(() => null),
-        fetchWHOHealthIndicators().catch(() => null),
-        fetchUNESCOEducation().catch(() => null),
-        fetchClimateHistorical(lat, lng).catch(() => null),
-        fetchHealthFacilities(lat, lng).catch(() => null),
-        getSatelliteStatusSummary().catch(() => null),
-        getSatelliteFeatures({ bbox: aoi, limit: 100 }).catch(() => ({ features: [], count: 0 })),
-      ]);
-      setFetchProgress(75);
-
-      const normalizedSatelliteFeatures = {
-        features: Array.isArray(satelliteFeatures?.features) ? satelliteFeatures.features : [],
-        count: Number.isFinite(satelliteFeatures?.count) ? satelliteFeatures.count : 0,
-      };
-
-      const telemetry = await fetchExternalDataHealth().catch(() => null);
-      const srcs = [
-        ...buildSourceStatuses({ air, pois, worldBank, who, unesco, climate, walkability, healthFacilities, telemetry: telemetry ?? undefined }),
-        {
-          name: 'Satellite STAC / validated COG',
-          baseUrl: '/api/satellite',
-          provider: 'satellite',
-          status: satelliteStatus ? 'online' as const : 'offline' as const,
-          lastFetched: new Date().toISOString(),
-          error: satelliteStatus ? undefined : 'کاتالوگ ماهواره‌ای هنوز داده آماده ندارد',
-        },
-      ];
-      setSourceStatuses(srcs);
-      const availableCount = srcs.filter(source => source.status === 'online' || source.status === 'degraded').length;
-      setDataSourceStatus(prev => [...prev, `${availableCount} از ${srcs.length} منبع پاسخ معتبر دادند`]);
-
-      setFetchProgress(85);
-      setDataSourceStatus(prev => [...prev, 'داده‌ها به شاخص‌های تصمیم‌یار تبدیل شدند']);
-      const indicatorValues = combineToAlgorithmIndicators({ air, pois, worldBank, who, unesco, climate, walkability, healthFacilities });
-      if (Object.keys(indicatorValues).length === 0) {
-        throw new Error('هیچ شاخص واقعی قابل استفاده دریافت نشد؛ تحلیل بدون داده آزمایشی متوقف شد.');
-      }
-      setRawData({ air, pois, worldBank, who, unesco, climate, walkability, healthFacilities, satellite: { status: satelliteStatus, ...normalizedSatelliteFeatures } });
-
-      setFetchProgress(92);
-      setDataSourceStatus(prev => [...prev, 'درخواست تحلیل به API تصمیم‌یار ارسال شد']);
-      const result = await analyzeDecisionSupport({
-        neighborhoodName: requestedName,
-        cityOrCounty: '',
-        province: '',
+      const response = await analyzeNeighborhoodByName({
+        name: neighborhoodId ? undefined : requestedName,
+        neighborhoodId,
         purpose: 'baseline',
-        indicatorValues,
-        aoi: { bbox: aoi },
-        survey: surveyResponses.length > 0 ? { responses: surveyResponses, respondentGroup: 'پاسخگویان محله' } : undefined,
       });
-      if (surveyResponses.length > 0) {
-        setDataSourceStatus(prev => [...prev, `${surveyResponses.length.toLocaleString('fa-IR')} پاسخ پیمایش ادراکی در تحلیل ادغام شد`]);
+      if (response.status === 'NEEDS_DISAMBIGUATION') {
+        setPendingChoice({ query: response.query, candidates: response.candidates });
+        setDataSourceStatus(prev => [...prev, `${response.candidates.length.toLocaleString('fa-IR')} محلهٔ هم‌نام یافت شد؛ انتخاب کاربر لازم است`]);
+        setFetchProgress(0);
+        return;
       }
+      const v2 = response.card;
+      setV2Card(v2);
+      setLastCoords(v2.neighborhood.centroid);
+      setFetchProgress(80);
+      const scoredIndicators = v2.indicators.filter(item => item.score !== null);
+      const sourceMap = new Map<string, RealDataSource>();
+      for (const item of scoredIndicators) {
+        const key = item.source.split(' — ')[0];
+        if (!sourceMap.has(key)) sourceMap.set(key, { name: key, baseUrl: item.channel, status: item.reliability >= 0.6 ? 'online' : 'degraded', lastFetched: item.observedAt ?? undefined });
+      }
+      const srcs = [...sourceMap.values()];
+      setSourceStatuses(srcs);
+      const availableCount = srcs.length;
+      setRawData({ neighborhood: v2.neighborhood, context: v2.context, coverage: v2.coverage, indicators: scoredIndicators.map(item => ({ code: item.code, raw: item.raw, unit: item.unit, score: item.score, reliability: item.reliability, tier: item.tier, source: item.source })) });
+      setDataSourceStatus(prev => [
+        ...prev,
+        `محله: ${v2.neighborhood.nameFa} (${v2.neighborhood.cityFa}) — مرز ${v2.neighborhood.boundaryIsProxy ? 'تقریبی' : v2.neighborhood.boundaryTier}`,
+        `${scoredIndicators.length.toLocaleString('fa-IR')} از ${v2.indicators.length.toLocaleString('fa-IR')} شاخص با منبع مستند امتیاز گرفت`,
+        `سطح انتشار: ${LEVEL_FA[v2.publication.level].label}`,
+      ]);
+      if (!response.engineCard) {
+        setCard(null);
+        throw new Error(`شواهد برای اجرای موتور تصمیم کافی نیست (${LEVEL_FA[v2.publication.level].label}). فهرست «چه داده‌ای این حکم را تغییر می‌دهد» را در پنل شواهد ببینید.`);
+      }
+      const result = { card: response.engineCard };
+      setTypeAbstained(v2.engine?.diagnosticType === null);
 
       setCard(result.card);
       setLastUpdated(new Date());
       setFetchProgress(100);
-      setDataSourceStatus(prev => [...prev, 'تحلیل تکمیل شد و خروجی‌های تصمیم آماده‌اند']);
+      setDataSourceStatus(prev => [...prev, 'تحلیل تکمیل شد؛ بخش‌های فاقد شواهد کافی با امتناع صریح علامت خورده‌اند']);
 
       const entry: LivingMemoryEntry = {
         id: `analysis-${Date.now()}`,
@@ -280,7 +241,7 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
     } finally {
       setLoading(false);
     }
-  }, [loading, neighborhoodName, surveyResponses]);
+  }, [loading, neighborhoodName]);
 
   useEffect(() => {
     if (!lastCoords || !card) return;
@@ -504,6 +465,16 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
         <AnalysisProgress progress={fetchProgress} step={loadingStep} />
       )}
 
+      {pendingChoice && (
+        <CandidatePicker
+          query={pendingChoice.query}
+          candidates={pendingChoice.candidates}
+          onPick={candidate => { setNeighborhoodName(`${candidate.nameFa}، ${candidate.cityFa}`); void handleAnalyze(candidate.neighborhoodId); }}
+        />
+      )}
+
+      {v2Card && <NeighborhoodEvidencePanel card={v2Card} />}
+
       {analysisError && (
         <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-danger/30 bg-danger-soft p-4 text-danger-700 dark:bg-danger/10 dark:text-red-300 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
@@ -641,6 +612,7 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
               <DecisionView
                 activeView={activeView}
                 card={card}
+                typeAbstained={typeAbstained}
                 rawData={rawData}
                 sourceStatuses={sourceStatuses}
                 memoryEntries={memoryEntries}
@@ -749,6 +721,7 @@ function EmptyWorkspace({
 function DecisionView({
   activeView,
   card,
+  typeAbstained = false,
   rawData,
   sourceStatuses,
   memoryEntries,
@@ -760,6 +733,7 @@ function DecisionView({
 }: {
   activeView: ViewKey;
   card: DecisionCard | null;
+  typeAbstained?: boolean;
   rawData: Record<string, unknown> | null;
   sourceStatuses: RealDataSource[];
   memoryEntries: LivingMemoryEntry[];
@@ -788,7 +762,7 @@ function DecisionView({
     );
   }
 
-  if (activeView === 'overview') return <Overview card={card} rawData={rawData} sourceStatuses={sourceStatuses} confidence={confidence} lastUpdated={lastUpdated} onNavigate={onNavigate} />;
+  if (activeView === 'overview') return <Overview card={card} typeAbstained={typeAbstained} rawData={rawData} sourceStatuses={sourceStatuses} confidence={confidence} lastUpdated={lastUpdated} onNavigate={onNavigate} />;
   if (activeView === 'radar') return <CapitalRadarChart scores={card.capitalScores} />;
   if (activeView === 'gaps') return <GapAnalysisChart gaps={card.chainGaps} capitalScores={card.capitalScores} />;
   if (activeView === 'equity') return <EquityMap gaps={card.equityMap} />;
@@ -803,6 +777,7 @@ function DecisionView({
 
 function Overview({
   card,
+  typeAbstained = false,
   rawData,
   sourceStatuses,
   confidence,
@@ -810,6 +785,7 @@ function Overview({
   onNavigate,
 }: {
   card: DecisionCard;
+  typeAbstained?: boolean;
   rawData: Record<string, unknown> | null;
   sourceStatuses: RealDataSource[];
   confidence: number | null;
@@ -819,7 +795,9 @@ function Overview({
   const triad = card.qualityVerdict;
   const topRankedActionId = [...card.priorityRanking].sort((a, b) => a.rank - b.rank)[0]?.id;
   const firstAction = card.interventions.find(action => action.id === topRankedActionId) ?? card.interventions[0];
-  const diagnostic = DIAGNOSTIC_TYPES[card.diagnosticType];
+  const diagnostic = typeAbstained
+    ? { ...DIAGNOSTIC_TYPES[card.diagnosticType], interpretation: 'صادر نشد — شواهد کافی برای تیپ تشخیصی نیست', strategy: 'تکمیل شواهد پیش از انتخاب راهبرد تیپ' }
+    : DIAGNOSTIC_TYPES[card.diagnosticType];
   const weakestScore = [...card.capitalScores].sort((a, b) => a.score - b.score)[0];
   const verdictMetrics = [
     { key: 'Q', label: 'کیفیت', value: triad.Q },
@@ -834,7 +812,7 @@ function Overview({
             <div className="relative z-10">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="chip border border-white/10 bg-white/10 text-brand-100 dark:text-signal-300">حکم مدیریتی</span>
-                <span className="chip border border-white/10 bg-white/10 text-brand-100">تیپ {card.diagnosticType} — {diagnostic.interpretation}</span>
+                <span className="chip border border-white/10 bg-white/10 text-brand-100">{typeAbstained ? diagnostic.interpretation : `تیپ ${card.diagnosticType} — ${diagnostic.interpretation}`}</span>
               </div>
               <p className="mt-5 text-[10px] font-black text-brand-100/70 dark:text-signal-300/70">اقدام اولویت‌دار پیشنهادی</p>
               <h2 className="mt-1 max-w-2xl text-lg font-black leading-8 text-white md:text-xl">{firstAction?.name ?? 'تکمیل شواهد پیش از انتخاب مداخله'}</h2>
@@ -889,7 +867,7 @@ function Overview({
         <InsightCard
           eyebrow="منطق مداخله"
           title={diagnostic.strategy}
-          description={`تیپ ${card.diagnosticType}: ${diagnostic.interpretation}`}
+          description={typeAbstained ? diagnostic.interpretation : `تیپ ${card.diagnosticType}: ${diagnostic.interpretation}`}
           icon={<Target size={18} />}
           tone="brand"
         />

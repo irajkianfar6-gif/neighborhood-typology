@@ -4,11 +4,13 @@ These verify the ENGINE MATH. They are NOT neighborhood assessments and must nev
 presented as real data (constraint 1). Values below are literal test fixtures (x=50, L=0, U=100 ...).
 """
 import sys, os
-sys.path.insert(0, "/home/user/work/kernel")
+from pathlib import Path
+KERNEL_DIR = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(KERNEL_DIR))
 from engine.calc_engine import Engine
 from engine.status import Measurement
 
-REG="/home/user/work/kernel/registries"
+REG=str(KERNEL_DIR / "registries")
 eng=Engine(REG)
 results=[]
 def check(name, cond):

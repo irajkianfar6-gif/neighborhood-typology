@@ -24,6 +24,13 @@ import { createSatellitePipelineRouter } from './satellitePipeline';
 import { createSourceRouter } from './sources/router';
 import { SourceRuntime } from './sources/runtime';
 import { findPython } from './kernelClient';
+import { authMiddleware } from './security/auth';
+import { corsMiddleware } from './security/cors';
+import { rateLimit } from './security/rateLimit';
+import { auditMiddleware } from './security/audit';
+import { metricsMiddleware, metricsHandler } from './ops/metrics';
+import { createNeighborhoodRouter } from './neighborhood/router';
+import { startScheduler } from './scheduler';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -140,23 +147,22 @@ function rateRow(prov: string, s: ProvStats) {
 
 // ---------- app ----------
 const app = express();
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Expose-Headers', 'X-Correlation-ID, X-Provider, X-Provider-Fallback, X-Cache, X-Provider-Latency-Ms, Warning');
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(204);
-    return;
-  }
-  next();
-});
+// CORS با فهرست مجاز (ARA_ALLOWED_ORIGINS) — دیگر «*» نیست
+app.use(corsMiddleware());
 app.use(express.json({ limit: '2mb' }));
-// پشت nginx/Cloudflare: IP واقعی و پروتکل درست در req.ip / req.protocol
+// پشت nginx/Cloudflare باید قبل از rate limit تنظیم شود تا req.ip واقعی باشد
 app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
+// احراز هویت و نقش (ARA_API_TOKENS) + لاگ ممیزی نوشتنی‌ها + محدودیت نرخ
+app.use(authMiddleware());
+app.use(auditMiddleware());
+app.use('/api/decision-support/analyze', rateLimit({ name: 'analyze', windowMs: 60_000, max: Number(process.env.ARA_RATE_ANALYZE_PER_MIN || 60) }));
+app.use('/api/decision-support/neighborhoods/analyze', rateLimit({ name: 'neighborhood-analyze', windowMs: 60_000, max: Number(process.env.ARA_RATE_ANALYZE_PER_MIN || 60) }));
+app.use('/api/anthropic', rateLimit({ name: 'anthropic', windowMs: 60_000, max: Number(process.env.ARA_RATE_AI_PER_MIN || 10) }));
+app.use(metricsMiddleware());
 
 // ---------- سلامت سرویس (برای Docker healthcheck / PaaS / مانیتورینگ) ----------
 const SERVICE_STARTED_AT = new Date().toISOString();
+app.get('/metrics', metricsHandler);
 app.get('/api/health', (_req, res) => {
   const distIndex = fs.existsSync(path.join(DIST_DIR, 'index.html'));
   res.json({
@@ -187,6 +193,19 @@ const ANTHROPIC_BASE_URL = (process.env.ARA_ANTHROPIC_BASE_URL || 'https://tabit
 const ANTHROPIC_API_KEY = process.env.ARA_ANTHROPIC_API_KEY || '';
 const ANTHROPIC_VERSION = process.env.ARA_ANTHROPIC_VERSION || '2023-06-01';
 
+const ANTHROPIC_MAX_TOKENS = Number(process.env.ARA_ANTHROPIC_MAX_TOKENS || 4000);
+/** فقط فیلدهای مجاز به سرویس مدل می‌رود؛ max_tokens سقف دارد تا پراکسی قابل سوءاستفاده نباشد */
+function sanitizeAnthropicBody(body: unknown): Record<string, unknown> {
+  const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const key of ['model', 'messages', 'system', 'temperature', 'stream', 'stop_sequences']) {
+    if (b[key] !== undefined) out[key] = b[key];
+  }
+  const requested = Number(b.max_tokens);
+  out.max_tokens = Number.isFinite(requested) && requested > 0 ? Math.min(requested, ANTHROPIC_MAX_TOKENS) : Math.min(1024, ANTHROPIC_MAX_TOKENS);
+  return out;
+}
+
 app.use('/api/anthropic', async (req, res) => {
   if (!ANTHROPIC_API_KEY) {
     res.status(503).json({
@@ -212,7 +231,7 @@ app.use('/api/anthropic', async (req, res) => {
         'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': ANTHROPIC_VERSION,
       },
-      body: req.method === 'POST' ? JSON.stringify(req.body ?? {}) : undefined,
+      body: req.method === 'POST' ? JSON.stringify(sanitizeAnthropicBody(req.body)) : undefined,
       signal: AbortSignal.timeout(Number(process.env.ARA_ANTHROPIC_TIMEOUT_MS || 180_000)),
     });
     res.status(upstream.status);
@@ -376,6 +395,8 @@ app.use('/api/external-data', createExternalDataProxyRouter());
 const satelliteMetadataStore = new SatelliteMetadataStore();
 const satelliteStacService = new SatelliteStacService({ store: satelliteMetadataStore });
 app.use('/api/typology', createTypologyRouter({ satelliteCatalog: satelliteMetadataStore.catalog }));
+// مسیر یکپارچهٔ «فقط با نام محله» (resolve → مرز → بافت → شواهد → دروازه → کارت V2)
+app.use('/api/decision-support', createNeighborhoodRouter());
 app.use('/api/decision-support', buildDecisionSupportRouter({ satelliteCatalog: satelliteMetadataStore.catalog }));
 // دروازهٔ عمومی منابع (P0): منیفست اعلانی + کانکتور مشترک + کش دو‌لایه.
 // یک route برای همهٔ transport‌ها؛ افزودن منبع جدید فقط منیفست/کانکتور می‌خواهد.
@@ -402,6 +423,7 @@ if (fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
 }
 
 app.listen(PORT, () => {
+  startScheduler();
   console.log(`[sci] backend listening on http://localhost:${PORT}`);
   console.log(`[sci] lfs years: ${[...lfs.keys()].sort().join(', ')}; provinces: ${Object.keys(provinceMap).length}`);
   console.log(`[sci] ui: ${fs.existsSync(path.join(DIST_DIR, 'index.html')) ? 'dist (production build)' : 'served by vite dev server'}`);
