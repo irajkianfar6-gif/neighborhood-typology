@@ -3,12 +3,16 @@ import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 import express from 'express';
 import { buildKernelRouter } from './kernelRouter';
+import { stopKernelService } from './kernelClient';
 import { loadPilotArtifacts, compareWithPilot, loadPilotBoundary } from './kernelShadow';
 import { mappingSummary, buildKernelRecord, classifyEvidenceStream } from './indicatorMapping';
 import {
   isNumericStatus, numericOrNull, collectAbstentions, gateAllowsNumericPublishing,
   type KernelRunResult,
 } from './kernelTypes';
+
+// فرایند kernel که تست‌ها خودکار راه‌اندازی می‌کنند باید بسته شود؛ وگرنه node --test هرگز خارج نمی‌شود.
+test.after(async () => { await stopKernelService(); });
 
 async function startServer() {
   const app = express();

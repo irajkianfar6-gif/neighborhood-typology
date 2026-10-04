@@ -28,16 +28,22 @@ services:
       KERNEL_PYTHON: "python3"
       KERNEL_SERVICE_PORT: "4105"
       SOURCE_CACHE_DIR: "/app/server/data/source-cache"
+      ARA_PUBLIC_DATA_DIR: "/app/public-data"
+      # ARA_API_TOKENS=token1:admin,token2:analyst  و  ARA_ALLOWED_ORIGINS را در .env.local تعریف کنید.
+      # ARA_STORAGE=postgres + DATABASE_URL برای پروفایل postgres
+      VALHALLA_URL: "${VALHALLA_URL:-}"
       # ARA_ANTHROPIC_API_KEY / ARA_ANTHROPIC_BASE_URL / OPENAQ_API_KEY / HEALTHSITES_API_KEY
       # از .env.local یا متغیرهای محیطی سرور تأمین می‌شوند.
 
     ports:
-      # روی تمام اینترفیس‌ها (0.0.0.0) باز می‌شود؛ یعنی دسترسی مستقیم از اینترنت.
-      # در حالت dev یا سرور شخصی: http://<IP>:8080   ←  کافی است.
-      - "8080:4001"
+      # فقط روی localhost باز می‌شود؛ دسترسی بیرونی باید از reverse proxy (nginx/Caddy) با TLS عبور کند.
+      # برای باز کردن آگاهانه روی همهٔ اینترفیس‌ها: ARA_BIND=0.0.0.0 docker compose up
+      - "${ARA_BIND:-127.0.0.1}:8080:4001"
 
     volumes:
       - ara-data:/app/server/data
+      # لایه‌های OSM استخراج‌شده (pois/roads/places) و رسترهای پایه — فقط‌خواندنی
+      - ./public/data:/app/public-data:ro
 
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+(process.env.SCI_PORT||4001)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -53,6 +59,40 @@ services:
         limits:
           memory: 2g
 
+  # ---------- اختیاری: پایگاه داده (docker compose --profile postgres up) ----------
+  postgis:
+    image: postgis/postgis:16-3.4
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ara
+      POSTGRES_USER: ara
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - ara-pg:/var/lib/postgresql/data
+      - ./neighborhood_typology/sql:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  # ---------- اختیاری: مسیریابی شبکه‌ای محلی (docker compose --profile routing up) ----------
+  # فایل iran-latest.osm.pbf را در ./public/data/valhalla قرار دهید؛ سپس VALHALLA_URL=http://valhalla:8002
+  valhalla:
+    image: ghcr.io/gis-ops/docker-valhalla/valhalla:latest
+    profiles: ["routing"]
+    restart: unless-stopped
+    environment:
+      tile_urls: ""
+      use_tiles_ignore_pbf: "False"
+      build_elevation: "False"
+      build_admins: "True"
+      build_time_zones: "True"
+    volumes:
+      - ./public/data/valhalla:/custom_files
+    ports:
+      - "127.0.0.1:8002:8002"
+
 volumes:
   ara-data:
     name: ara-data
+  ara-pg:
+    name: ara-pg

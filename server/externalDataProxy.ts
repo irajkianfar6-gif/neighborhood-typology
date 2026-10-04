@@ -79,7 +79,7 @@ export function readLocalPoiPoints(filePath: string = DEFAULT_LOCAL_POI_PATH): L
 }
 const FILTER_PATTERN = /^[A-Za-z0-9_$.'" =<>!()&|+-]{0,240}$/;
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const DEFAULT_LOCAL_POI_PATH = path.join(PROJECT_ROOT, 'public', 'data', 'pbf', 'pois.json');
+export const DEFAULT_LOCAL_POI_PATH = path.join(process.env.ARA_PUBLIC_DATA_DIR || path.join(PROJECT_ROOT, 'public', 'data'), 'pbf', 'pois.json');
 /**
  * آینه‌های Overpass.
  *

@@ -1,0 +1,2 @@
+﻿indicator_code,neighborhood_id,block_id,postal_prefix,numerator,denominator,value,unit,period_start,period_end,group_key,group_value,source_org,dataset_id,extraction_date,contact
+R5,tehran:m605,,,,,42.5,Mbps,2025-01-01,2025-06-30,,,سازمان تنظیم مقررات ارتباطات,fixed-broadband-1404,,

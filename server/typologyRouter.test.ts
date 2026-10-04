@@ -4,6 +4,14 @@ import test from 'node:test';
 import express from 'express';
 import { createTypologyRouter } from './typologyRouter';
 import { MemoryTypologyStore } from './typologyStore';
+import fs from 'node:fs';
+import path from 'node:path';
+
+// لایه‌های حجیم public/data (کاتالوگ ۲۱۷۵۲ فایل و places.json) در مخزن نیستند و با
+// scripts/extract_pbf_layers.py ساخته می‌شوند. بدون آن‌ها این تست‌ها «رد» نمی‌شوند، صریحاً skip می‌شوند.
+const PUBLIC_DATA_DIR = path.resolve(process.env.ARA_PUBLIC_DATA_DIR || path.join(process.cwd(), 'public', 'data'));
+const NO_CATALOG = !fs.existsSync(path.join(PUBLIC_DATA_DIR, 'typology', 'source_catalog.json')) && 'public/data/typology/source_catalog.json موجود نیست';
+const NO_PLACES = !fs.existsSync(path.join(PUBLIC_DATA_DIR, 'pbf', 'places.json')) && 'public/data/pbf/places.json موجود نیست';
 
 test('exposes the resumable typology lifecycle over HTTP', async (context) => {
   const app = express();
@@ -48,7 +56,7 @@ test('exposes the resumable typology lifecycle over HTTP', async (context) => {
   assert.equal(invalidBody.error.code, 'INVALID_RUN_ID');
 });
 
-test('exposes a compact catalog summary for the 419-indicator audit dashboard', async (context) => {
+test('exposes a compact catalog summary for the 419-indicator audit dashboard', { skip: NO_CATALOG }, async (context) => {
   const app = express();
   app.use('/api/typology', createTypologyRouter({ store: new MemoryTypologyStore(), codeVersion: 'test' }));
   const server = app.listen(0, '127.0.0.1');
@@ -68,7 +76,7 @@ test('exposes a compact catalog summary for the 419-indicator audit dashboard', 
   assert.ok(Object.keys(body.data.indicator_links).length >= 419);
 });
 
-test('searches local Iranian neighborhood points without requiring city or province input', async (context) => {
+test('searches local Iranian neighborhood points without requiring city or province input', { skip: NO_PLACES }, async (context) => {
   const app = express();
   app.use('/api/typology', createTypologyRouter({ store: new MemoryTypologyStore(), codeVersion: 'test' }));
   const server = app.listen(0, '127.0.0.1');

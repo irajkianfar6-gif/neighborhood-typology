@@ -2,6 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import type { Geometry, Position } from 'geojson';
+
+/** مسیر public/data؛ ARA_PUBLIC_DATA_DIR اولویت دارد (Docker volume / fixture تست) */
+function publicDataDirFor(root: string): string {
+  return process.env.ARA_PUBLIC_DATA_DIR ? path.resolve(process.env.ARA_PUBLIC_DATA_DIR) : path.join(root, 'public', 'data');
+}
 import type { IndicatorTask, TypologyRun } from './typologyTypes';
 
 export interface AutoEvidenceOptions {
@@ -128,7 +133,7 @@ function pbfMetric(root: string, task: IndicatorTask, boundary: Geometry, cache:
   const greenTask = GREEN_AREA_INDICATORS.has(task.code);
   const landuseTags = LANDUSE_AREA_INDICATORS.get(task.code);
   const landuseTask = greenTask || Boolean(landuseTags);
-  const file = roadTask ? path.join(root, 'public', 'data', 'pbf', 'roads.json') : landuseTask ? path.join(root, 'public', 'data', 'pbf', 'landuse.json') : '';
+  const file = roadTask ? path.join(publicDataDirFor(root), 'pbf', 'roads.json') : landuseTask ? path.join(publicDataDirFor(root), 'pbf', 'landuse.json') : '';
   if (!file || !fs.existsSync(file)) return null;
   const cached = cache.has(file) ? cache.get(file) : readJson(file);
   if (!cache.has(file)) cache.set(file, cached);
@@ -165,7 +170,7 @@ function pbfMetric(root: string, task: IndicatorTask, boundary: Geometry, cache:
 function explicitLanduseMetric(root: string, task: IndicatorTask, boundary: Geometry, cache: Map<string, unknown>): { value: number; unit: string; path: string; dataset: string } | null {
   const allowed = LANDUSE_AREA_INDICATORS.get(task.code);
   if (!allowed) return null;
-  const file = path.join(root, 'public', 'data', 'pbf', 'landuse.json');
+  const file = path.join(publicDataDirFor(root), 'pbf', 'landuse.json');
   if (!fs.existsSync(file)) return null;
   const cached = cache.has(file) ? cache.get(file) : readJson(file);
   if (!cache.has(file)) cache.set(file, cached);

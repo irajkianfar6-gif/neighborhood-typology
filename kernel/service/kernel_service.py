@@ -546,6 +546,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"neighborhood_id": m.group(1), "versions": vs,
                                     "append_only": True})
 
+        if path == "/v1/gis/rasters":
+            from gis.zonal import available_rasters
+            return self._send(200, {"rasters": available_rasters()})
         if path == "/v1/pilot/mvp2":
             nr = _load_json_if(os.path.join(PILOT_MVP2, "neighborhood_result.json"))
             gate = _load_json_if(os.path.join(PILOT_MVP2, "gate_report_mvp2.json"))
@@ -594,7 +597,23 @@ class Handler(BaseHTTPRequestHandler):
         if m:
             return _boundary_add_version_impl(self, m.group(1), body)
 
+        if path == "/v1/gis/zonal-stats":
+            return self._zonal_stats(body)
+
         return self._send(*_error("INVALID_INPUT", f"no route: {path}", 404))
+
+    # ---- zonal stats ----
+    def _zonal_stats(self, body: dict):
+        from gis.zonal import ZonalError, zonal_stats
+        geometry = body.get("geometry")
+        raster_id = body.get("raster_id")
+        if not isinstance(geometry, dict) or not isinstance(raster_id, str):
+            return self._send(*_error("INVALID_INPUT", "geometry و raster_id لازم است"))
+        try:
+            result = zonal_stats(raster_id, geometry, body.get("cell_centers"), body.get("cell_size_m"), body.get("threshold"))
+        except ZonalError as exc:
+            return self._send(*_error(exc.code, str(exc), 422))
+        return self._send(200, {"result": result, "computed_at": _now_iso()})
 
     # ---- ingestion ----
     def _ingestion_validate(self, body: dict):

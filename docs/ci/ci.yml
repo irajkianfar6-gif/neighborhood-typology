@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: kernel/requirements.txt
+      - run: npm ci
+      - run: python -m pip install -r kernel/requirements.txt
+      - name: Type-check
+        run: npm run lint
+      - name: Server & UI tests
+        run: npm run test:typology
+        env:
+          ARA_SCHEDULER_ENABLED: "0"
+      - name: Neighborhood pipeline / no-fabrication tests
+        run: npm run test:neighborhood
+        env:
+          ARA_SCHEDULER_ENABLED: "0"
+      - name: Kernel tests
+        run: |
+          cd kernel
+          for f in engine/tests/test_*.py gis/test_zonal.py; do python "$f"; done
+          python service/test_kernel_service.py
+      - name: Build
+        run: npm run build

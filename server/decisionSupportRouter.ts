@@ -42,7 +42,20 @@ function asyncRoute(handler: AsyncHandler) {
   };
 }
 
-function normalizeIndicatorValues(value: unknown): { values: Record<string, number>; error?: string } {
+/** سطوح جغرافیایی که هرگز نباید به‌عنوان مقدار «محله» پذیرفته شوند (جانشین ملی/استانی/شهری) */
+const NON_LOCAL_LEVELS = new Set(['national', 'province', 'city', 'country', 'region']);
+
+export function checkIndicatorGeography(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'object' || Array.isArray(value)) return 'indicatorGeography must be an object of indicatorCode → geography level';
+  for (const [code, level] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof level !== 'string') return `indicatorGeography.${code} must be a string`;
+    if (NON_LOCAL_LEVELS.has(level.toLowerCase())) return `indicator ${code} is measured at ${level} level; national/province/city values cannot be used as neighborhood scores`;
+  }
+  return undefined;
+}
+
+export function normalizeIndicatorValues(value: unknown): { values: Record<string, number>; error?: string } {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return { values: {}, error: 'indicatorValues must be an object' };
   }
@@ -182,6 +195,11 @@ export function buildDecisionSupportRouter(options: {
     const body = req.body as Partial<DecisionSupportRequest & { survey?: unknown }>;
     if (typeof body.neighborhoodName !== 'string' || !body.neighborhoodName.trim()) {
       res.status(400).json({ success: false, error: { code: 'MISSING_FIELD', message: 'neighborhoodName is required' } });
+      return;
+    }
+    const geographyError = checkIndicatorGeography((body as { indicatorGeography?: unknown }).indicatorGeography);
+    if (geographyError) {
+      res.status(422).json({ success: false, error: { code: 'GEOGRAPHY_MISMATCH', message: geographyError } });
       return;
     }
     const normalized = normalizeIndicatorValues(body.indicatorValues);

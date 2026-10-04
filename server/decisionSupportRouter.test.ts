@@ -3,7 +3,11 @@ import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 import express from 'express';
 import { buildDecisionSupportRouter } from './decisionSupportRouter';
-import { combineToAlgorithmIndicators } from '../src/algorithm/realDataConnectors';
+import * as connectors from '../src/algorithm/realDataConnectors';
+import { stopKernelService } from './kernelClient';
+
+// موتور kernel در برخی مسیرها به‌صورت فرزند اجرا می‌شود؛ بدون توقف، فرایند تست باز می‌ماند
+test.after(stopKernelService);
 
 async function startServer() {
   const app = express();
@@ -17,8 +21,9 @@ async function startServer() {
   return { server, base: `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/decision-support` };
 }
 
-test('does not manufacture indicators when every source is missing', () => {
-  assert.deepEqual(combineToAlgorithmIndicators({}), {});
+test('client no longer exposes the heuristic indicator synthesizer', () => {
+  // نگاشت شمارش POI/شاخص ملی به امتیاز محله حذف شد (ساخت عدد بدون پشتوانه)
+  assert.equal('combineToAlgorithmIndicators' in connectors, false);
 });
 
 test('rejects empty and unknown indicator payloads', async (context) => {

@@ -1,0 +1,5 @@
+﻿indicator_code,neighborhood_id,block_id,postal_prefix,numerator,denominator,value,unit,period_start,period_end,group_key,group_value,source_org,dataset_id,extraction_date,contact
+POP,tehran:m605,,,,,31594,person,,2016-10-01,,,مرکز آمار ایران,census-1395-block,,
+H1,tehran:m605,,,12500,24000,52.1,%,,2016-10-01,,,مرکز آمار ایران,census-1395-block,,
+H1,tehran:m605,,,6100,12000,50.8,%,,2016-10-01,sex,female,مرکز آمار ایران,census-1395-block,,
+E4,tehran:m605,,,,,38.0,%,2024-01-01,2024-12-31,,,مرکز آمار ایران,rent-burden-2024,,

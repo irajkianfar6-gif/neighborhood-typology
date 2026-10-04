@@ -22,6 +22,9 @@ import {
   type ShadowCardInput,
 } from './kernelShadowMode';
 import type { KernelRunResult } from './kernelTypes';
+import { stopKernelService } from './kernelClient';
+
+test.after(stopKernelService);
 
 // ---------- fixtures ----------
 function fakeKernel(overrides: {

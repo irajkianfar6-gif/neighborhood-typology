@@ -86,6 +86,13 @@ export async function ensureKernelService(): Promise<void> {
       env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1', KERNEL_SERVICE_PORT: String(PORT) },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+    // فرزند یتیم (پس از خروج والد) پورت را نگه می‌دارد ولی به‌خاطر لولهٔ خروجی شکسته پاسخ نمی‌دهد؛ با خروج والد خاتمه‌اش می‌دهیم
+    const spawned = child;
+    process.once('exit', () => { try { spawned.kill('SIGTERM'); } catch { /* already dead */ } });
+    // فرزند و لوله‌هایش نباید فرایند Node را زنده نگه دارند (تست‌ها/اسکریپت‌ها بدون stopKernelService هم خارج شوند)
+    spawned.unref();
+    (spawned.stdout as unknown as { unref?: () => void } | null)?.unref?.();
+    (spawned.stderr as unknown as { unref?: () => void } | null)?.unref?.();
     child.stdout?.on('data', (d: Buffer) => console.log('[kernel-svc]', d.toString().trim()));
     child.stderr?.on('data', (d: Buffer) => console.log('[kernel-svc]', d.toString().trim()));
     // بدون این هندلر، خطای راه‌اندازی (مثل نبود مفسر) به‌صورت رویداد error
@@ -145,6 +152,16 @@ export interface KernelClient {
   boundary(neighborhoodId: string): Promise<KernelBoundary>;
   registries(): Promise<Record<string, unknown>>;
   drilldown(runId: string, valueId: string): Promise<{ status: number; payload: unknown }>;
+  /** zonal stats روی رستر ثبت‌شده (worldpop, ndvi, dem, jrc_flood, ...) */
+  zonalStats(req: { raster_id: string; geometry: unknown; cell_centers?: Array<[number, number]>; cell_size_m?: number; threshold?: number }): Promise<{ status: number; payload: { result?: ZonalResult; error?: { code: string; message: string } } }>;
+  /** ثبت نسخهٔ مرز با provenance (append-only) */
+  registerBoundary(neighborhoodId: string, body: Record<string, unknown>): Promise<{ status: number; payload: unknown }>;
+}
+
+export interface ZonalResult {
+  raster_id: string; file: string; count: number; inside_pixels: number; valid_fraction: number;
+  sum: number | null; mean: number | null; min: number | null; max: number | null; pixel_area_m2: number;
+  share_ge_threshold?: number; cells?: number[];
 }
 
 export const kernelClient: KernelClient = {
@@ -181,6 +198,16 @@ export const kernelClient: KernelClient = {
   async drilldown(runId, valueId) {
     await ensureKernelService();
     return fetchJson<unknown>('GET', `/v1/calculation-runs/${encodeURIComponent(runId)}/drilldown/${encodeURIComponent(valueId)}`);
+  },
+
+  async zonalStats(req) {
+    await ensureKernelService();
+    return fetchJson<{ result?: ZonalResult; error?: { code: string; message: string } }>('POST', '/v1/gis/zonal-stats', req);
+  },
+
+  async registerBoundary(neighborhoodId, body) {
+    await ensureKernelService();
+    return fetchJson<unknown>('POST', `/v1/gis/boundaries/${encodeURIComponent(neighborhoodId)}`, body);
   },
 };
 

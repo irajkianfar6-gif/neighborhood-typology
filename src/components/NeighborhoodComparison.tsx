@@ -5,19 +5,7 @@ import { useState, useCallback } from 'react';
 import { GitCompareArrows, Loader2, AlertTriangle } from 'lucide-react';
 import { CAPITAL_FA, BAND_CONFIG } from '../algorithm/types';
 import { scoreToBand } from '../algorithm/statusBands';
-import {
-  combineToAlgorithmIndicators,
-  fetchClimateHistorical,
-  fetchGeocode,
-  fetchHealthFacilities,
-  fetchOpenMeteoAirQuality,
-  fetchOSMPois,
-  fetchUNESCOEducation,
-  fetchWHOHealthIndicators,
-  fetchWalkabilityScore,
-  fetchWorldBankIndicators,
-} from '../algorithm/realDataConnectors';
-import { analyzeDecisionSupport } from '../algorithm/decisionSupportApi';
+import { analyzeNeighborhoodByName, LEVEL_FA } from '../algorithm/neighborhoodApi';
 import type { DecisionCard } from '../algorithm/types';
 
 interface Props {}
@@ -32,28 +20,15 @@ export default function NeighborhoodComparison(_props: Props) {
 
   const analyzeOne = useCallback(async (name: string): Promise<DecisionCard | null> => {
     if (!name.trim()) return null;
-    const geo = await fetchGeocode(name.trim());
-    if (!geo) throw new Error('مکان معتبر برای محله پیدا نشد.');
-    const { lat, lng } = geo;
-    const [air, pois, walkability, worldBank, who, unesco, climate, healthFacilities] = await Promise.all([
-      fetchOpenMeteoAirQuality(lat, lng).catch(() => null),
-      fetchOSMPois(lat, lng).catch(() => null),
-      fetchWalkabilityScore(lat, lng).catch(() => null),
-      fetchWorldBankIndicators().catch(() => null),
-      fetchWHOHealthIndicators().catch(() => null),
-      fetchUNESCOEducation().catch(() => null),
-      fetchClimateHistorical(lat, lng).catch(() => null),
-      fetchHealthFacilities(lat, lng).catch(() => null),
-    ]);
-    const indicatorValues = combineToAlgorithmIndicators({ air, pois, walkability, worldBank, who, unesco, climate, healthFacilities });
-    const result = await analyzeDecisionSupport({
-      neighborhoodName: name.trim(),
-      cityOrCounty: '',
-      province: '',
-      purpose: 'baseline',
-      indicatorValues,
-    });
-    return result.card;
+    const response = await analyzeNeighborhoodByName({ name: name.trim() });
+    if (response.status === 'NEEDS_DISAMBIGUATION') {
+      const options = response.candidates.slice(0, 4).map(c => `${c.nameFa} (${c.cityFa})`).join('، ');
+      throw new Error(`«${name}» مبهم است؛ نام شهر را هم بنویسید (مثلاً: ${options})`);
+    }
+    if (!response.engineCard) {
+      throw new Error(`«${name}»: ${LEVEL_FA[response.card.publication.level].label} — شواهد برای مقایسه کافی نیست`);
+    }
+    return response.engineCard;
   }, []);
 
   const handleCompare = useCallback(async () => {
@@ -69,8 +44,8 @@ export default function NeighborhoodComparison(_props: Props) {
       const b = await analyzeOne(nameB);
       setCardB(b);
       setProgress('');
-    } catch {
-      setProgress('خطا در تحلیل');
+    } catch (error) {
+      setProgress(error instanceof Error ? error.message : 'خطا در تحلیل');
     } finally {
       setLoading(false);
     }
@@ -115,6 +90,7 @@ export default function NeighborhoodComparison(_props: Props) {
         </div>
       </div>
 
+      {!loading && progress && <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">{progress}</p>}
       {/* Results */}
       {cardA && cardB && (
         <ComparisonTable a={cardA} b={cardB} />

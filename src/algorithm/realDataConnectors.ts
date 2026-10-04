@@ -110,7 +110,6 @@ export async function fetchExternalDataHealth(): Promise<ExternalProviderTelemet
   }
 }
 
-function clamp(v: number, lo: number, hi: number): number { return Math.min(hi, Math.max(lo, v)); }
 
 function finiteApiNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
@@ -310,72 +309,11 @@ export async function fetchHealthFacilities(lat: number, lng: number): Promise<{
   } catch { return null; }
 }
 
-// ─── تبدیل همه داده‌ها به شاخص‌های الگوریتم ───────────────
-export function combineToAlgorithmIndicators(data: {
-  air?: { pm25?: number; pm10?: number; no2?: number; temperature?: number } | null;
-  pois?: { schools: number; hospitals: number; parks: number; busStops: number; supermarkets: number; pharmacies: number; mosques: number; banks: number; restaurants: number } | null;
-  worldBank?: { gdpGrowth?: number; inflation?: number; unemployment?: number; urbanPopulation?: number; lifeExpectancy?: number } | null;
-  who?: { healthExpenditure?: number; hospitalBeds?: number; physicians?: number } | null;
-  unesco?: { literacyRate?: number; enrollmentPrimary?: number } | null;
-  climate?: { avgTemp: number; totalRainfall: number; droughtIndex: number } | null;
-  walkability?: { sidewalkDensity: number; crossingDensity: number; streetLightDensity: number } | null;
-  healthFacilities?: { hospitals: number; clinics: number; pharmacies: number; healthPosts: number } | null;
-}): Record<string, number> {
-  const result: Record<string, number> = {};
-  const set = (code: string, value: number | null | undefined) => {
-    if (typeof value === 'number' && Number.isFinite(value)) result[code] = clamp(value, 0, 100);
-  };
-  const sumAvailable = (...values: Array<number | undefined>): number | null => {
-    const available = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-    return available.length > 0 ? available.reduce((sum, value) => sum + value, 0) : null;
-  };
-  const p = data.pois;
-  const hf = data.healthFacilities;
-  const hospitalCount = sumAvailable(p?.hospitals, hf?.hospitals);
-  const pharmacyCount = sumAvailable(p?.pharmacies, hf?.pharmacies);
-
-  set('H1', data.unesco?.literacyRate === undefined ? null : data.unesco.literacyRate * 0.95);
-  set('H2', data.unesco?.enrollmentPrimary === undefined ? null : data.unesco.enrollmentPrimary * 0.85);
-  set('H3', data.worldBank?.unemployment === undefined ? null : 100 - data.worldBank.unemployment * 3);
-  set('H4', data.unesco?.literacyRate === undefined ? null : 55 + data.unesco.literacyRate * 0.2);
-  set('H5', data.worldBank?.gdpGrowth === undefined ? null : 50 + data.worldBank.gdpGrowth * 3);
-  set('S1', p ? 40 + p.schools * 3 : null);
-  set('S2', hospitalCount === null ? null : 35 + hospitalCount * 8);
-  set('S3', p ? 45 + p.parks * 5 : null);
-  set('S4', p ? 30 + p.mosques * 8 : null);
-  set('S5', p ? 50 + p.banks * 10 : null);
-  set('E1', data.worldBank?.gdpGrowth === undefined ? null : 50 + data.worldBank.gdpGrowth * 5);
-  set('E2', p ? p.schools * 5 + p.restaurants * 2 : null);
-  set('E3', p ? 60 + p.supermarkets * 4 : null);
-  set('E4', data.worldBank?.inflation === undefined ? null : 100 - data.worldBank.inflation * 1.5);
-  set('E5', p ? 50 + p.banks * 10 : null);
-  set('P1', data.walkability ? 60 + data.walkability.crossingDensity * 0.3 : null);
-  set('P2', data.walkability ? data.walkability.sidewalkDensity * 0.8 : null);
-  set('P3', data.walkability ? 50 + data.walkability.crossingDensity * 0.5 : null);
-  set('P4', hospitalCount === null && pharmacyCount === null ? null : (hospitalCount ?? 0) * 15 + (pharmacyCount ?? 0) * 5);
-  set('P5', p ? p.busStops * 3 : null);
-  set('N1', p ? p.parks * 10 : null);
-  set('N2', data.climate ? 30 + data.climate.totalRainfall * 0.05 : null);
-  set('N3', data.air?.pm25 === undefined ? null : 100 - data.air.pm25);
-  set('N4', data.climate ? 80 - data.climate.droughtIndex * 50 : null);
-  set('N5', data.climate ? 70 - data.climate.droughtIndex * 30 : null);
-  set('C1', p ? p.mosques * 8 + p.parks * 5 : null);
-  set('C2', p ? 50 + p.schools * 4 : null);
-  set('C3', p ? 45 + p.restaurants * 5 : null);
-  set('C4', p ? 40 + p.parks * 8 : null);
-  set('C5', p ? 50 + p.mosques * 6 : null);
-  set('G1', data.who?.healthExpenditure === undefined ? null : 50 + data.who.healthExpenditure * 3);
-  set('G2', data.who?.hospitalBeds === undefined ? null : 45 + data.who.hospitalBeds * 10);
-  set('G3', data.who?.physicians === undefined ? null : 40 + data.who.physicians * 12);
-  set('G4', p ? 55 + p.banks * 8 : null);
-  set('G5', hf ? 35 + (hf.healthPosts + hf.clinics) * 5 : null);
-  set('R1', p ? 60 + p.schools * 3 + p.hospitals * 5 : null);
-  set('R2', p ? p.schools * 3 + p.hospitals * 5 : null);
-  set('R3', p ? 50 + p.parks * 6 : null);
-  set('R4', p ? 45 + p.supermarkets * 5 : null);
-  set('R5', p ? 60 + p.busStops * 2 + p.pharmacies * 3 : null);
-  return result;
-}
+// ─── تبدیل داده‌ها به شاخص‌ها ───────────────────────────────
+// تابع combineToAlgorithmIndicators حذف شد: شمارش POI در شعاع ثابت و شاخص‌های ملی
+// (World Bank/WHO/UNESCO) را با ضرایب دلبخواه به «امتیاز محله» تبدیل می‌کرد.
+// اکنون همهٔ شاخص‌ها در سرور (server/neighborhood/indicators.ts) روی مرز رسمی محله،
+// با منبع، تاریخ، ردهٔ شاهد و پایایی ساخته می‌شوند: POST /api/decision-support/neighborhoods/analyze
 
 // ─── وضعیت منابع ──────────────────────────────────────────
 export function buildSourceStatuses(data: {

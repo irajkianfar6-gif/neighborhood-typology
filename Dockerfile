@@ -12,7 +12,8 @@ FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 ENV NODE_OPTIONS=--max-old-space-size=4096
 COPY package.json package-lock.json ./
-RUN npm ci --omit=optional --no-audit --no-fund
+# بدون --omit=optional: باینری‌های esbuild/rollup وابستگی اختیاری‌اند و build بدون آن‌ها می‌شکند
+RUN npm ci --no-audit --no-fund
 COPY . .
 RUN npm run build
 
@@ -38,14 +39,15 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* \
  && rm -f /usr/lib/python3*/EXTERNALLY-MANAGED || true
 
-RUN python3 -m pip install --no-cache-dir \
-      "numpy>=1.26,<3" "rasterio>=1.4,<2" "shapely>=2,<3"
+# pyproj برای اعتبارسنجی مرز و zonal stats در CRS متریک الزامی است
+COPY kernel/requirements.txt /tmp/kernel-requirements.txt
+RUN python3 -m pip install --no-cache-dir -r /tmp/kernel-requirements.txt
 
 WORKDIR /app
 
 # وابستگی‌های زمان اجرا (tsx برای اجرای server/*.ts لازم است)
 COPY package.json package-lock.json ./
-RUN npm ci --omit=optional --no-audit --no-fund && npm cache clean --force
+RUN npm ci --no-audit --no-fund && npm cache clean --force
 
 # کد سرویس: server (TS) + src (ماژول‌های الگوریتمی که سرور import می‌کند)
 COPY tsconfig.json ./
@@ -57,6 +59,8 @@ COPY kernel ./kernel
 COPY mahalat ./mahalat
 COPY neighborhood_typology ./neighborhood_typology
 COPY scripts ./scripts
+COPY templates ./templates
+COPY data ./data
 COPY docs/decision-support ./docs/decision-support
 COPY --from=builder /app/registry-src ./
 COPY --from=builder /app/dist ./dist
