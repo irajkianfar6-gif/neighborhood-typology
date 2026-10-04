@@ -67,7 +67,7 @@ Docker: `docker compose up -d` (فقط روی 127.0.0.1)، با PostGIS: `docker
 
 ## آزمون‌ها
 
-فایل CI آماده در `docs/ci/ci.yml` است؛ برای فعال‌سازی آن را به `.github/workflows/ci.yml` منتقل کنید.
+CI در `.github/workflows/ci.yml` روی هر push به main و هر PR اجرا می‌شود.
 
 `npm run test:all` — شامل `server/noFabrication.test.ts` (رد مقادیر ملی/استانی، حذف سازندهٔ ابتکاری، امتناع در نبود داده)،
 resolver روی هر ۳۹۱ نام رسمی تهران، دروازهٔ انتشار، احراز هویت، قرارداد داده و آزمون‌های kernel (شامل `gis/test_zonal.py`).
