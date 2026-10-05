@@ -8,7 +8,7 @@
  * N1 دسترسی سبز      — سهم جمعیت در ۳۰۰ متری فضای سبز عمومی ≥ ۰٫۵ هکتار
  * N2 پوشش سبز        — سهم نمونه‌های ۵۰ متری درون پهنه‌های سبز OSM (پروکسی) یا NDVI (رستر)
  * N3 کیفیت هوا        — میانگین PM2.5 مدل CAMS (Open-Meteo) ۹۲ روز اخیر (open_model)
- * N4 مواجهه با خطر   — سهم جمعیت در پهنهٔ سیل/خطر (فقط با رستر JRC/DEM)
+ * N4/N5/R2/R5        — در openData.ts (سیل+گسل+شیب، پوشش زمین، بنگاه‌های در دسترس، Ookla)
  * R1 اتصال شهری      — میانهٔ جمعیت‌وزن‌دار زمان پیاده تا شبکهٔ سریع (پروکسی)
  * R3 دسترسی دانش     — میانهٔ جمعیت‌وزن‌دار زمان پیاده تا مدرسه/دانشگاه/کتابخانه
  * C1 دارایی فرهنگی   — دارایی‌های فرهنگی درون مرز ÷ جمعیت ×۱۰۰۰
@@ -24,6 +24,7 @@ import type { GazetteerEntry } from './gazetteer';
 import { type AreaGeom, bboxOf, distanceToGeomM, gridInside, haversineM, overpassPoly, pointInGeom, weightedMedian } from './geo';
 import { type LayerCategory, type OsmLayer, overpass } from './osmLayers';
 import { WALK_M_PER_MIN, walkDistances } from './routing';
+import { computeN4, computeN5, computeR2, computeR5 } from './openData';
 
 export type CityLayers = Partial<Record<LayerCategory, OsmLayer | null>>;
 
@@ -216,28 +217,6 @@ async function computeN3(entry: GazetteerEntry, opts: { offline?: boolean }): Pr
   };
 }
 
-// ---------- N4: مواجهه با خطر ----------
-async function computeN4(entry: GazetteerEntry, ctx: NeighborhoodContext, useKernel: boolean): Promise<DocumentedValue> {
-  if (!useKernel || !process.env.JRC_FLOOD_COG_PATH) {
-    return missing('N4', '%', 'رستر پهنهٔ خطر (JRC_FLOOD_COG_PATH / گسل / شیب) پیکربندی نشده', 'دانلود JRC Global Flood Hazard T100 و نقشهٔ گسل IIEES؛ تنظیم JRC_FLOOD_COG_PATH', { lowerIsBetter: true, cadence: 'static' });
-  }
-  try {
-    const { status, payload } = await kernelClient.zonalStats({ raster_id: 'jrc_flood', geometry: entry.boundary.geojson, threshold: 0.01, cell_centers: ctx.gridOrigins.map((c) => [c.lng, c.lat]), cell_size_m: ctx.gridCellM });
-    const r = payload.result;
-    if (status !== 200 || !r) throw new Error(payload.error?.code ?? String(status));
-    let exposed = 0, total = 0;
-    ctx.gridOrigins.forEach((c, i) => { total += c.weight; if ((r.cells?.[i] ?? 0) > 0) exposed += c.weight; });
-    return {
-      code: 'N4', raw: r1(total ? (exposed / total) * 100 : 0), unit: '%', source: `JRC flood hazard (${r.file})`, sourceIds: ['raster:jrc_flood'], channel: 'satellite',
-      tier: 'open_measured', geographyLevel: 'neighborhood', observedAt: process.env.JRC_FLOOD_OBSERVED_AT ?? null, observedAtUnknown: !process.env.JRC_FLOOD_OBSERVED_AT,
-      fetchedAt: nowIso(), method: 'سهم جمعیت شبکه در سلول‌های دارای عمق سیل T100 > ۰ (فقط سیل؛ گسل و شیب افزوده نشده)', methodQuality: 0.7,
-      sampleAdequacy: r.valid_fraction, cadence: 'static', lowerIsBetter: true,
-    };
-  } catch (error) {
-    return missing('N4', '%', `zonal پهنهٔ خطر ناموفق: ${error instanceof Error ? error.message : error}`, 'بررسی kernel و رستر', { lowerIsBetter: true });
-  }
-}
-
 const isPark = (a: { kind: string; areaM2: number }) => ['park', 'garden', 'nature_reserve', 'recreation_ground', 'village_green'].includes(a.kind) && a.areaM2 >= 5000;
 
 async function computeN1(ctx: NeighborhoodContext, parks: OsmLayer | null | undefined): Promise<DocumentedValue> {
@@ -312,6 +291,8 @@ export async function computeOpenIndicators(entry: GazetteerEntry, ctx: Neighbor
   const c1 = perCapitaInside('C1', entry, ctx, layers.culture, () => true, 'دارایی فرهنگی/تاریخی/مذهبی', 'open_measured');
   const e2 = perCapitaInside('E2', entry, ctx, layers.commerce, () => true, 'بنگاه (shop/office/craft/خدمات) نگاشته‌شده', 'proxy');
   if (e2.raw !== null) e2.nextAction = 'برای سطح official: دادهٔ پروانهٔ فعال اتاق اصناف + بیمه‌شدگان تأمین اجتماعی';
-  const r5 = missing('R5', 'index', 'دادهٔ Ookla Open Data / CRA متصل نشده', 'بارگذاری tiles پارکت Ookla یا قرارداد سازمان تنظیم مقررات');
-  return [p2, p4, p5, n1, n2, n3, n4, r1v, r3, c1, e2, r5];
+  const n5 = await computeN5(entry, ctx, useKernel, n4);
+  const r2 = computeR2(ctx, layers.commerce);
+  const r5 = computeR5(entry, ctx);
+  return [p2, p4, p5, n1, n2, n3, n4.value, n5, r1v, r2, r3, c1, e2, r5];
 }

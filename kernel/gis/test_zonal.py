@@ -37,5 +37,22 @@ try:
     zonal_stats("worldpop", poly); check("missing raster config rejected", False)
 except ZonalError:
     check("missing raster config rejected", True)
+# رستر شهری بریده‌شده (<id>__<city>.tif) و کسر کلاس‌های پوشش زمین
+odir = os.path.join(tmp, "open-rasters"); os.makedirs(odir)
+os.environ["ARA_OPEN_RASTER_DIR"] = odir
+wc = np.full((10, 10), 50, dtype="uint8"); wc[:, :4] = 10  # ۴۰٪ درخت، ۶۰٪ ساخته‌شده
+with rasterio.open(os.path.join(odir, "worldcover__testcity.tif"), "w", driver="GTiff", height=10, width=10, count=1, dtype="uint8",
+                   crs="EPSG:4326", transform=from_origin(51.0, 35.01, 0.001, 0.001), nodata=0) as dst:
+    dst.write(wc, 1)
+r = zonal_stats("worldcover", poly, [[51.002, 35.005], [51.008, 35.005]], 200, None, "testcity", {"tree": [10], "built": [50]})
+check("city fallback raster resolved", r["file"] == "worldcover__testcity.tif")
+check("class fractions overall", abs(r["class_fractions"]["tree"] - 0.4) < 1e-6 and abs(r["class_fractions"]["built"] - 0.6) < 1e-6)
+check("per-cell class fractions", r["cell_class_fractions"][0]["tree"] == 1.0 and r["cell_class_fractions"][1]["built"] == 1.0)
+try:
+    zonal_stats("worldcover", poly, city="../etc"); check("unsafe city slug rejected", False)
+except ZonalError:
+    check("unsafe city slug rejected", True)
+r = zonal_stats("worldcover", poly, [[51.002, 35.005]], 200, 30, "testcity")
+check("per-cell share ≥ threshold", r["cell_share_ge_threshold"][0] == 0.0)
 print(f"ZONAL CONTRACT TESTS: {passed}/{passed + failed} passed")
 sys.exit(1 if failed else 0)

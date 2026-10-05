@@ -23,7 +23,7 @@ export interface DocumentedValue {
   methodQuality: number;
   /** کفایت نمونه/پوشش ۰..۱ (n/384، valid_fraction، ...) */
   sampleAdequacy: number;
-  cadence: 'realtime' | 'hourly' | 'daily' | 'monthly' | 'annual' | 'census' | 'static';
+  cadence: 'realtime' | 'hourly' | 'daily' | 'monthly' | 'quarterly' | 'annual' | 'census' | 'static';
   missingReason?: string;
   nextAction?: string;
   notes?: string[];
