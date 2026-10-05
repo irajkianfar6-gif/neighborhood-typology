@@ -15,4 +15,4 @@
 دادهٔ رسمی/قراردادی همیشه بر پیمایش اولویت دارد. پس از ثبت داده، «بازمحاسبهٔ تصمیم‌یار» کارت را با داده‌های تازه می‌سازد.
 
 API: `GET /api/decision-support/data-collection/:id/status`، `POST /survey/:id/responses`، `POST /field-audit/:id`،
-`POST /local-register/:id/records`، `POST /local-register/:id/network`، `POST /local-register/:id/void` (نوشتن: نقش operator).
+`POST /local-register/:id/records`، `POST /local-register/:id/network`، `POST /local-register/:id/void` (نوشتن: نقش analyst — نقش پیش‌فرض و دائمی کاربر).

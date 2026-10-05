@@ -2,8 +2,9 @@
  * احراز هویت و نقش‌ها برای API سامانه.
  *
  * ARA_API_TOKENS="tokenA:admin,tokenB:analyst,tokenC:viewer"
- * ARA_ANON_ROLE   نقش درخواست بدون توکن. پیش‌فرض: در production «viewer» (فقط خواندن)،
- *                 در توسعه «admin» تا UI محلی بدون پیکربندی کار کند.
+ * نقش کاربر بدون توکن به‌صورت ثابت و دائمی «analyst» (تحلیلگر) است — در توسعه و تولید.
+ * تحلیلگر می‌تواند تحلیل کند و دادهٔ میدانی (پرسشنامه، ممیزی، ثبت محلی) ثبت کند؛
+ * تأیید دسته‌های داده، کالیبراسیون و حافظه/مداخله‌ها همچنان نقش بالاتر (با توکن) می‌خواهد.
  * نقش‌ها سلسله‌مراتبی‌اند: viewer < analyst < operator < admin
  */
 import crypto from 'node:crypto';
@@ -12,6 +13,8 @@ import type { NextFunction, Request, Response } from 'express';
 export type Role = 'none' | 'viewer' | 'analyst' | 'operator' | 'admin';
 export const ROLE_RANK: Record<Role, number> = { none: -1, viewer: 0, analyst: 1, operator: 2, admin: 3 };
 const VALID: Role[] = ['none', 'viewer', 'analyst', 'operator', 'admin'];
+/** نقش پیش‌فرض و دائمی کاربر (درخواست بدون توکن) */
+export const DEFAULT_ROLE: Role = 'analyst';
 
 export interface AuthConfig {
   tokens: Map<string, Role>;
@@ -30,11 +33,10 @@ export function loadAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig
     }
     tokens.set(token, VALID.includes(role) ? role : 'viewer');
   }
-  const requested = env.ARA_ANON_ROLE as Role | undefined;
-  const anonRole: Role = requested && VALID.includes(requested)
-    ? requested
-    : env.NODE_ENV === 'production' ? 'viewer' : 'admin';
-  return { tokens, anonRole };
+  if (env.ARA_ANON_ROLE && env.ARA_ANON_ROLE !== DEFAULT_ROLE) {
+    console.warn(`[auth] ARA_ANON_ROLE نادیده گرفته شد؛ نقش پیش‌فرض کاربر همیشه «${DEFAULT_ROLE}» است`);
+  }
+  return { tokens, anonRole: DEFAULT_ROLE };
 }
 
 function safeLookup(tokens: Map<string, Role>, presented: string): Role | undefined {
@@ -67,7 +69,9 @@ export const DEFAULT_ROUTE_RULES: RouteRule[] = [
   { path: /^\/api\/anthropic/, min: 'admin' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/calibration/, min: 'admin' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/ingestion\/[^/]+\/approve$/, min: 'admin' },
-  { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/(memory|interventions|experiments|ingestion|survey|field-audit|local-register|runs\/[^/]+\/learn|shadow)/, min: 'operator' },
+  // دادهٔ میدانی (پرسشنامه، ممیزی، ثبت محلی) را تحلیلگر هم می‌تواند ثبت کند
+  { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/(survey|field-audit|local-register)/, min: 'analyst' },
+  { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/(memory|interventions|experiments|ingestion|runs\/[^/]+\/learn|shadow)/, min: 'operator' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/typology\/(v1\/)?runs\/[^/]+\/approve/, min: 'operator' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/satellite/, min: 'operator' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\//, min: 'analyst' },
@@ -88,9 +92,6 @@ export function requiredRole(method: string, pathName: string, rules: RouteRule[
 
 /** میان‌افزار سراسری: نقش را تعیین و بر اساس قواعد مسیر، دسترسی را کنترل می‌کند */
 export function authMiddleware(config: AuthConfig = loadAuthConfig(), rules: RouteRule[] = DEFAULT_ROUTE_RULES) {
-  if (config.tokens.size === 0 && config.anonRole === 'admin') {
-    console.warn('[auth] هیچ توکنی تعریف نشده و نقش ناشناس admin است (حالت توسعه). در تولید ARA_API_TOKENS را تنظیم کنید.');
-  }
   return (req: AuthedRequest, res: Response, next: NextFunction) => {
     if (req.method === 'OPTIONS') { next(); return; }
     const min = requiredRole(req.method, req.path, rules);
