@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { CONTRACT_COLUMNS, approvedValuesFor, createBatch, reviewBatch, validateContractCsv } from './contractData';
+import { CONTRACT_COLUMNS, approvedValuesFor, createBatch, districtNeighborhoods, reviewBatch, validateContractCsv } from './contractData';
 
 process.env.ARA_SERVER_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'ara-contract-'));
 const header = CONTRACT_COLUMNS.join(',');
@@ -31,4 +31,27 @@ test('values are only used after an explicit approval', () => {
   const approved = approvedValuesFor('tehran:m605');
   assert.equal(approved.length, 1);
   assert.equal(approved[0].indicator_code, 'G1');
+});
+
+test('district-level rows fan out to every neighborhood of the district and are labelled district', () => {
+  const members = districtNeighborhoods('tehran:6')!;
+  assert.ok(members.includes('tehran:m605') && members.length > 5);
+  assert.deepEqual(districtNeighborhoods('tehran:منطقه ۶'), members);
+  assert.equal(districtNeighborhoods('tehran:99'), null);
+  const v = validateContractCsv([header,
+    row({ indicator_code: 'E4', district: 'tehran:6', value: '61.5', unit: '%', period_end: '2025-06-21', source_org: 'مرکز آمار ایران' }),
+    row({ indicator_code: 'E4', district: 'tehran:77', value: '40', period_end: '2025-06-21', source_org: 'x' }),
+  ].join('\n'));
+  assert.equal(v.rows.length, members.length);
+  assert.ok(v.rows.every((r) => r.geography_level === 'district' && r.district === 'tehran:6'));
+  assert.ok(v.issues.some((i) => i.code === 'UNKNOWN_DISTRICT'));
+  const b = createBatch([header,
+    row({ indicator_code: 'G2', district: 'tehran:6', value: '70', unit: '%', period_end: '2025-06-30', source_org: 'سامانهٔ ۱۳۷' }),
+    row({ indicator_code: 'G2', neighborhood_id: 'tehran:m605', value: '55', unit: '%', period_end: '2025-06-30', source_org: 'شهرداری منطقه ۶' }),
+  ].join('\n'), 'municipality', 'tester');
+  reviewBatch(b.batchId, 'reviewer', 'APPROVED');
+  const g2 = approvedValuesFor('tehran:m605').find((x) => x.indicator_code === 'G2')!;
+  assert.equal(g2.value, 55, 'neighborhood-level value wins over district-level for the same period');
+  const other = approvedValuesFor(members.find((m) => m !== 'tehran:m605')!).find((x) => x.indicator_code === 'G2')!;
+  assert.equal(other.geography_level, 'district');
 });

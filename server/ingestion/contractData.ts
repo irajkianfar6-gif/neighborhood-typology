@@ -9,11 +9,11 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { serverDataDir } from '../paths';
-import { getNeighborhood } from '../neighborhood/gazetteer';
+import { getNeighborhood, neighborhoodsOfCity } from '../neighborhood/gazetteer';
 
 export const CONTRACT_COLUMNS = [
   'indicator_code', 'neighborhood_id', 'block_id', 'postal_prefix', 'numerator', 'denominator', 'value', 'unit',
-  'period_start', 'period_end', 'group_key', 'group_value', 'source_org', 'dataset_id', 'extraction_date', 'contact',
+  'period_start', 'period_end', 'group_key', 'group_value', 'source_org', 'dataset_id', 'extraction_date', 'contact', 'district',
 ] as const;
 
 const CORE_40 = new Set('H1 H2 H3 H4 H5 S1 S2 S3 S4 S5 E1 E2 E3 E4 E5 P1 P2 P3 P4 P5 N1 N2 N3 N4 N5 C1 C2 C3 C4 C5 G1 G2 G3 G4 G5 R1 R2 R3 R4 R5'.split(' '));
@@ -31,6 +31,8 @@ export interface ContractRow {
   numerator?: number | null; denominator?: number | null; value: number;
   unit?: string; period_start?: string; period_end: string;
   group_key?: string; group_value?: string; source_org: string; dataset_id?: string; extraction_date?: string;
+  /** دادهٔ منتشرشده در سطح منطقهٔ شهرداری که روی همهٔ محلات آن منطقه گسترده شده (مثل tehran:6) */
+  district?: string; geography_level?: 'neighborhood' | 'district';
 }
 export interface RowIssue { row: number; field?: string; code: string; message: string; severity: 'error' | 'warning' }
 export type BatchStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'INVALID';
@@ -83,6 +85,22 @@ function loadBlockMap(): Map<string, string> {
   return m;
 }
 
+const toLatinDigits = (v: string) => v.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+function normalizeDistrict(v: string): { city: string; n: number } | null {
+  const m = /^([a-z][a-z0-9_-]*)\s*[:：]\s*(?:منطقه\s*)?(\d{1,2})$/i.exec(toLatinDigits(v.trim()));
+  return m ? { city: m[1].toLowerCase(), n: Number(m[2]) } : null;
+}
+/** همهٔ محلات یک منطقهٔ شهرداری (بر اساس districtFa گزتیر، مثل «منطقه ۶ شهر تهران») */
+export function districtNeighborhoods(v: string): string[] | null {
+  const d = normalizeDistrict(v);
+  if (!d) return null;
+  const members = neighborhoodsOfCity(d.city).filter((e) => {
+    const m = /منطقه\s*([0-9۰-۹]{1,2})/.exec(e.districtFa ?? '');
+    return m !== null && Number(toLatinDigits(m[1])) === d.n;
+  }).map((e) => e.neighborhoodId);
+  return members.length ? members : null;
+}
+
 export function validateContractCsv(text: string): { rows: ContractRow[]; issues: RowIssue[] } {
   const table = parseCsv(text);
   const issues: RowIssue[] = [];
@@ -93,7 +111,7 @@ export function validateContractCsv(text: string): { rows: ContractRow[]; issues
   for (const required of ['indicator_code', 'period_end', 'source_org']) {
     if (!header.includes(required)) issues.push({ row: 0, field: required, code: 'MISSING_COLUMN', message: `ستون الزامی ${required} وجود ندارد`, severity: 'error' });
   }
-  if (!header.includes('neighborhood_id') && !header.includes('block_id')) issues.push({ row: 0, code: 'MISSING_COLUMN', message: 'neighborhood_id یا block_id لازم است', severity: 'error' });
+  if (!header.includes('neighborhood_id') && !header.includes('block_id') && !header.includes('district')) issues.push({ row: 0, code: 'MISSING_COLUMN', message: 'neighborhood_id یا block_id یا district لازم است', severity: 'error' });
   if (issues.some((i) => i.row === 0 && i.severity === 'error')) return { rows, issues };
   const col = (r: string[], name: string) => { const i = header.indexOf(name); return i >= 0 ? (r[i] ?? '').trim() : ''; };
   const blockMap = loadBlockMap();
@@ -111,6 +129,13 @@ export function validateContractCsv(text: string): { rows: ContractRow[]; issues
     if (!CORE_40.has(code) && !CONTEXT_CODES.has(code)) { err('UNKNOWN_INDICATOR', `کد شاخص ${code} در هستهٔ ۴۰ یا متغیرهای بافت نیست`, 'indicator_code'); return; }
     let nid = col(r, 'neighborhood_id');
     const block = col(r, 'block_id');
+    const district = col(r, 'district');
+    let districtMembers: string[] | null = null;
+    if (district && !nid && !block) {
+      districtMembers = districtNeighborhoods(district);
+      if (!districtMembers) { err('UNKNOWN_DISTRICT', `منطقهٔ ${district} یافت نشد (قالب: <city>:<شمارهٔ منطقه>، مثل tehran:6)`, 'district'); return; }
+      nid = districtMembers[0];
+    }
     if (!nid && block) {
       nid = blockMap.get(block) ?? '';
       if (!nid) { err('UNMAPPED_BLOCK', `بلوک ${block} در data/gazetteer/block_map.csv نگاشت نشده`, 'block_id'); return; }
@@ -143,6 +168,12 @@ export function validateContractCsv(text: string): { rows: ContractRow[]; issues
       group_key: groupKey || undefined, group_value: col(r, 'group_value') || undefined,
       source_org: source, dataset_id: col(r, 'dataset_id') || undefined, extraction_date: col(r, 'extraction_date') || undefined,
     };
+    if (districtMembers) {
+      if (groupKey) { err('DISTRICT_GROUP', 'شکاف گروهی در سطح منطقه پذیرفته نمی‌شود', 'group_key'); return; }
+      const norm = normalizeDistrict(district)!;
+      for (const member of districtMembers) rows.push({ ...row, neighborhood_id: member, district: `${norm.city}:${norm.n}`, geography_level: 'district' });
+      return;
+    }
     // ردیف‌های بلوکی با صورت/مخرج روی محله جمع زده می‌شوند (نه میانگین درصدها)
     if (block && numerator !== null && denominator !== null) {
       const k = [code, nid, row.period_end, row.group_key ?? '', row.group_value ?? ''].join('|');
@@ -223,6 +254,14 @@ export interface ApprovedValue extends ContractRow { batchId: string; approvedAt
 let approvedCache: ApprovedValue[] | null = null;
 function invalidateApproved() { approvedCache = null; }
 
+/** جدیدترین دوره برنده است؛ در دورهٔ برابر، دادهٔ محله‌ای بر دادهٔ منطقه‌ای و سپس تأیید جدیدتر */
+function newer(v: ApprovedValue, prev: ApprovedValue): boolean {
+  if (v.period_end !== prev.period_end) return v.period_end > prev.period_end;
+  const fine = (x: ApprovedValue) => (x.geography_level === 'district' ? 0 : 1);
+  if (fine(v) !== fine(prev)) return fine(v) > fine(prev);
+  return v.approvedAt > prev.approvedAt;
+}
+
 /** همهٔ مقادیر تأییدشده؛ برای هر (محله، شاخص، گروه) جدیدترین دوره */
 export function approvedValuesFor(neighborhoodId: string, asOf?: string): ApprovedValue[] {
   if (!approvedCache) {
@@ -239,7 +278,7 @@ export function approvedValuesFor(neighborhoodId: string, asOf?: string): Approv
     if (asOf && v.period_end > asOf) continue;
     const k = `${v.indicator_code}|${v.group_key ?? ''}|${v.group_value ?? ''}`;
     const prev = latest.get(k);
-    if (!prev || v.period_end > prev.period_end || (v.period_end === prev.period_end && v.approvedAt > prev.approvedAt)) latest.set(k, v);
+    if (!prev || newer(v, prev)) latest.set(k, v);
   }
   return [...latest.values()];
 }
