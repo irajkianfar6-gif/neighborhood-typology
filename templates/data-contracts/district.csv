@@ -1,0 +1,3 @@
+﻿indicator_code,neighborhood_id,block_id,postal_prefix,numerator,denominator,value,unit,period_start,period_end,group_key,group_value,source_org,dataset_id,extraction_date,contact,district
+E4,,,,,,0,%,2025-03-21,2026-03-20,,,مرکز آمار ایران / بانک مرکزی,housing-district-1404,,,tehran:6
+G2,,,,,,0,%,2025-03-21,2026-03-20,,,شهرداری تهران — سامانهٔ ۱۳۷,137-district-1404,,,tehran:6

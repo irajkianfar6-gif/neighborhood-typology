@@ -24,11 +24,14 @@ export function contractValues(neighborhoodId: string, asOf?: string): { values:
     values.push({
       code: r.indicator_code, raw: r.value, unit: r.unit ?? '%', numerator: r.numerator, denominator: r.denominator,
       source: `${r.source_org}${r.dataset_id ? ` / ${r.dataset_id}` : ''}`, sourceIds: [`contract:${r.batchId}`],
-      channel: 'contract', tier: 'official', geographyLevel: 'neighborhood',
+      channel: 'contract', tier: 'official', geographyLevel: r.geography_level === 'district' ? 'district' : 'neighborhood',
       observedAt: r.period_end.length === 7 ? `${r.period_end}-28` : r.period_end, fetchedAt: r.approvedAt,
-      method: 'دادهٔ قراردادی تأییدشده (صورت/مخرج تجمیع‌شده روی مرز محله)', methodQuality: 1, sampleAdequacy: 1,
+      method: r.geography_level === 'district'
+        ? `دادهٔ رسمی تأییدشده در سطح منطقهٔ ${r.district} (یک عدد برای همهٔ محلات منطقه؛ تفاوت درون‌منطقه‌ای دیده نمی‌شود)`
+        : 'دادهٔ قراردادی تأییدشده (صورت/مخرج تجمیع‌شده روی مرز محله)',
+      methodQuality: r.geography_level === 'district' ? 0.7 : 1, sampleAdequacy: 1,
       cadence: CENSUS_CODES.has(r.indicator_code) ? 'census' : 'annual', lowerIsBetter: LOWER_BETTER.has(r.indicator_code),
-      details: { batchId: r.batchId },
+      details: { batchId: r.batchId, ...(r.district ? { district: r.district } : {}) },
     });
   }
   return { values, groupValues, groupNs, raw };
