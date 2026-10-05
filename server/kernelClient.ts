@@ -14,6 +14,7 @@ import type {
   KernelRunResult, KernelBoundary, KernelError,
 } from './kernelTypes';
 import { normalizeKernelError } from './kernelTypes';
+import { serverDataDir } from './paths';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const KROOT = path.resolve(__dirname, '..', 'kernel');
@@ -83,7 +84,7 @@ export async function ensureKernelService(): Promise<void> {
     // UTF-8 console + unbuffered output for reliable logs on Windows
     child = spawn(python, ['-X', 'utf8', '-u', SERVICE_SCRIPT], {
       cwd: KROOT,
-      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1', KERNEL_SERVICE_PORT: String(PORT) },
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1', KERNEL_SERVICE_PORT: String(PORT), ARA_SERVER_DATA_DIR: serverDataDir() },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     // فرزند یتیم (پس از خروج والد) پورت را نگه می‌دارد ولی به‌خاطر لولهٔ خروجی شکسته پاسخ نمی‌دهد؛ با خروج والد خاتمه‌اش می‌دهیم
@@ -153,7 +154,7 @@ export interface KernelClient {
   registries(): Promise<Record<string, unknown>>;
   drilldown(runId: string, valueId: string): Promise<{ status: number; payload: unknown }>;
   /** zonal stats روی رستر ثبت‌شده (worldpop, ndvi, dem, jrc_flood, ...) */
-  zonalStats(req: { raster_id: string; geometry: unknown; cell_centers?: Array<[number, number]>; cell_size_m?: number; threshold?: number }): Promise<{ status: number; payload: { result?: ZonalResult; error?: { code: string; message: string } } }>;
+  zonalStats(req: { raster_id: string; geometry: unknown; cell_centers?: Array<[number, number]>; cell_size_m?: number; threshold?: number; city?: string; class_groups?: Record<string, number[]> }): Promise<{ status: number; payload: { result?: ZonalResult; error?: { code: string; message: string } } }>;
   /** ثبت نسخهٔ مرز با provenance (append-only) */
   registerBoundary(neighborhoodId: string, body: Record<string, unknown>): Promise<{ status: number; payload: unknown }>;
 }
@@ -162,6 +163,7 @@ export interface ZonalResult {
   raster_id: string; file: string; count: number; inside_pixels: number; valid_fraction: number;
   sum: number | null; mean: number | null; min: number | null; max: number | null; pixel_area_m2: number;
   share_ge_threshold?: number; cells?: number[];
+  cell_share_ge_threshold?: Array<number | null>; class_fractions?: Record<string, number>; cell_class_fractions?: Array<Record<string, number> | null>;
 }
 
 export const kernelClient: KernelClient = {

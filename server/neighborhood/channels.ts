@@ -6,7 +6,7 @@ import type { DocumentedValue } from '../evidence/types';
 import type { NeighborhoodContext } from './context';
 
 const CENSUS_CODES = new Set(['H1', 'H5', 'E1', 'E4', 'P1']);
-const LOWER_BETTER = new Set(['E4', 'N4', 'R1', 'R3']);
+const LOWER_BETTER = new Set(['E4', 'N4', 'R1', 'R3']); // R2/R5/N5 بالاتر بهتر
 
 export function contractValues(neighborhoodId: string, asOf?: string): { values: DocumentedValue[]; groupValues: Record<string, Record<string, number>>; groupNs: Record<string, number>; raw: ApprovedValue[] } {
   const raw = approvedValuesFor(neighborhoodId, asOf);

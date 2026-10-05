@@ -17,7 +17,7 @@ export const SPATIAL_SCORE: Record<GeographyLevel, number> = {
 };
 /** حداکثر سن معتبر (روز) بر اساس آهنگ به‌روزرسانی */
 export const MAX_AGE_DAYS: Record<DocumentedValue['cadence'], number> = {
-  realtime: 2, hourly: 7, daily: 30, monthly: 180, annual: 3 * 365, census: 10 * 365, static: 10 * 365,
+  realtime: 2, hourly: 7, daily: 30, monthly: 180, quarterly: 365, annual: 3 * 365, census: 10 * 365, static: 10 * 365,
 };
 
 export interface ReliabilityWeights { version: string; T: number; S: number; F: number; N: number; C: number }

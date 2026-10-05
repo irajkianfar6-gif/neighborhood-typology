@@ -610,7 +610,9 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(geometry, dict) or not isinstance(raster_id, str):
             return self._send(*_error("INVALID_INPUT", "geometry و raster_id لازم است"))
         try:
-            result = zonal_stats(raster_id, geometry, body.get("cell_centers"), body.get("cell_size_m"), body.get("threshold"))
+            city = body.get("city") if isinstance(body.get("city"), str) else None
+            groups = body.get("class_groups") if isinstance(body.get("class_groups"), dict) else None
+            result = zonal_stats(raster_id, geometry, body.get("cell_centers"), body.get("cell_size_m"), body.get("threshold"), city, groups)
         except ZonalError as exc:
             return self._send(*_error(exc.code, str(exc), 422))
         return self._send(200, {"result": result, "computed_at": _now_iso()})
