@@ -8,11 +8,14 @@
  * - شاخص‌ها: S1←E3، S2←E2، S3←S3X، C3←C3X با فرمول رجیستر (میانگین وزنی − ۱) ÷ ۴ × ۱۰۰
  * - پایایی: آلفای کرونباخ سازهٔ دلبستگی/سرمایهٔ اجتماعی (E2, E3, O1, O3, C3X)
  * - عدالت: مقادیر گروهی برای گروه‌های با n ≥ ۳۰
+ * - ماژول خانوار (HH-v1): H2، H3، H4، S4، C4، C5 = سهم وزنی «بله» در جامعهٔ واجد شرایط هر شاخص × ۱۰۰؛
+ *   برآورد فقط وقتی منتشر می‌شود که دست‌کم ۳۰ پاسخ واجد شرایط وجود داشته باشد.
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { serverDataDir } from '../paths';
+import { BINARY_CODES, HOUSEHOLD_INDICATORS, ITEM_BY_CODE, INSTRUMENT_VERSION } from '../../src/algorithm/surveyInstrument';
 
 export const LIKERT_ITEMS = ['C1', 'C2', 'C3', 'A1', 'A2', 'A3', 'U1', 'U2', 'U3', 'E1', 'E2', 'E3', 'O1', 'O2', 'O3', 'C3X'] as const;
 export const REVERSED = new Set(['C3', 'O2']);
@@ -27,6 +30,8 @@ export const GROUP_KEYS = ['sex', 'ageBand', 'tenure', 'disability'] as const;
 export const AGE_BANDS = ['18-29', '30-44', '45-64', '65+'] as const;
 const MIN_DURATION_SEC = Number(process.env.ARA_SURVEY_MIN_SECONDS || 90);
 export const TARGET_N = 384;
+export const MIN_ELIGIBLE = 30;
+const WORKING_AGE = new Set(['18-29', '30-44', '45-64']);
 
 export interface SurveyResponseInput {
   respondentId?: string;
@@ -37,6 +42,10 @@ export interface SurveyResponseInput {
   consent: boolean;
   collectedAt?: string;
   collectorId?: string;
+  /** پاسخ متنی سؤال‌های تکمیلی (منطق پرش) — حداکثر ۳۰۰ نویسه برای هر گویه */
+  followUps?: Record<string, string>;
+  mode?: 'self' | 'interviewer' | 'paper';
+  instrumentVersion?: string;
 }
 export interface StoredResponse extends SurveyResponseInput {
   responseId: string; neighborhoodId: string; receivedAt: string; deviceHash?: string;
@@ -64,8 +73,9 @@ export function validateResponse(input: SurveyResponseInput, existing: StoredRes
   if (likert.some((v) => !Number.isInteger(v) || v < 1 || v > 5)) reasons.push('INVALID_LIKERT');
   if (likert.length >= 10 && new Set(likert).size === 1) reasons.push('STRAIGHT_LINING');
   if (likert.length < 8) reasons.push('INCOMPLETE');
-  const s3 = input.answers?.S3X;
-  if (s3 !== undefined && s3 !== 0 && s3 !== 1) reasons.push('INVALID_BINARY');
+  if (BINARY_CODES.some((k) => { const v = input.answers?.[k]; return v !== undefined && v !== null && v !== 0 && v !== 1; })) reasons.push('INVALID_BINARY');
+  const emp = input.answers?.EMP;
+  if (emp !== undefined && emp !== null && ![1, 2, 3, 4].includes(emp)) reasons.push('INVALID_CHOICE');
   const deviceHash = input.deviceId ? crypto.createHash('sha256').update(input.deviceId).digest('hex').slice(0, 16) : undefined;
   if (deviceHash && existing.some((r) => r.deviceHash === deviceHash && r.qc.accepted)) reasons.push('DUPLICATE_DEVICE');
   return { accepted: reasons.length === 0, reasons, deviceHash };
@@ -77,7 +87,11 @@ export function addResponses(neighborhoodId: string, inputs: SurveyResponseInput
   for (const input of inputs) {
     const qc = validateResponse(input, [...existing, ...out]);
     const { deviceId: _omit, ...rest } = input; // شناسهٔ خام دستگاه ذخیره نمی‌شود
-    out.push({ ...rest, responseId: crypto.randomUUID(), neighborhoodId, receivedAt: new Date().toISOString(), deviceHash: qc.deviceHash, qc: { accepted: qc.accepted, reasons: qc.reasons } });
+    const answers = Object.fromEntries(Object.entries(input.answers ?? {}).filter(([k, v]) => k in ITEM_BY_CODE && typeof v === 'number'));
+    const followUps = input.followUps
+      ? Object.fromEntries(Object.entries(input.followUps).filter(([k, v]) => k in ITEM_BY_CODE && typeof v === 'string' && v.trim()).slice(0, 15).map(([k, v]) => [k, v.trim().slice(0, 300)]))
+      : undefined;
+    out.push({ ...rest, answers, followUps, instrumentVersion: input.instrumentVersion ?? INSTRUMENT_VERSION, responseId: crypto.randomUUID(), neighborhoodId, receivedAt: new Date().toISOString(), deviceHash: qc.deviceHash, qc: { accepted: qc.accepted, reasons: qc.reasons } });
   }
   fs.appendFileSync(file(neighborhoodId), out.map((r) => JSON.stringify(r)).join('\n') + (out.length ? '\n' : ''));
   return out;
@@ -126,7 +140,9 @@ function cronbachAlpha(rows: number[][]): number | null {
 
 export interface SurveyIndicatorEstimate {
   code: string; label: string; score: number; ci95: [number, number]; n: number; nEffective: number; item: string;
+  module: 'perceptual' | 'household'; unit: '0..100' | '%'; denominator?: string;
 }
+export interface PendingSurveyIndicator { code: string; label: string; eligibleN: number; required: number; denominator: string }
 export interface SurveySummary {
   neighborhoodId: string; nReceived: number; nAccepted: number; rejectedByReason: Record<string, number>;
   weighting: 'raked' | 'unweighted'; weightingNote: string;
@@ -137,6 +153,17 @@ export interface SurveySummary {
   quotas: Record<string, Record<string, number>>;
   marginOfError: number | null; adequacy: 'ADEQUATE' | 'MINIMUM' | 'INSUFFICIENT';
   latestResponseAt: string | null; earliestResponseAt: string | null;
+  /** برآوردهای ماژول خانوار که هنوز به حداقل پاسخ واجد شرایط نرسیده‌اند */
+  pending: PendingSurveyIndicator[];
+  /** پروفایل ادراکی زنجیرهٔ C-A-U-E-O (۰..۱۰۰؛ گویه‌های معکوس برگردانده شده) */
+  chainProfile: Record<string, { score: number; n: number } | null>;
+  /** میانگین هر گویهٔ ادراکی در مقیاس ۰..۱۰۰ */
+  itemScores: Record<string, number>;
+  /** آخرین پاسخ‌های متنی سؤال‌های تکمیلی (برای خوانش کیفی) */
+  followUpSamples: Array<{ code: string; text: string; at: string }>;
+  byMode: Record<string, number>;
+  byCollector: Record<string, number>;
+  instrumentVersion: string;
 }
 
 export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets = {}): SurveySummary {
@@ -165,8 +192,55 @@ export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets =
     const e = estimate(idx, def.item, def.kind);
     if (!e) continue;
     const r1 = (x: number) => Math.round(x * 10) / 10;
-    indicators.push({ code, label: def.label, item: def.item, score: r1(e.score), ci95: [r1(Math.max(0, e.ci[0])), r1(Math.min(100, e.ci[1]))], n: e.n, nEffective: Math.round(e.ne) });
+    indicators.push({ code, label: def.label, item: def.item, score: r1(e.score), ci95: [r1(Math.max(0, e.ci[0])), r1(Math.min(100, e.ci[1]))], n: e.n, nEffective: Math.round(e.ne), module: 'perceptual', unit: '0..100' });
   }
+  // ماژول خانوار: سهم وزنی در جامعهٔ واجد شرایط
+  const pending: PendingSurveyIndicator[] = [];
+  const householdRule: Record<string, { eligible: (r: StoredResponse) => boolean; yes: (r: StoredResponse) => boolean }> = {
+    H2: { eligible: (r) => WORKING_AGE.has(String(r.demographics?.ageBand)) && (r.answers?.H2X === 0 || r.answers?.H2X === 1), yes: (r) => r.answers?.H2X === 1 },
+    H3: { eligible: (r) => [1, 2, 3].includes(r.answers?.EMP as number), yes: (r) => r.answers?.EMP === 1 },
+    H4: { eligible: (r) => r.answers?.H2X === 1 && [1, 2].includes(r.answers?.EMP as number) && (r.answers?.H4X === 0 || r.answers?.H4X === 1), yes: (r) => r.answers?.H4X === 1 },
+    S4: { eligible: (r) => r.answers?.S4X === 0 || r.answers?.S4X === 1, yes: (r) => r.answers?.S4X === 1 },
+    C4: { eligible: (r) => r.answers?.C4X === 0 || r.answers?.C4X === 1, yes: (r) => r.answers?.C4X === 1 },
+    C5: { eligible: (r) => r.demographics?.ageBand === '18-29' && (r.answers?.C5X === 0 || r.answers?.C5X === 1), yes: (r) => r.answers?.C5X === 1 },
+  };
+  const share = (subset: number[], code: string) => {
+    const rule = householdRule[code];
+    const el = subset.filter((i) => rule.eligible(ok[i]));
+    if (!el.length) return { n: 0, ne: 0, score: NaN, se: NaN };
+    const W = el.reduce((a, i) => a + weights[i], 0);
+    const p = el.reduce((a, i) => a + weights[i] * (rule.yes(ok[i]) ? 1 : 0), 0) / W;
+    const ne = nEff(el.map((i) => weights[i]));
+    return { n: el.length, ne, score: p * 100, se: ne > 1 ? Math.sqrt((p * (1 - p)) / ne) * 100 : NaN };
+  };
+  for (const [code, def] of Object.entries(HOUSEHOLD_INDICATORS)) {
+    const e = share(idx, code);
+    if (e.n < MIN_ELIGIBLE) {
+      if (ok.some((r) => r.answers?.[def.item] !== undefined) || e.n > 0) pending.push({ code, label: def.label, eligibleN: e.n, required: MIN_ELIGIBLE, denominator: def.denominator });
+      continue;
+    }
+    const r1 = (x: number) => Math.round(x * 10) / 10;
+    const lo = Number.isFinite(e.se) ? e.score - 1.96 * e.se : e.score;
+    const hi = Number.isFinite(e.se) ? e.score + 1.96 * e.se : e.score;
+    indicators.push({ code, label: def.label, item: def.item, score: r1(e.score), ci95: [r1(Math.max(0, lo)), r1(Math.min(100, hi))], n: e.n, nEffective: Math.round(e.ne), module: 'household', unit: '%', denominator: def.denominator });
+  }
+
+  // پروفایل ادراکی زنجیره و میانگین گویه‌ها
+  const itemScores: Record<string, number> = {};
+  const stageVals: Record<string, number[]> = { CAPACITY: [], ACCESS: [], USE: [], EXPERIENCE: [], OUTCOME: [] };
+  for (const code of LIKERT_ITEMS) {
+    const meta = ITEM_BY_CODE[code];
+    const e = estimate(idx, code, 'likert');
+    if (!e) continue;
+    const sc = REVERSED.has(code) ? 100 - e.score : e.score;
+    itemScores[code] = Math.round(sc * 10) / 10;
+    if (meta?.stage) stageVals[meta.stage].push(sc);
+  }
+  const chainProfile = Object.fromEntries(Object.entries(stageVals).map(([k, v]) => [k, v.length ? { score: Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10, n: ok.length } : null]));
+  const followUpSamples = ok.flatMap((r) => Object.entries(r.followUps ?? {}).map(([code, text]) => ({ code, text, at: r.collectedAt ?? r.receivedAt })))
+    .sort((a, b) => b.at.localeCompare(a.at)).slice(0, 20);
+  const countBy = (f: (r: StoredResponse) => string | undefined) => ok.reduce<Record<string, number>>((acc, r) => { const k = f(r); if (k) acc[k] = (acc[k] ?? 0) + 1; return acc; }, {});
+
   const alphaRows = ok.map((r) => CONSTRUCT_ITEMS.map((k) => r.answers?.[k])).filter((row) => row.every((v) => typeof v === 'number')) as number[][];
   const alpha = cronbachAlpha(alphaRows);
 
@@ -190,6 +264,11 @@ export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets =
         if (!e) continue;
         (groupValues[code] ??= {})[label] = Math.round(e.score * 10) / 10;
       }
+      for (const code of Object.keys(HOUSEHOLD_INDICATORS)) {
+        if (!indicators.some((x) => x.code === code)) continue;
+        const e = share(members, code);
+        if (e.n >= MIN_ELIGIBLE) (groupValues[code] ??= {})[label] = Math.round(e.score * 10) / 10;
+      }
     }
   }
   const n = ok.length;
@@ -204,5 +283,8 @@ export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets =
     marginOfError: moe,
     adequacy: n >= TARGET_N ? 'ADEQUATE' : n >= 150 ? 'MINIMUM' : 'INSUFFICIENT',
     latestResponseAt: times[times.length - 1] ?? null, earliestResponseAt: times[0] ?? null,
+    pending, chainProfile, itemScores, followUpSamples,
+    byMode: countBy((r) => r.mode ?? 'unspecified'), byCollector: countBy((r) => r.collectorId),
+    instrumentVersion: INSTRUMENT_VERSION,
   };
 }

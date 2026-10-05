@@ -73,6 +73,7 @@ export interface FieldAuditSummary {
   neighborhoodId: string; points: number; audits: number; auditors: number;
   p3: number | null; kappa: number | null; adequacy: 'ADEQUATE' | 'INSUFFICIENT'; reasons: string[];
   itemMeans: Record<string, number>; latestAuditAt: string | null;
+  pointList: Array<{ pointId: string; lat: number; lng: number; auditors: string[]; score: number; auditedAt: string }>;
 }
 
 export function summarizeAudits(neighborhoodId: string): FieldAuditSummary {
@@ -90,7 +91,7 @@ export function summarizeAudits(neighborhoodId: string): FieldAuditSummary {
   }
   const kappa = weightedKappa(pairs);
   const reasons: string[] = [];
-  if (byPoint.size < MIN_POINTS) reasons.push(`حداقل ${MIN_POINTS} نقطه لازم است (${byPoint.size} ثبت شده)`);
+  if (byPoint.size < MIN_POINTS) reasons.push(`حداقل ${MIN_POINTS.toLocaleString('fa-IR')} نقطه لازم است (${byPoint.size.toLocaleString('fa-IR')} ثبت شده)`);
   if (kappa === null) reasons.push('برای پایایی بین‌ارزیاب، دست‌کم یک نقطه با دو ممیز لازم است');
   else if (kappa < 0.6) reasons.push(`پایایی بین‌ارزیاب κ=${kappa.toFixed(2)} کمتر از ۰٫۶ است`);
   const p3 = pointScores.length ? Math.round((pointScores.reduce((a, b) => a + b, 0) / pointScores.length) * 1000) / 10 : null;
@@ -101,5 +102,10 @@ export function summarizeAudits(neighborhoodId: string): FieldAuditSummary {
     adequacy: reasons.length === 0 ? 'ADEQUATE' : 'INSUFFICIENT', reasons,
     itemMeans: Object.fromEntries(Object.entries(itemSums).map(([k, v]) => [k, Math.round((v / Math.max(1, byPoint.size)) * 100) / 100])),
     latestAuditAt: times[times.length - 1] ?? null,
+    pointList: [...byPoint].map(([pointId, list]) => ({
+      pointId, lat: list[0].lat, lng: list[0].lng, auditors: [...new Set(list.map((a) => a.auditorId))],
+      score: Math.round((list.reduce((s, a) => s + AUDIT_ITEMS.reduce((x, k) => x + a.items[k], 0) / (AUDIT_ITEMS.length * 2), 0) / list.length) * 1000) / 10,
+      auditedAt: list.map((a) => a.auditedAt ?? a.receivedAt).sort().pop() ?? '',
+    })),
   };
 }

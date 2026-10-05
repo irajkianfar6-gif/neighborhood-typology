@@ -1,5 +1,5 @@
 {
-  "version": "TH-v2",
+  "version": "TH-v2.1",
   "calibrated": false,
   "description": "آستانه‌های هنجاری نگاشت مقدار خام به امتیاز ۰..۱۰۰ (خطی بین critical و target). شاخص‌های بدون استاندارد هنجاری با صدک در توزیع مرجع شهر امتیاز می‌گیرند.",
   "normative": {
@@ -18,6 +18,6 @@
     "E4": { "unit": "%", "target": 30, "critical": 70, "basis": "هزینهٔ مسکن ÷ درآمد؛ ≤۳۰٪ استطاعت‌پذیر؛ کمتر بهتر" }
   },
   "percentile": ["C1", "E2", "E3", "E1", "R2", "R4", "R5", "C2", "C4", "C5", "G1", "G4", "G5", "S4", "S5", "H2", "H4", "H5", "P1", "E5", "N5"],
-  "percent_scale_passthrough": ["S1", "S2", "S3", "C3", "P3"],
+  "percent_scale_passthrough": ["S1", "S2", "S3", "C3", "P3", "H2", "H4", "S4", "S5", "C4", "C5", "G1", "G3", "G5"],
   "winsorize": [0.025, 0.975]
 }

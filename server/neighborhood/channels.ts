@@ -2,6 +2,7 @@
 import { approvedValuesFor, type ApprovedValue } from '../ingestion/contractData';
 import { summarizeSurvey, type RakingTargets, type SurveySummary, TARGET_N } from '../survey/perceptualSurvey';
 import { summarizeAudits, type FieldAuditSummary } from '../survey/fieldAudit';
+import { summarizeRegister, type RegisterSummary } from '../survey/localRegister';
 import type { DocumentedValue } from '../evidence/types';
 import type { NeighborhoodContext } from './context';
 
@@ -47,10 +48,14 @@ export function rakingTargetsFrom(ctx: NeighborhoodContext): RakingTargets {
 export function surveyValues(neighborhoodId: string, ctx: NeighborhoodContext): { values: DocumentedValue[]; summary: SurveySummary } {
   const summary = summarizeSurvey(neighborhoodId, rakingTargetsFrom(ctx));
   const values: DocumentedValue[] = summary.indicators.map((e) => ({
-    code: e.code, raw: e.score, unit: '0..100', source: `پیمایش ادراکی محله (n=${e.n}، ${summary.weighting === 'raked' ? 'وزن‌دار' : 'بدون وزن'})`,
-    sourceIds: ['survey:perceptual'], channel: 'survey', tier: 'survey', geographyLevel: 'neighborhood',
+    code: e.code, raw: e.score, unit: e.unit ?? '0..100',
+    source: `${e.module === 'household' ? 'پیمایش محله — ماژول خانوار' : 'پیمایش ادراکی محله'} (n=${e.n}، ${summary.weighting === 'raked' ? 'وزن‌دار' : 'بدون وزن'})`,
+    sourceIds: [e.module === 'household' ? 'survey:household' : 'survey:perceptual'], channel: 'survey', tier: 'survey', geographyLevel: 'neighborhood',
     observedAt: summary.latestResponseAt, fetchedAt: new Date().toISOString(),
-    method: `(میانگین وزنی لیکرت − ۱) ÷ ۴ × ۱۰۰ روی گویهٔ ${e.item}؛ CI95=[${e.ci95.join('، ')}]`,
+    numerator: null, denominator: e.n,
+    method: e.module === 'household'
+      ? `سهم وزنی پاسخ «بله» گویهٔ ${e.item} در جامعهٔ واجد شرایط (${e.denominator}) × ۱۰۰؛ CI95=[${e.ci95.join('، ')}]`
+      : `(میانگین وزنی لیکرت − ۱) ÷ ۴ × ۱۰۰ روی گویهٔ ${e.item}؛ CI95=[${e.ci95.join('، ')}]`,
     methodQuality: summary.alpha !== null && summary.alpha >= 0.7 ? 1 : 0.6,
     sampleAdequacy: Math.min(1, e.nEffective / TARGET_N), cadence: 'annual',
     details: { ci95: e.ci95, n: e.n, nEffective: e.nEffective, alpha: summary.alpha },
@@ -70,4 +75,19 @@ export function fieldValues(neighborhoodId: string): { values: DocumentedValue[]
       sampleAdequacy: Math.min(1, summary.points / 5), cadence: 'annual', details: { kappa: summary.kappa, itemMeans: summary.itemMeans },
     }],
   };
+}
+
+export function registerValues(neighborhoodId: string): { values: DocumentedValue[]; summary: RegisterSummary } {
+  const summary = summarizeRegister(neighborhoodId);
+  const values: DocumentedValue[] = summary.indicators.map((r) => ({
+    code: r.code, raw: r.value, unit: '%', numerator: r.flagged, denominator: r.n,
+    source: r.code === 'G3' ? `ارزیابی شبکهٔ نهادی محله (${r.n} نهاد)` : `ثبت محلی پرونده‌ها (${r.n} پرونده، ${Math.round(r.evidenceShare * 100)}٪ با سند)`,
+    sourceIds: [r.code === 'G3' ? 'register:network' : 'register:cases'],
+    channel: r.code === 'G3' ? 'expert' : 'field', tier: r.code === 'G3' ? 'expert' : 'field', geographyLevel: 'neighborhood',
+    observedAt: r.latest, fetchedAt: new Date().toISOString(),
+    method: r.code === 'G3' ? 'چگالی شبکه = پیوندهای همکاری فعال ÷ پیوندهای ممکن × ۱۰۰' : `${r.flagged} از ${r.n} (${r.denominator}، سه سال اخیر) × ۱۰۰`,
+    methodQuality: r.methodQuality, sampleAdequacy: Math.min(1, r.n / (r.code === 'G3' ? 8 : 20)), cadence: 'annual',
+    details: { evidenceShare: r.evidenceShare },
+  }));
+  return { values, summary };
 }

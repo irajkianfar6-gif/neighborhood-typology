@@ -11,6 +11,9 @@ import { CONTRACT_COLUMNS, createBatch, getBatch, listBatches, reviewBatch, toke
 import { persistRun, storageStatus } from '../db/store';
 import { addResponses, LIKERT_ITEMS, summarizeSurvey, type SurveyResponseInput } from '../survey/perceptualSurvey';
 import { addAudits, AUDIT_ITEM_LABELS, summarizeAudits, type AuditInput } from '../survey/fieldAudit';
+import { addRecords, MIN_ACTORS, MIN_RECORDS, REGISTER_KINDS, saveNetwork, summarizeRegister, voidEntry, type NetworkInput, type RegisterRecordInput } from '../survey/localRegister';
+import { HOUSEHOLD_INDICATORS, INSTRUMENT_VERSION, SURVEY_SECTIONS } from '../../src/algorithm/surveyInstrument';
+import { CORE_40_NAMES, buildCollectionPlan } from '../survey/collectionPlan';
 import { getNeighborhood, listCities, publicEntry } from './gazetteer';
 import { loadRuns } from './history';
 import { analyzeByName, type AnalyzeResult } from './orchestrator';
@@ -116,7 +119,8 @@ export function createNeighborhoodRouter(): Router {
   router.get('/survey/questionnaire', (_req, res) => {
     const base = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, 'kernel', 'registries', 'questionnaire_15.json'), 'utf8'));
     const ext = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, 'kernel', 'registries', 'questionnaire_core_extension.json'), 'utf8'));
-    ok(res, { base, extension: ext, likertItems: LIKERT_ITEMS, minDurationSec: Number(process.env.ARA_SURVEY_MIN_SECONDS || 90), targetN: 384 });
+    const instrument = SURVEY_SECTIONS.map((sec) => ({ ...sec, items: sec.items.map(({ showIf: _s, ...item }) => ({ ...item, conditional: Boolean(_s) })) }));
+    ok(res, { base, extension: ext, likertItems: LIKERT_ITEMS, minDurationSec: Number(process.env.ARA_SURVEY_MIN_SECONDS || 90), targetN: 384, instrumentVersion: INSTRUMENT_VERSION, instrument, householdIndicators: HOUSEHOLD_INDICATORS });
   });
   router.post('/survey/:neighborhoodId/responses', (req, res) => {
     if (!getNeighborhood(req.params.neighborhoodId)) { fail(res, 404, 'NOT_FOUND', 'محله یافت نشد'); return; }
@@ -142,6 +146,47 @@ export function createNeighborhoodRouter(): Router {
     ok(res, { stored: r.stored.length, errors: r.errors }, r.stored.length ? 201 : 422);
   });
   router.get('/field-audit/:neighborhoodId/summary', (req, res) => { ok(res, summarizeAudits(req.params.neighborhoodId)); });
+
+  // ---------- ثبت‌های محلی (S5، G1، G5، G3) ----------
+  router.get('/local-register/schema', (_req, res) => { ok(res, { kinds: REGISTER_KINDS, minRecords: MIN_RECORDS, minActors: MIN_ACTORS, windowYears: 3 }); });
+  router.post('/local-register/:neighborhoodId/records', (req, res) => {
+    if (!getNeighborhood(req.params.neighborhoodId)) { fail(res, 404, 'NOT_FOUND', 'محله یافت نشد'); return; }
+    const list = (Array.isArray(req.body) ? req.body : req.body?.records) as RegisterRecordInput[] | undefined;
+    if (!Array.isArray(list) || !list.length) { fail(res, 400, 'INVALID_INPUT', 'آرایهٔ records لازم است'); return; }
+    const r = addRecords(req.params.neighborhoodId, list);
+    ok(res, r, r.stored ? 201 : 422);
+  });
+  router.post('/local-register/:neighborhoodId/network', (req, res) => {
+    if (!getNeighborhood(req.params.neighborhoodId)) { fail(res, 404, 'NOT_FOUND', 'محله یافت نشد'); return; }
+    const r = saveNetwork(req.params.neighborhoodId, req.body as NetworkInput);
+    if (!r.stored) { fail(res, 422, 'INVALID_NETWORK', r.errors.join('؛ '), r.errors); return; }
+    ok(res, r, 201);
+  });
+  router.post('/local-register/:neighborhoodId/void', (req, res) => {
+    const done = voidEntry(req.params.neighborhoodId, String(req.body?.id ?? ''), String(req.body?.by ?? ''));
+    if (!done) { fail(res, 404, 'NOT_FOUND', 'پرونده یافت نشد'); return; }
+    ok(res, { voided: true });
+  });
+  router.get('/local-register/:neighborhoodId/summary', (req, res) => { ok(res, summarizeRegister(req.params.neighborhoodId)); });
+
+  // ---------- وضعیت یکپارچهٔ گردآوری داده ----------
+  router.get('/data-collection/:neighborhoodId/status', asyncRoute(async (req, res) => {
+    const e = getNeighborhood(req.params.neighborhoodId);
+    if (!e) { fail(res, 404, 'NOT_FOUND', 'محله یافت نشد'); return; }
+    const ctx = await buildNeighborhoodContext(e, { useKernel: false });
+    const survey = summarizeSurvey(e.neighborhoodId, rakingTargetsFrom(ctx));
+    const audit = summarizeAudits(e.neighborhoodId);
+    const register = summarizeRegister(e.neighborhoodId);
+    const card = latest(e.neighborhoodId)?.card as { indicators?: Array<{ code: string; score: number | null; channel: string; tier: string }> } | undefined;
+    ok(res, {
+      neighborhood: publicEntry(e),
+      population: ctx.population?.value ?? null,
+      structure: { male: ctx.structure.male ?? null, female: ctx.structure.female ?? null, ageBands: ctx.structure.ageBands ?? null, source: ctx.structure.source },
+      survey, audit, register,
+      plan: buildCollectionPlan({ survey, audit, register, population: ctx.population?.value ?? null, cardIndicators: card?.indicators ?? [] }),
+      indicatorNames: CORE_40_NAMES,
+    });
+  }));
 
   return router;
 }

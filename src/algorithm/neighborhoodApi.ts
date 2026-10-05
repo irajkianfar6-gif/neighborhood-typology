@@ -38,6 +38,7 @@ export interface DecisionCardV2 {
   whatWouldChangeThis: MissingDataItem[];
   survey: { nAccepted: number; adequacy: string; alpha: number | null; marginOfError: number | null; weighting: string } | null;
   fieldAudit: { points: number; kappa: number | null; adequacy: string } | null;
+  localRegister?: { records: number; indicators: string[]; networkActors: number } | null;
   anomalies: Array<{ code: string; previousMean: number; current: number; z: number }>;
   reproducibilityKey: Record<string, string>;
   fingerprint: string;

@@ -49,11 +49,11 @@ export interface GateResult {
 
 /** مالک داده و الگوی قرارداد هر شاخص برای «چه داده‌ای این حکم را تغییر می‌دهد» */
 export const DATA_OWNERS: Record<string, { owner: string; template?: string }> = {
-  H1: { owner: 'مرکز آمار ایران (سرشماری بلوکی)', template: 'sci.csv' }, H2: { owner: 'سازمان فنی‌وحرفه‌ای + پیمایش', template: 'education.csv' },
-  H3: { owner: 'سازمان تأمین اجتماعی + LFS', template: 'tamin.csv' }, H4: { owner: 'پیمایش نیروی کار / پیمایش محله' },
+  H1: { owner: 'مرکز آمار ایران (سرشماری بلوکی)', template: 'sci.csv' }, H2: { owner: 'پیمایش محله (ماژول خانوار) / سازمان فنی‌وحرفه‌ای', template: 'education.csv' },
+  H3: { owner: 'سازمان تأمین اجتماعی + LFS', template: 'tamin.csv' }, H4: { owner: 'پیمایش محله (ماژول خانوار) / پیمایش نیروی کار' },
   H5: { owner: 'آموزش‌وپرورش / فنی‌وحرفه‌ای', template: 'education.csv' },
   S1: { owner: 'پیمایش ادراکی محله' }, S2: { owner: 'پیمایش ادراکی محله' }, S3: { owner: 'پیمایش ادراکی محله' },
-  S4: { owner: 'شورایاری / شهرداری (۱۳۷)', template: 'municipality.csv' }, S5: { owner: 'شورایاری / ۱۳۷', template: 'municipality.csv' },
+  S4: { owner: 'پیمایش محله (ماژول مشارکت) / شورایاری', template: 'municipality.csv' }, S5: { owner: 'ثبت محلی مسائل (گردآوری داده) / شورایاری', template: 'municipality.csv' },
   E1: { owner: 'مرکز آمار (HEIS) / سازمان امور مالیاتی', template: 'sci.csv' }, E2: { owner: 'اتاق اصناف + تأمین اجتماعی', template: 'asnaf.csv' },
   E3: { owner: 'اتاق اصناف', template: 'asnaf.csv' }, E4: { owner: 'مرکز آمار (اجاره‌بها) + بازار مسکن', template: 'sci.csv' },
   E5: { owner: 'شاپرک (POS تجمیعی) + ارزیابی خبره' },
@@ -62,9 +62,9 @@ export const DATA_OWNERS: Record<string, { owner: string; template?: string }> =
   N1: { owner: 'سازمان پارک‌ها + OSM' }, N2: { owner: 'Sentinel-2 NDVI (NDVI_COG_PATH)' }, N3: { owner: 'سازمان حفاظت محیط‌زیست / کنترل کیفیت هوا' },
   N4: { owner: 'JRC Flood + IIEES گسل (رستر)' }, N5: { owner: 'ERA5/Landsat LST + مدیریت بحران' },
   C1: { owner: 'میراث فرهنگی / ارشاد + OSM', template: 'culture.csv' }, C2: { owner: 'فرهنگ‌سراها', template: 'culture.csv' },
-  C3: { owner: 'پیمایش ادراکی محله' }, C4: { owner: 'فرهنگ‌سراها + پیمایش', template: 'culture.csv' }, C5: { owner: 'پیمایش جوانان / برنامه‌ها', template: 'culture.csv' },
-  G1: { owner: 'شهرداری / شورایاری (صورت‌جلسات)', template: 'municipality.csv' }, G2: { owner: 'سامانهٔ ۱۳۷', template: 'municipality.csv' },
-  G3: { owner: 'ارزیابی خبرگان' }, G4: { owner: 'سامانهٔ پروژه/بودجهٔ شهرداری', template: 'municipality.csv' }, G5: { owner: 'گزارش‌های ارزیابی + خبره' },
+  C3: { owner: 'پیمایش ادراکی محله' }, C4: { owner: 'پیمایش محله (ماژول مشارکت) / فرهنگ‌سراها', template: 'culture.csv' }, C5: { owner: 'پیمایش محله (جوانان ۱۸–۲۹) / برنامه‌ها', template: 'culture.csv' },
+  G1: { owner: 'ثبت محلی فرایندهای تصمیم / شورایاری (صورت‌جلسات)', template: 'municipality.csv' }, G2: { owner: 'سامانهٔ ۱۳۷', template: 'municipality.csv' },
+  G3: { owner: 'ارزیابی شبکهٔ نهادی (گردآوری داده) / خبرگان' }, G4: { owner: 'سامانهٔ پروژه/بودجهٔ شهرداری', template: 'municipality.csv' }, G5: { owner: 'ثبت محلی پروژه‌ها (گردآوری داده) / گزارش‌های ارزیابی' },
   R1: { owner: 'GTFS + Valhalla' }, R2: { owner: 'اصناف/تأمین + Valhalla', template: 'asnaf.csv' }, R3: { owner: 'آموزش‌وپرورش + OSM', template: 'education.csv' },
   R4: { owner: 'شاپرک (POS تجمیعی)' }, R5: { owner: 'سازمان تنظیم مقررات / Ookla', template: 'cra.csv' },
 };
