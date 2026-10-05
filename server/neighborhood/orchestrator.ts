@@ -17,7 +17,7 @@ import { CAPITAL_KEYS, evaluatePublication, type GateResult, type PublicationLev
 import { reliabilityWeights } from '../evidence/reliability';
 import type { DocumentedValue, ScoredValue } from '../evidence/types';
 import { incCounter, setGauge } from '../ops/metrics';
-import { contractValues, fieldValues, surveyValues } from './channels';
+import { contractValues, fieldValues, registerValues, surveyValues } from './channels';
 import { buildNeighborhoodContext, type NeighborhoodContext } from './context';
 import { cityBBox, type GazetteerEntry, getNeighborhood, publicEntry } from './gazetteer';
 import { bboxOf } from './geo';
@@ -55,6 +55,7 @@ export interface DecisionCardV2 {
   whatWouldChangeThis: GateResult['missing'];
   survey: { nAccepted: number; adequacy: string; alpha: number | null; marginOfError: number | null; weighting: string } | null;
   fieldAudit: { points: number; kappa: number | null; adequacy: string } | null;
+  localRegister: { records: number; indicators: string[]; networkActors: number } | null;
   anomalies: ReturnType<typeof detectAnomalies>;
   reproducibilityKey: Record<string, string>;
   fingerprint: string;
@@ -160,7 +161,8 @@ export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult>
   ]);
   const survey = surveyValues(entry.neighborhoodId, ctx);
   const field = fieldValues(entry.neighborhoodId);
-  const documented: DocumentedValue[] = [...contract.values, ...open, ...survey.values, ...field.values];
+  const register = registerValues(entry.neighborhoodId);
+  const documented: DocumentedValue[] = [...contract.values, ...open, ...survey.values, ...field.values, ...register.values];
 
   // ۴) ادغام + نرمال‌سازی + اعتماد
   const merged = mergeDocumentedValues(documented, entry.citySlug);
@@ -310,6 +312,9 @@ export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult>
     whatWouldChangeThis: gate.missing,
     survey: survey.summary.nReceived ? { nAccepted: survey.summary.nAccepted, adequacy: survey.summary.adequacy, alpha: survey.summary.alpha, marginOfError: survey.summary.marginOfError, weighting: survey.summary.weighting } : null,
     fieldAudit: field.summary.audits ? { points: field.summary.points, kappa: field.summary.kappa, adequacy: field.summary.adequacy } : null,
+    localRegister: register.summary.records.length || register.summary.network
+      ? { records: register.summary.records.length, indicators: register.summary.indicators.map((i) => i.code), networkActors: register.summary.network?.actors.length ?? 0 }
+      : null,
     anomalies,
     reproducibilityKey,
     fingerprint,

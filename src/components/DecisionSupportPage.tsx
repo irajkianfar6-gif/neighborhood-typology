@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, AlertTriangle, ArrowLeft, BarChart3, BookOpen, Brain,
-  CheckCircle2, ChevronDown, Clock3, Database, Download, FileText,
+  CheckCircle2, ChevronDown, ClipboardList, Clock3, Database, Download, FileText,
   GitCompareArrows, Globe, Layers, Lightbulb, Loader2, MapPin,
   MessageCircle, RefreshCw, Scale, Settings, Shield, Sparkles,
   Target, TrendingDown, TrendingUp, Wifi, WifiOff, XCircle, Zap,
@@ -16,23 +16,22 @@ import CausalChainViz from './CausalChainViz';
 import InterventionMatrix from './InterventionMatrix';
 import BottleneckMap from './BottleneckMap';
 import LearningDashboard from './LearningDashboard';
-import PerceptualSurveyForm from './PerceptualSurveyForm';
+import DataCollectionHub from './datacollection/DataCollectionHub';
 import AIDecisionAdvisor from './AIDecisionAdvisor';
 import NeighborhoodComparison from './NeighborhoodComparison';
 import DecisionRegistryView from './DecisionRegistryView';
 import { downloadReport, downloadReportJSON } from '../algorithm/reportGenerator';
 import { analyzeDecisionSupport } from '../algorithm/decisionSupportApi';
-import type { SurveyResponse } from '../algorithm/perceptualSurvey';
 import { fetchOpenMeteoAirQuality, type RealDataSource } from '../algorithm/realDataConnectors';
 import { analyzeNeighborhoodByName, LEVEL_FA, type DecisionCardV2, type NeighborhoodCandidate } from '../algorithm/neighborhoodApi';
 import NeighborhoodEvidencePanel, { CandidatePicker } from './NeighborhoodEvidencePanel';
 import { getSatelliteFeatures, getSatelliteStatusSummary, type SatelliteFeatureRecord, type SatelliteStatusSummary } from '../lib/satelliteApi';
 
-type SectionKey = 'summary' | 'diagnosis' | 'action' | 'evidence';
+type SectionKey = 'summary' | 'diagnosis' | 'action' | 'collect' | 'evidence';
 type ViewKey =
   | 'overview' | 'radar' | 'chain' | 'gaps' | 'equity' | 'bottleneck' | 'causes'
   | 'interventions' | 'priority' | 'evaluation'
-  | 'learning' | 'ai' | 'data' | 'survey' | 'compare' | 'registry';
+  | 'learning' | 'ai' | 'data' | 'collect' | 'compare' | 'registry';
 
 interface NavigationItem {
   key: ViewKey;
@@ -75,6 +74,12 @@ const NAVIGATION: Record<SectionKey, { label: string; description: string; icon:
       { key: 'evaluation', label: 'طرح ارزیابی', icon: <Settings size={15} />, requiresAnalysis: true },
     ],
   },
+  collect: {
+    label: 'گردآوری داده',
+    description: 'پیمایش ساکنان، ممیزی و ثبت محلی',
+    icon: <ClipboardList size={18} />,
+    items: [{ key: 'collect', label: 'مرکز گردآوری دادهٔ پیمایشی', icon: <ClipboardList size={15} /> }],
+  },
   evidence: {
     label: 'شواهد و یادگیری',
     description: 'داده، مقایسه و ابزارهای تکمیلی',
@@ -82,7 +87,6 @@ const NAVIGATION: Record<SectionKey, { label: string; description: string; icon:
     items: [
       { key: 'data', label: 'منابع داده', icon: <Database size={15} /> },
       { key: 'registry', label: 'رجیستر ۱۶۴ شاخصی', icon: <Database size={15} /> },
-      { key: 'survey', label: 'پیمایش ادراکی', icon: <Globe size={15} /> },
       { key: 'compare', label: 'مقایسه محله‌ها', icon: <GitCompareArrows size={15} /> },
       { key: 'learning', label: 'حافظه یادگیری', icon: <BookOpen size={15} /> },
       { key: 'ai', label: 'مشاور هوشمند', icon: <MessageCircle size={15} /> },
@@ -90,7 +94,7 @@ const NAVIGATION: Record<SectionKey, { label: string; description: string; icon:
   },
 };
 
-const SECTION_ORDER: SectionKey[] = ['summary', 'diagnosis', 'action', 'evidence'];
+const SECTION_ORDER: SectionKey[] = ['summary', 'diagnosis', 'action', 'collect', 'evidence'];
 const SAMPLE_NEIGHBORHOODS = ['باغ فیض، تهران', 'زعفرانیه، مشهد', 'گوهردشت، کرج'];
 const TOTAL_DATA_SOURCES = 9;
 
@@ -139,8 +143,6 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
   const [pendingChoice, setPendingChoice] = useState<{ query: string; candidates: NeighborhoodCandidate[] } | null>(null);
   const [typeAbstained, setTypeAbstained] = useState(false);
   const [fetchProgress, setFetchProgress] = useState(0);
-  const [surveyResponses, setSurveyResponses] = useState<SurveyResponse[]>([]);
-  const [surveySavedNotice, setSurveySavedNotice] = useState(false);
   const workspaceRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -207,6 +209,8 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
       ]);
       if (!response.engineCard) {
         setCard(null);
+        setSection('collect');
+        setActiveView('collect');
         throw new Error(`شواهد برای اجرای موتور تصمیم کافی نیست (${LEVEL_FA[v2.publication.level].label}). فهرست «چه داده‌ای این حکم را تغییر می‌دهد» را در پنل شواهد ببینید.`);
       }
       const result = { card: response.engineCard };
@@ -267,15 +271,9 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
     }
   }, [memoryEntries]);
 
-  const handleSurveyComplete = useCallback((responses: SurveyResponse[]) => {
-    setSurveyResponses(responses);
-    setSurveySavedNotice(true);
-    try {
-      localStorage.setItem('decision-support-survey', JSON.stringify(responses));
-    } catch {
-      // Storage is optional.
-    }
-  }, []);
+  const handleReanalyze = useCallback((neighborhoodId: string) => {
+    void handleAnalyze(neighborhoodId);
+  }, [handleAnalyze]);
 
   const currentNavigation = NAVIGATION[section];
   const activeItem = useMemo(
@@ -473,7 +471,7 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
         />
       )}
 
-      {v2Card && <NeighborhoodEvidencePanel card={v2Card} />}
+      {v2Card && <NeighborhoodEvidencePanel card={v2Card} onCollect={() => changeSection('collect', 'collect')} />}
 
       {analysisError && (
         <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-danger/30 bg-danger-soft p-4 text-danger-700 dark:bg-danger/10 dark:text-red-300 sm:flex-row sm:items-center sm:justify-between">
@@ -484,9 +482,16 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
               <p className="mt-1 text-xs">{analysisError}</p>
             </div>
           </div>
-          <button type="button" onClick={() => void handleAnalyze()} className="rounded-xl border border-danger/30 px-3 py-2 text-xs font-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-danger/15">
-            تلاش دوباره
-          </button>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {v2Card && (
+              <button type="button" onClick={() => changeSection('collect', 'collect')} className="inline-flex items-center gap-1.5 rounded-xl bg-danger px-3 py-2 text-xs font-black text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-danger/15">
+                <ClipboardList size={14} /> تکمیل داده با پیمایش
+              </button>
+            )}
+            <button type="button" onClick={() => void handleAnalyze()} className="rounded-xl border border-danger/30 px-3 py-2 text-xs font-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-danger/15">
+              تلاش دوباره
+            </button>
+          </div>
         </div>
       )}
 
@@ -524,7 +529,7 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
         </section>
       )}
 
-      {!card && !loading ? (
+      {!card && !v2Card && !loading ? (
         <EmptyWorkspace
           recentEntries={memoryEntries.slice(-3).reverse()}
           onSelectRecent={name => setNeighborhoodName(name)}
@@ -620,7 +625,9 @@ export default function DecisionSupportPage({ card: initialCard, loading: initia
                 confidence={confidence}
                 lastUpdated={lastUpdated}
                 onNavigate={changeSection}
-                onSurveyComplete={handleSurveyComplete}
+                v2Card={v2Card}
+                onReanalyze={handleReanalyze}
+                reanalyzing={loading}
               />
             </div>
           </section>
@@ -729,7 +736,9 @@ function DecisionView({
   confidence,
   lastUpdated,
   onNavigate,
-  onSurveyComplete,
+  v2Card,
+  onReanalyze,
+  reanalyzing,
 }: {
   activeView: ViewKey;
   card: DecisionCard | null;
@@ -741,11 +750,13 @@ function DecisionView({
   confidence: number | null;
   lastUpdated: Date | null;
   onNavigate: (section: SectionKey, view?: ViewKey) => void;
-  onSurveyComplete: (responses: SurveyResponse[]) => void;
+  v2Card: DecisionCardV2 | null;
+  onReanalyze: (neighborhoodId: string) => void;
+  reanalyzing: boolean;
 }) {
   if (activeView === 'learning') return <LearningDashboard entries={memoryEntries} onEntriesChange={setMemoryEntries} />;
   if (activeView === 'ai') return <AIDecisionAdvisor neighborhoodName={card?.neighborhoodName ?? ''} />;
-  if (activeView === 'survey') return <PerceptualSurveyForm onComplete={onSurveyComplete} />;
+  if (activeView === 'collect') return <DataCollectionHub card={v2Card} onReanalyze={onReanalyze} reanalyzing={reanalyzing} />;
   if (activeView === 'compare') return <NeighborhoodComparison />;
   if (activeView === 'data') return <DataSourcesView rawData={rawData} sources={sourceStatuses} />;
   if (activeView === 'registry') {

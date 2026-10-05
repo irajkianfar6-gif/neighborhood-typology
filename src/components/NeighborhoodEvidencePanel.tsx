@@ -3,7 +3,7 @@
 // و «چه داده‌ای این حکم را تغییر می‌دهد» با الگوی قرارداد داده
 // ============================================================
 import { useState } from 'react';
-import { AlertTriangle, ChevronDown, Database, Download, FileWarning, MapPin, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ClipboardList, Database, Download, FileWarning, MapPin, ShieldCheck } from 'lucide-react';
 import { CAPITAL_FA } from '../algorithm/types';
 import { LEVEL_FA, templateUrl, type DecisionCardV2, type NeighborhoodCandidate } from '../algorithm/neighborhoodApi';
 
@@ -34,7 +34,9 @@ export function CandidatePicker({ query, candidates, onPick }: { query: string; 
   );
 }
 
-export default function NeighborhoodEvidencePanel({ card }: { card: DecisionCardV2 }) {
+const COLLECTABLE = new Set(['S1', 'S2', 'S3', 'C3', 'H2', 'H3', 'H4', 'S4', 'C4', 'C5', 'P3', 'S5', 'G1', 'G3', 'G5']);
+
+export default function NeighborhoodEvidencePanel({ card, onCollect }: { card: DecisionCardV2; onCollect?: () => void }) {
   const [showAll, setShowAll] = useState(false);
   const level = LEVEL_FA[card.publication.level];
   const scored = card.indicators.filter((i) => i.score !== null);
@@ -108,13 +110,21 @@ export default function NeighborhoodEvidencePanel({ card }: { card: DecisionCard
 
       {card.whatWouldChangeThis.length > 0 && (
         <div className="rounded-2xl border border-line bg-surface p-4 text-xs dark:border-wall-700 dark:bg-wall-800">
-          <p className="mb-2 flex items-center gap-2 font-black"><FileWarning size={14} /> چه داده‌ای این حکم را تغییر می‌دهد ({fa(card.whatWouldChangeThis.length, 0)} شاخص)</p>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-2 font-black"><FileWarning size={14} /> چه داده‌ای این حکم را تغییر می‌دهد ({fa(card.whatWouldChangeThis.length, 0)} شاخص)</p>
+            {onCollect && card.whatWouldChangeThis.some((m) => COLLECTABLE.has(m.code)) && (
+              <button type="button" onClick={onCollect} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-800 px-3 py-1.5 text-[11px] font-black text-white dark:bg-signal-400 dark:text-wall-950">
+                <ClipboardList size={13} /> {fa(card.whatWouldChangeThis.filter((m) => COLLECTABLE.has(m.code)).length, 0)} شاخص با پیمایش و ثبت محلی قابل تکمیل است
+              </button>
+            )}
+          </div>
           <div className="grid gap-2 md:grid-cols-2">
             {card.whatWouldChangeThis.slice(0, 40).map((m) => (
               <div key={m.code} className="rounded-xl border border-line/70 p-2 dark:border-wall-700">
                 <div className="font-bold">{m.code} · {m.name} <span className="text-ink-500">({CAPITAL_FA[m.capital]})</span></div>
                 <div className="text-ink-500">{m.reason}</div>
                 <div>اقدام: {m.nextAction} — مالک داده: {m.owner}</div>
+                {onCollect && COLLECTABLE.has(m.code) && <button type="button" onClick={onCollect} className="mt-1 ml-3 inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-300"><ClipboardList size={12} /> تکمیل در مرکز گردآوری</button>}
                 {m.template && <a className="mt-1 inline-flex items-center gap-1 font-bold text-brand-700 dark:text-signal-400" href={templateUrl(m.template)}><Download size={12} /> الگوی {m.template}</a>}
               </div>
             ))}

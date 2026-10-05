@@ -67,7 +67,7 @@ export const DEFAULT_ROUTE_RULES: RouteRule[] = [
   { path: /^\/api\/anthropic/, min: 'admin' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/calibration/, min: 'admin' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/ingestion\/[^/]+\/approve$/, min: 'admin' },
-  { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/(memory|interventions|experiments|ingestion|survey|field-audit|runs\/[^/]+\/learn|shadow)/, min: 'operator' },
+  { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/(memory|interventions|experiments|ingestion|survey|field-audit|local-register|runs\/[^/]+\/learn|shadow)/, min: 'operator' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/typology\/(v1\/)?runs\/[^/]+\/approve/, min: 'operator' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/satellite/, min: 'operator' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\//, min: 'analyst' },
