@@ -89,7 +89,7 @@ export default function DataCollectionHub({ card, onReanalyze, reanalyzing }: { 
         </div>
         {showToken && (
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
-            <label className="flex-1 text-[11px] font-bold text-ink-600 dark:text-slate-300">توکن API با نقش «اپراتور» یا بالاتر (در محیط تولید برای ثبت داده لازم است)
+            <label className="flex-1 text-[11px] font-bold text-ink-600 dark:text-slate-300">توکن API (اختیاری؛ نقش پیش‌فرض شما «تحلیلگر» است و برای ثبت داده کافی است)
               <input type="password" className={`${inputCls} mt-1`} value={token} onChange={(e) => setToken(e.target.value)} autoComplete="off" />
             </label>
             <button type="button" className={primaryBtn} onClick={() => { try { if (token.trim()) localStorage.setItem('ara_api_token', token.trim()); else localStorage.removeItem('ara_api_token'); } catch { /* optional */ } setShowToken(false); }}>ذخیره در این مرورگر</button>
