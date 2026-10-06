@@ -22,6 +22,7 @@ import { rakingTargetsFrom, surveyOptionsFor } from './channels';
 import { districtProfile, incomeBenchmark, listOfficialPacks, readOfficialPack, tehranDistrictOf } from '../official/tehranReference';
 import { buildNeighborhoodContext } from './context';
 import { schedulerStatus } from '../scheduler';
+import { createCustomSurveyRouter } from '../survey/customSurveyRouter';
 
 const asyncRoute = (fn: (req: Request, res: Response) => Promise<void>) => (req: Request, res: Response, next: NextFunction) => { fn(req, res).catch(next); };
 const ok = (res: Response, data: unknown, status = 200) => res.status(status).json({ success: true, data });
@@ -49,6 +50,7 @@ function packStatus() {
 
 export function createNeighborhoodRouter(): Router {
   const router = Router();
+  router.use('/custom-surveys', createCustomSurveyRouter());
 
   // ---------- Resolver ----------
   router.get('/neighborhoods/resolve', (req, res) => {

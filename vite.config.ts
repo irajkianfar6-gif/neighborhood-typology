@@ -9,7 +9,7 @@ export default defineConfig(({mode}) => {
   // نام متغیرها با پیشوند ARA_ تا با متغیرهای سراسری ANTHROPIC_* (مثل ابزارهای Claude Code) تداخل نکنند.
   const env = loadEnv(mode, process.cwd(), '');
   const anthropicKey = env.ARA_ANTHROPIC_API_KEY || '';
-  const anthropicTarget = env.ARA_ANTHROPIC_BASE_URL || 'https://tabitoken.com';
+  const anthropicTarget = env.ARA_ANTHROPIC_BASE_URL || 'https://api.justwoker.icu';
   const apiProxyTarget = env.ARA_API_PROXY_TARGET || 'http://localhost:4001';
 
   return {

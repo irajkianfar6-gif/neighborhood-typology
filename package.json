@@ -29,7 +29,7 @@
     "typology:catalog": "python scripts/build_typology_catalog.py",
     "sci:server": "tsx server/index.ts",
     "sci:sync": "python scripts/sync_province_map.py && python scripts/sync_census.py && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_lfs.ps1",
-    "test:neighborhood": "node --test --test-concurrency=1 --import tsx src/algorithm/surveyBulk.test.ts server/noFabrication.test.ts server/neighborhood/*.test.ts server/evidence/*.test.ts server/security/*.test.ts server/ingestion/*.test.ts server/official/*.test.ts",
+    "test:neighborhood": "node --test --test-concurrency=1 --import tsx src/algorithm/surveyBulk.test.ts server/noFabrication.test.ts server/neighborhood/*.test.ts server/evidence/*.test.ts server/security/*.test.ts server/ingestion/*.test.ts server/official/*.test.ts server/survey/customSurvey.test.ts",
     "test:all": "npm run lint && npm run test:typology && npm run test:neighborhood && python kernel/engine/tests/test_formulas.py",
     "neighborhood:layers": "tsx scripts/fetch_city_layers.ts",
     "neighborhood:reference": "tsx scripts/build_reference_distribution.ts",

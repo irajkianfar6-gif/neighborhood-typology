@@ -189,7 +189,7 @@ app.get('/api/health', (_req, res) => {
 // ---------- پراکسی یکسان‌مبدأ سرویس مدل (کلید فقط روی سرور می‌ماند) ----------
 // در حالت توسعه، vite.config.ts این کار را می‌کند؛ در استقرار تولیدی (dist + Express)
 // همین مسیر جایگزین آن است تا باندل فرانت‌اند هرگز کلید را نبیند.
-const ANTHROPIC_BASE_URL = (process.env.ARA_ANTHROPIC_BASE_URL || 'https://tabitoken.com').replace(/\/+$/, '');
+const ANTHROPIC_BASE_URL = (process.env.ARA_ANTHROPIC_BASE_URL || 'https://api.justwoker.icu').replace(/\/+$/, '');
 const ANTHROPIC_API_KEY = process.env.ARA_ANTHROPIC_API_KEY || '';
 const ANTHROPIC_VERSION = process.env.ARA_ANTHROPIC_VERSION || '2023-06-01';
 
@@ -201,6 +201,8 @@ function sanitizeAnthropicBody(body: unknown): Record<string, unknown> {
   for (const key of ['model', 'messages', 'system', 'temperature', 'stream', 'stop_sequences']) {
     if (b[key] !== undefined) out[key] = b[key];
   }
+  // اگر مدل در محیط تعیین شده باشد، همهٔ درخواست‌ها با همان مدل اجرا می‌شوند (سرویس فعلی فقط یک مدل دارد)
+  if (process.env.ARA_LLM_MODEL) out.model = process.env.ARA_LLM_MODEL;
   const requested = Number(b.max_tokens);
   out.max_tokens = Number.isFinite(requested) && requested > 0 ? Math.min(requested, ANTHROPIC_MAX_TOKENS) : Math.min(1024, ANTHROPIC_MAX_TOKENS);
   return out;

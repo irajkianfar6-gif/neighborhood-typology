@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ClipboardList, FileSpreadsheet, LayoutDashboard, Loader2, MapPin, RefreshCw, Sparkles, Landmark, UploadCloud } from 'lucide-react';
+import { ClipboardEdit, ClipboardList, FileSpreadsheet, LayoutDashboard, Loader2, MapPin, RefreshCw, Sparkles, Landmark, UploadCloud } from 'lucide-react';
 import { getCollectionStatus, loadQueue, saveQueue, submitSurveyResponses, type CollectionStatus } from '../../algorithm/dataCollectionApi';
 import { LEVEL_FA, type DecisionCardV2 } from '../../algorithm/neighborhoodApi';
 import CollectionOverview, { type HubTab } from './CollectionOverview';
@@ -7,11 +7,13 @@ import SurveyWizard from './SurveyWizard';
 import BulkSurveyImport from './BulkSurveyImport';
 import FieldAuditWizard from './FieldAuditWizard';
 import LocalRegisterPanel from './LocalRegisterPanel';
+import CustomSurveyStudio from './custom/CustomSurveyStudio';
 import { Notice, ProgressRing, fa, ghostBtn, primaryBtn } from './ui';
 
 const TABS: Array<{ key: HubTab; label: string; icon: React.ReactNode; hint: string }> = [
   { key: 'overview', label: 'داشبورد گردآوری', icon: <LayoutDashboard size={15} />, hint: 'پیشرفت، کیفیت نمونه و شاخص‌های قابل گشودن' },
   { key: 'survey', label: 'پرسشنامهٔ ساکنان', icon: <ClipboardList size={15} />, hint: 'فرم مرحله‌ای مصاحبه یا خوداظهاری' },
+  { key: 'custom', label: 'پرسشنامه‌ساز', icon: <ClipboardEdit size={15} />, hint: 'طراحی پرسشنامهٔ دلخواه + هوش مصنوعی' },
   { key: 'bulk', label: 'ورود دسته‌ای', icon: <FileSpreadsheet size={15} />, hint: 'پرسشنامه‌های کاغذی / اکسل' },
   { key: 'audit', label: 'ممیزی میدانی', icon: <MapPin size={15} />, hint: 'چک‌لیست فضای عمومی P3' },
   { key: 'register', label: 'ثبت‌های محلی', icon: <Landmark size={15} />, hint: 'مسائل، فرایندها، پروژه‌ها و شبکهٔ نهادها' },
@@ -91,7 +93,7 @@ export default function DataCollectionHub({ card, onReanalyze, reanalyzing }: { 
         )}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-5" role="tablist" aria-label="ابزارهای گردآوری">
+      <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6" role="tablist" aria-label="ابزارهای گردآوری">
         {TABS.map((t) => (
           <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
             className={`rounded-2xl border p-3 text-right transition ${tab === t.key ? 'border-brand-800 bg-brand-800 text-white shadow-sm dark:border-signal-400 dark:bg-signal-400 dark:text-wall-950' : 'border-line bg-surface hover:border-brand-300 dark:border-wall-700 dark:bg-wall-800'}`}>
@@ -106,6 +108,7 @@ export default function DataCollectionHub({ card, onReanalyze, reanalyzing }: { 
 
       {status && tab === 'overview' && <CollectionOverview status={status} card={card} onOpen={setTab} onChanged={() => void refresh()} />}
       {tab === 'survey' && <SurveyWizard neighborhoodId={id} neighborhoodName={card.neighborhood.nameFa} onSubmitted={() => void refresh()} onExit={() => setTab('overview')} />}
+      {tab === 'custom' && <CustomSurveyStudio neighborhoodId={id} neighborhoodName={card.neighborhood.nameFa} onChanged={() => void refresh()} />}
       {tab === 'bulk' && <BulkSurveyImport neighborhoodId={id} onSubmitted={() => void refresh()} />}
       {status && tab === 'audit' && <FieldAuditWizard neighborhoodId={id} centroid={card.neighborhood.centroid} summary={status.audit} onSubmitted={() => void refresh()} />}
       {status && tab === 'register' && <LocalRegisterPanel neighborhoodId={id} summary={status.register} onSubmitted={() => void refresh()} />}

@@ -70,7 +70,7 @@ export async function explainTypologyReport(
     };
   }
 
-  const baseUrl = (process.env.ARA_ANTHROPIC_BASE_URL || 'https://tabitoken.com').replace(/\/$/, '');
+  const baseUrl = (process.env.ARA_ANTHROPIC_BASE_URL || 'https://api.justwoker.icu').replace(/\/$/, '');
   const endpoint = baseUrl.endsWith('/v1') ? `${baseUrl}/messages` : `${baseUrl}/v1/messages`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30_000);
@@ -83,7 +83,7 @@ export async function explainTypologyReport(
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: process.env.ARA_ANTHROPIC_MODEL || 'claude-opus-5-thinking',
+        model: process.env.ARA_LLM_MODEL || process.env.ARA_ANTHROPIC_MODEL || 'claude-opus-4-8',
         max_tokens: 900,
         system: [
           'You are an audit-safe explanation assistant for a neighborhood typology system.',

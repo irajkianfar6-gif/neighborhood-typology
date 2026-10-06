@@ -46,7 +46,7 @@
 | سیستم‌عامل | Ubuntu 22.04+/Debian 12 | دستورها بر پایهٔ همین‌هاست |
 | Docker | 24+ با Compose 2.24+ | (از `env_file: required: false` پشتیبانی می‌کند) |
 | دامنه | یک FQDN + DNS A record | برای TLS |
-| دسترسی شبکه به بیرون (Egress) | HTTP/HTTPS | `tabitoken.com` (سرویس مدل)، `api.openaq.org`، `healthsites.io`، `*.earth-search.aws.element84.com`، `opensky`/`copernicus` و منابع OSM — در شبکه‌های بسته سازمانی باید اجازه داده شود |
+| دسترسی شبکه به بیرون (Egress) | HTTP/HTTPS | `api.justwoker.icu` (سرویس مدل)، `api.openaq.org`، `healthsites.io`، `*.earth-search.aws.element84.com`، `opensky`/`copernicus` و منابع OSM — در شبکه‌های بسته سازمانی باید اجازه داده شود |
 
 ---
 
@@ -65,7 +65,7 @@ nano .env.local
 ```dotenv
 # الزامی برای دستیار هوشمند (بدون آن برنامه کار می‌کند ولی چت به حالت محلی می‌رود)
 ARA_ANTHROPIC_API_KEY="sk-..."
-ARA_ANTHROPIC_BASE_URL="https://tabitoken.com"
+ARA_ANTHROPIC_BASE_URL="https://api.justwoker.icu"
 VITE_ANTHROPIC_MODEL="claude-opus-5-thinking"
 
 # اختیاری — کلیدهای منابع برخط
@@ -203,7 +203,8 @@ gcloud run deploy ara \
 | متغیر | پیش‌فرض | الزام | توضیح |
 |---|---|---|---|
 | `ARA_ANTHROPIC_API_KEY` | — | توصیه‌شده | کلید سرویس مدل؛ **فقط سمت سرور** (پراکسی `/api/anthropic`). بدون آن، چت به حالت محلی می‌رود و `/api/health` گزارش `anthropicProxy: false` می‌دهد |
-| `ARA_ANTHROPIC_BASE_URL` | `https://tabitoken.com` | خیر | پایهٔ سرویس سازگار با Anthropic |
+| `ARA_ANTHROPIC_BASE_URL` | `https://api.justwoker.icu` | خیر | پایهٔ سرویس سازگار با Anthropic |
+| `ARA_LLM_MODEL` | `claude-opus-4-8` | خیر | مدل سمت سرور (پرسشنامه‌ساز و پراکسی؛ درخواست‌ها به همین مدل اجبار می‌شوند) |
 | `VITE_ANTHROPIC_MODEL` | `claude-opus-5-thinking` | خیر | مدل چت؛ چون `import.meta.env` است **باید پیش از `npm run build` تنظیم شود** |
 | `SCI_PORT` | `4001` | خیر | پورت API/UI |
 | `TRUST_PROXY_HOPS` | `1` | پشت nginx | تا IP واقعی کاربر در `req.ip` درست باشد |

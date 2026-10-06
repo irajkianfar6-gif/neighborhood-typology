@@ -26,7 +26,7 @@ export async function generateCausalHypotheses(
     };
   }
 
-  const baseUrl = (process.env.ARA_ANTHROPIC_BASE_URL || 'https://tabitoken.com').replace(/\/$/, '');
+  const baseUrl = (process.env.ARA_ANTHROPIC_BASE_URL || 'https://api.justwoker.icu').replace(/\/$/, '');
   const endpoint = baseUrl.endsWith('/v1') ? `${baseUrl}/messages` : `${baseUrl}/v1/messages`;
 
   const lang = input.language ?? 'fa';
@@ -41,7 +41,7 @@ export async function generateCausalHypotheses(
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: process.env.ARA_ANTHROPIC_MODEL || 'claude-opus-5-thinking',
+        model: process.env.ARA_LLM_MODEL || process.env.ARA_ANTHROPIC_MODEL || 'claude-opus-4-8',
         max_tokens: 800,
         system: systemPrompt,
         messages: [{

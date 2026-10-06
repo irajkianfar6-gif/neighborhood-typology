@@ -1,6 +1,6 @@
 // حکیم — client حداقلی و تایپ‌شده برای سرویس سازگار با Anthropic Messages.
 // درخواست به مسیر یکسان-مبدأ `/api/anthropic` می‌رود؛ پراکسی سرور توسعه (vite.config.ts)
-// کلید را تزریق کرده و به پایانه خارجی (پیش‌فرض tabitoken.com) هدایت می‌کند.
+// کلید را تزریق کرده و به پایانه خارجی (پیش‌فرض api.justwoker.icu) هدایت می‌کند.
 
 export interface AnthropicChatMessage {
   role: 'user' | 'assistant';
@@ -20,7 +20,7 @@ interface AnthropicResponse {
   error?: { type?: string; message?: string };
 }
 
-const MODEL = import.meta.env.VITE_ANTHROPIC_MODEL || 'claude-opus-5-thinking';
+const MODEL = import.meta.env.VITE_ANTHROPIC_MODEL || 'claude-opus-4-8';
 
 async function postChat(
   messages: AnthropicChatMessage[],
