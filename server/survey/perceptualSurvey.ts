@@ -10,12 +10,14 @@
  * - عدالت: مقادیر گروهی برای گروه‌های با n ≥ ۳۰
  * - ماژول خانوار (HH-v1): H2، H3، H4، S4، C4، C5 = سهم وزنی «بله» در جامعهٔ واجد شرایط هر شاخص × ۱۰۰؛
  *   برآورد فقط وقتی منتشر می‌شود که دست‌کم ۳۰ پاسخ واجد شرایط وجود داشته باشد.
+ * - ماژول مسکن/درآمد/آموزش (HH-v2): H1 (دیپلم+ در ۲۵+)، H5 (آموزش ۱۲ ماه)، E4 (میانهٔ بار هزینهٔ مسکن)،
+ *   E1 (میانهٔ نسبت درآمد خانوار به متوسط استان، تعدیل تورم با CPI ماه گردآوری)
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { serverDataDir } from '../paths';
-import { BINARY_CODES, HOUSEHOLD_INDICATORS, ITEM_BY_CODE, INSTRUMENT_VERSION } from '../../src/algorithm/surveyInstrument';
+import { ALL_ITEMS, BINARY_CODES, ECONOMIC_INDICATORS, HOUSEHOLD_INDICATORS, ITEM_BY_CODE, INSTRUMENT_VERSION, MAX_PLAUSIBLE_BURDEN, housingBurden, validNumber } from '../../src/algorithm/surveyInstrument';
 
 export const LIKERT_ITEMS = ['C1', 'C2', 'C3', 'A1', 'A2', 'A3', 'U1', 'U2', 'U3', 'E1', 'E2', 'E3', 'O1', 'O2', 'O3', 'C3X'] as const;
 export const REVERSED = new Set(['C3', 'O2']);
@@ -74,8 +76,12 @@ export function validateResponse(input: SurveyResponseInput, existing: StoredRes
   if (likert.length >= 10 && new Set(likert).size === 1) reasons.push('STRAIGHT_LINING');
   if (likert.length < 8) reasons.push('INCOMPLETE');
   if (BINARY_CODES.some((k) => { const v = input.answers?.[k]; return v !== undefined && v !== null && v !== 0 && v !== 1; })) reasons.push('INVALID_BINARY');
-  const emp = input.answers?.EMP;
-  if (emp !== undefined && emp !== null && ![1, 2, 3, 4].includes(emp)) reasons.push('INVALID_CHOICE');
+  for (const item of ALL_ITEMS) {
+    const v = input.answers?.[item.code];
+    if (v === undefined || v === null) continue;
+    if (item.kind === 'choice' && !item.options?.some((o) => o.value === v)) { if (!reasons.includes('INVALID_CHOICE')) reasons.push('INVALID_CHOICE'); }
+    if (item.kind === 'number' && !validNumber(item, v)) { if (!reasons.includes('INVALID_NUMBER')) reasons.push('INVALID_NUMBER'); }
+  }
   const deviceHash = input.deviceId ? crypto.createHash('sha256').update(input.deviceId).digest('hex').slice(0, 16) : undefined;
   if (deviceHash && existing.some((r) => r.deviceHash === deviceHash && r.qc.accepted)) reasons.push('DUPLICATE_DEVICE');
   return { accepted: reasons.length === 0, reasons, deviceHash };
@@ -98,12 +104,12 @@ export function addResponses(neighborhoodId: string, inputs: SurveyResponseInput
 }
 
 /** هدف‌های جمعیتی برای raking: { sex: {male: n, female: n}, ageBand: {...} } */
-export type RakingTargets = Partial<Record<'sex' | 'ageBand', Record<string, number>>>;
+export type RakingTargets = Partial<Record<'sex' | 'ageBand', Record<string, number>>> & { note?: string };
 
 /** raking (iterative proportional fitting) روی جنس و گروه سنی */
 export function rake(responses: StoredResponse[], targets: RakingTargets, iterations = 50): number[] {
   const w = responses.map(() => 1);
-  const dims = (Object.keys(targets) as Array<'sex' | 'ageBand'>).filter((d) => targets[d] && Object.keys(targets[d]!).length);
+  const dims = (['sex', 'ageBand'] as const).filter((d) => targets[d] && Object.keys(targets[d]!).length);
   if (!dims.length) return w;
   for (let it = 0; it < iterations; it++) {
     let maxAdj = 0;
@@ -140,7 +146,33 @@ function cronbachAlpha(rows: number[][]): number | null {
 
 export interface SurveyIndicatorEstimate {
   code: string; label: string; score: number; ci95: [number, number]; n: number; nEffective: number; item: string;
-  module: 'perceptual' | 'household'; unit: '0..100' | '%'; denominator?: string;
+  module: 'perceptual' | 'household' | 'economic'; unit: '0..100' | '%' | 'ratio'; denominator?: string;
+  /** برای E1: معیار درآمد به‌کاررفته */
+  benchmark?: string;
+}
+export interface EconomySummary {
+  incomeN: number; medianIncomeMToman: number | null;
+  tenure: Record<string, number>;
+  burdenN: number; medianBurdenPct: number | null; overburdenSharePct: number | null; excludedImplausible: number;
+  rentPerM2: { n: number; medianMToman: number | null };
+  incomeBenchmark: { monthlyMToman: number; month: string; basis: string } | null;
+  medianHouseholdSize: number | null;
+}
+export interface SurveyOptions {
+  /** معیار درآمد ماهانه (میلیون تومان) در تاریخ گردآوری هر پاسخ — برای E1 */
+  incomeBenchmark?: (atIso: string) => { monthlyMToman: number; month: string; basis: string } | null;
+}
+
+/** میانهٔ وزنی و بازهٔ اطمینان تقریبی ۹۵٪ از چندک‌های وزنی (p = ۰٫۵ ± ۱٫۹۶ √(۰٫۲۵/nEff)) */
+export function weightedQuantiles(pairs: Array<{ v: number; w: number }>, ps: number[]): number[] {
+  const sorted = [...pairs].sort((a, b) => a.v - b.v);
+  const W = sorted.reduce((a, p) => a + p.w, 0);
+  return ps.map((p) => {
+    const target = Math.max(0, Math.min(1, p)) * W;
+    let acc = 0;
+    for (const x of sorted) { acc += x.w; if (acc >= target - 1e-9) return x.v; }
+    return sorted[sorted.length - 1]?.v ?? NaN;
+  });
 }
 export interface PendingSurveyIndicator { code: string; label: string; eligibleN: number; required: number; denominator: string }
 export interface SurveySummary {
@@ -164,14 +196,15 @@ export interface SurveySummary {
   byMode: Record<string, number>;
   byCollector: Record<string, number>;
   instrumentVersion: string;
+  economy: EconomySummary;
 }
 
-export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets = {}): SurveySummary {
+export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets = {}, opts: SurveyOptions = {}): SurveySummary {
   const all = loadResponses(neighborhoodId);
   const ok = all.filter((r) => r.qc.accepted);
   const rejectedByReason: Record<string, number> = {};
   for (const r of all) if (!r.qc.accepted) for (const reason of r.qc.reasons) rejectedByReason[reason] = (rejectedByReason[reason] ?? 0) + 1;
-  const hasTargets = Object.values(targets).some((t) => t && Object.keys(t).length);
+  const hasTargets = (['sex', 'ageBand'] as const).some((d) => targets[d] && Object.keys(targets[d]!).length);
   const weights = hasTargets ? rake(ok, targets) : ok.map(() => 1);
   const nEff = (ws: number[]) => { const s = ws.reduce((a, b) => a + b, 0); const s2 = ws.reduce((a, b) => a + b * b, 0); return s2 ? (s * s) / s2 : 0; };
 
@@ -203,6 +236,9 @@ export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets =
     S4: { eligible: (r) => r.answers?.S4X === 0 || r.answers?.S4X === 1, yes: (r) => r.answers?.S4X === 1 },
     C4: { eligible: (r) => r.answers?.C4X === 0 || r.answers?.C4X === 1, yes: (r) => r.answers?.C4X === 1 },
     C5: { eligible: (r) => r.demographics?.ageBand === '18-29' && (r.answers?.C5X === 0 || r.answers?.C5X === 1), yes: (r) => r.answers?.C5X === 1 },
+    // H1: دیپلم و بالاتر در پاسخگویان ۲۵+ (۱۸–۲۹ ساله‌ها فقط با تأیید AGE25)
+    H1: { eligible: (r) => typeof r.answers?.EDU === 'number' && Boolean(r.demographics?.ageBand) && (r.demographics?.ageBand !== '18-29' || r.answers?.AGE25 === 1), yes: (r) => (r.answers?.EDU ?? 0) >= 3 },
+    H5: { eligible: (r) => r.answers?.H5X === 0 || r.answers?.H5X === 1, yes: (r) => r.answers?.H5X === 1 },
   };
   const share = (subset: number[], code: string) => {
     const rule = householdRule[code];
@@ -224,6 +260,60 @@ export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets =
     const hi = Number.isFinite(e.se) ? e.score + 1.96 * e.se : e.score;
     indicators.push({ code, label: def.label, item: def.item, score: r1(e.score), ci95: [r1(Math.max(0, lo)), r1(Math.min(100, hi))], n: e.n, nEffective: Math.round(e.ne), module: 'household', unit: '%', denominator: def.denominator });
   }
+
+  // ماژول اقتصادی: E4 (بار هزینهٔ مسکن) و E1 (درآمد نسبت به معیار استان)
+  const r1 = (x: number) => Math.round(x * 10) / 10;
+  const burdens: Array<{ v: number; w: number }> = [];
+  let excludedImplausible = 0;
+  ok.forEach((r, i) => {
+    const b = housingBurden(r.answers ?? {}, r.demographics?.tenure);
+    if (!b) return;
+    if (b.burdenPct > MAX_PLAUSIBLE_BURDEN) { excludedImplausible++; return; }
+    burdens.push({ v: b.burdenPct, w: weights[i] });
+  });
+  const incomes = ok.map((r, i) => ({ r, w: weights[i] })).filter((x) => typeof x.r.answers?.INC === 'number' && x.r.answers.INC > 0);
+  const latestIso = ok.map((r) => r.collectedAt ?? r.receivedAt).sort().pop() ?? new Date().toISOString();
+  const bench = opts.incomeBenchmark?.(latestIso) ?? null;
+  const ratios: Array<{ v: number; w: number }> = [];
+  if (opts.incomeBenchmark) {
+    for (const x of incomes) {
+      const b = opts.incomeBenchmark(x.r.collectedAt ?? x.r.receivedAt);
+      if (b && b.monthlyMToman > 0) ratios.push({ v: (x.r.answers.INC as number) / b.monthlyMToman, w: x.w });
+    }
+  }
+  const median = (pairs: Array<{ v: number; w: number }>) => {
+    const ne = nEff(pairs.map((p) => p.w));
+    const h = 1.96 * Math.sqrt(0.25 / Math.max(1, ne));
+    const [lo, mid, hi] = weightedQuantiles(pairs, [0.5 - h, 0.5, 0.5 + h]);
+    return { mid, lo, hi, ne };
+  };
+  for (const [code, def] of Object.entries(ECONOMIC_INDICATORS)) {
+    const pairs = code === 'E4' ? burdens : ratios;
+    if (code === 'E1' && !opts.incomeBenchmark) continue;
+    if (pairs.length < MIN_ELIGIBLE) {
+      if (pairs.length > 0 || (code === 'E4' && excludedImplausible > 0)) pending.push({ code, label: def.label, eligibleN: pairs.length, required: MIN_ELIGIBLE, denominator: def.denominator });
+      continue;
+    }
+    const m = median(pairs);
+    const rr = code === 'E1' ? (x: number) => Math.round(x * 100) / 100 : r1;
+    indicators.push({ code, label: def.label, item: def.items.join('+'), score: rr(m.mid), ci95: [rr(m.lo), rr(m.hi)], n: pairs.length, nEffective: Math.round(m.ne), module: 'economic', unit: def.unit as 'ratio' | '%', denominator: def.denominator, benchmark: code === 'E1' ? bench?.basis : undefined });
+  }
+  const rentM2 = ok.map((r, i) => ({ r, w: weights[i] })).filter((x) => x.r.demographics?.tenure === 'renter' && typeof x.r.answers?.RENT === 'number' && typeof x.r.answers?.AREA === 'number' && x.r.answers.AREA > 0)
+    .map((x) => ({ v: ((x.r.answers.RENT as number) + 0.03 * (x.r.answers.DEPOSIT ?? 0)) / (x.r.answers.AREA as number), w: x.w }));
+  const sizes = ok.map((r, i) => ({ r, w: weights[i] })).filter((x) => typeof x.r.answers?.HHSIZE === 'number').map((x) => ({ v: x.r.answers.HHSIZE as number, w: x.w }));
+  const tenure = ok.reduce<Record<string, number>>((acc, r) => { const t = r.demographics?.tenure; if (t) acc[t] = (acc[t] ?? 0) + 1; return acc; }, {});
+  const economy: EconomySummary = {
+    incomeN: incomes.length,
+    medianIncomeMToman: incomes.length ? r1(weightedQuantiles(incomes.map((x) => ({ v: x.r.answers.INC as number, w: x.w })), [0.5])[0]) : null,
+    tenure,
+    burdenN: burdens.length,
+    medianBurdenPct: burdens.length ? r1(weightedQuantiles(burdens, [0.5])[0]) : null,
+    overburdenSharePct: burdens.length ? r1((burdens.filter((b) => b.v > 30).reduce((a, b) => a + b.w, 0) / burdens.reduce((a, b) => a + b.w, 0)) * 100) : null,
+    excludedImplausible,
+    rentPerM2: { n: rentM2.length, medianMToman: rentM2.length ? Math.round(weightedQuantiles(rentM2, [0.5])[0] * 1000) / 1000 : null },
+    incomeBenchmark: bench,
+    medianHouseholdSize: sizes.length ? weightedQuantiles(sizes, [0.5])[0] : null,
+  };
 
   // پروفایل ادراکی زنجیره و میانگین گویه‌ها
   const itemScores: Record<string, number> = {};
@@ -277,7 +367,7 @@ export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets =
   return {
     neighborhoodId, nReceived: all.length, nAccepted: n, rejectedByReason,
     weighting: hasTargets ? 'raked' : 'unweighted',
-    weightingNote: hasTargets ? 'وزن‌دهی پس‌طبقه‌ای بر جنس/سن از جمعیت قراردادی محله' : 'هدف جمعیتی (POP_MALE/POP_FEMALE/POP_AGE_*) در دادهٔ قراردادی نیست؛ برآورد بدون وزن',
+    weightingNote: hasTargets ? (targets.note ?? 'وزن‌دهی پس‌طبقه‌ای بر جنس/سن از جمعیت قراردادی محله') : 'هدف جمعیتی (POP_MALE/POP_FEMALE/POP_AGE_*) در دادهٔ قراردادی نیست؛ برآورد بدون وزن',
     alpha: alpha === null ? null : Math.round(alpha * 1000) / 1000, alphaItems: CONSTRUCT_ITEMS,
     indicators, groupValues, groupNs, quotas,
     marginOfError: moe,
@@ -286,5 +376,6 @@ export function summarizeSurvey(neighborhoodId: string, targets: RakingTargets =
     pending, chainProfile, itemScores, followUpSamples,
     byMode: countBy((r) => r.mode ?? 'unspecified'), byCollector: countBy((r) => r.collectorId),
     instrumentVersion: INSTRUMENT_VERSION,
+    economy,
   };
 }

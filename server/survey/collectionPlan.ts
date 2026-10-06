@@ -3,7 +3,7 @@
  * فقط از وضعیت واقعی پاسخ‌ها/ثبت‌ها ساخته می‌شود؛ هیچ مقداری برآورد یا جعل نمی‌شود.
  */
 import { ALGORITHM_INDICATORS } from '../../src/algorithm/algorithmIndicators';
-import { HOUSEHOLD_INDICATORS } from '../../src/algorithm/surveyInstrument';
+import { ECONOMIC_INDICATORS, HOUSEHOLD_INDICATORS } from '../../src/algorithm/surveyInstrument';
 import { MIN_ELIGIBLE, SURVEY_INDICATORS, TARGET_N, type SurveySummary } from './perceptualSurvey';
 import { MIN_POINTS, type FieldAuditSummary } from './fieldAudit';
 import { MIN_ACTORS, MIN_RECORDS, REGISTER_KINDS, type RegisterSummary } from './localRegister';
@@ -16,7 +16,7 @@ export interface PlanIndicator {
   /** وضعیت همین شاخص در آخرین کارت تصمیم */
   card: { score: number | null; channel: string | null; tier: string | null; coveredElsewhere: boolean };
 }
-export interface PlanModule { key: 'survey' | 'household' | 'audit' | 'register' | 'network'; title: string; progress: number; status: PlanStatus; indicators: PlanIndicator[]; guidance: string }
+export interface PlanModule { key: 'survey' | 'household' | 'economy' | 'audit' | 'register' | 'network'; title: string; progress: number; status: PlanStatus; indicators: PlanIndicator[]; guidance: string }
 
 /** حجم نمونهٔ کوکران (p=۰٫۵، خطای ۵٪، اطمینان ۹۵٪) با تصحیح جامعهٔ محدود */
 export function recommendedSampleSize(population: number | null): number {
@@ -51,6 +51,12 @@ export function buildCollectionPlan(input: {
     const p = clamp(have / MIN_ELIGIBLE);
     return { code, name: CORE_40_NAMES[code] ?? code, status: status(p, Boolean(e)), value: e?.score ?? null, progress: p, have, need: MIN_ELIGIBLE, unit: `پاسخ واجد شرایط (${HOUSEHOLD_INDICATORS[code].denominator})`, card: cardOf(code, ['survey']) };
   });
+  const economic: PlanIndicator[] = Object.keys(ECONOMIC_INDICATORS).map((code) => {
+    const e = est.get(code);
+    const have = e ? e.n : pend.get(code)?.eligibleN ?? 0;
+    const p = clamp(have / MIN_ELIGIBLE);
+    return { code, name: CORE_40_NAMES[code] ?? code, status: status(p, Boolean(e)), value: e?.score ?? null, progress: p, have, need: MIN_ELIGIBLE, unit: `پاسخ واجد شرایط (${ECONOMIC_INDICATORS[code].denominator})`, card: cardOf(code, ['survey']) };
+  });
   const auditP = clamp(audit.points / MIN_POINTS) * (audit.kappa !== null && audit.kappa >= 0.6 ? 1 : 0.9);
   const auditInd: PlanIndicator[] = [{ code: 'P3', name: CORE_40_NAMES.P3 ?? 'P3', status: status(audit.points >= MIN_POINTS ? 1 : auditP, audit.p3 !== null), value: audit.p3, progress: clamp(audit.points / MIN_POINTS), have: audit.points, need: MIN_POINTS, unit: 'نقطهٔ ممیزی', card: cardOf('P3', ['field']) }];
   const regInd: PlanIndicator[] = (Object.keys(REGISTER_KINDS) as Array<keyof typeof REGISTER_KINDS>).map((kind) => {
@@ -70,6 +76,7 @@ export function buildCollectionPlan(input: {
   const modules: PlanModule[] = [
     mod('survey', 'پیمایش ادراکی ساکنان', perceptual, `نمونهٔ پیشنهادی ${n(recommendedN)} پاسخ معتبر (خطای ۵٪)؛ دروازهٔ انتشار به ${n(TARGET_N)} پاسخ و آلفای کرونباخ ≥ ۰٫۷ نیاز دارد.`),
     mod('household', 'ماژول کار، مهارت و مشارکت', household, `هر شاخص با دست‌کم ${n(MIN_ELIGIBLE)} پاسخ واجد شرایط برآورد می‌شود؛ C5 فقط از جوانان ۱۸–۲۹ و H4 فقط از شاغلان ماهر.`),
+    mod('economy', 'ماژول اقتصاد و هزینهٔ مسکن خانوار', economic, `درآمد، اجاره/ودیعه و قسط مسکن؛ هر شاخص با دست‌کم ${n(MIN_ELIGIBLE)} پاسخ واجد شرایط. E1 با متوسط درآمد خانوار شهری استان تهران (HEIS) مقایسه می‌شود.`),
     mod('audit', 'ممیزی میدانی فضای عمومی', auditInd, `دست‌کم ${n(MIN_POINTS)} نقطه و یک نقطه با دو ممیز مستقل برای پایایی (κ ≥ ۰٫۶).`),
     mod('register', 'ثبت پرونده‌های محلی', regInd, `برای هر شاخص دست‌کم ${n(MIN_RECORDS)} پرونده از سه سال اخیر؛ ارجاع سند کیفیت روش را بالا می‌برد.`),
     mod('network', 'شبکهٔ همکاری نهادها', netInd, `دست‌کم ${n(MIN_ACTORS)} نهاد فعال در محله و پیوندهای همکاری عملی میان آن‌ها.`),

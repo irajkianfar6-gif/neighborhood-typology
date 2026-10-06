@@ -1,6 +1,8 @@
 /** تبدیل کانال‌های غیرخودکار (قرارداد، پیمایش، ممیزی) به مقدار مستند */
 import { approvedValuesFor, type ApprovedValue } from '../ingestion/contractData';
-import { summarizeSurvey, type RakingTargets, type SurveySummary, TARGET_N } from '../survey/perceptualSurvey';
+import { summarizeSurvey, type RakingTargets, type SurveyOptions, type SurveySummary, TARGET_N } from '../survey/perceptualSurvey';
+import { districtSexTargets, incomeBenchmark, tehranDistrictOf } from '../official/tehranReference';
+import { ECONOMIC_INDICATORS } from '../../src/algorithm/surveyInstrument';
 import { summarizeAudits, type FieldAuditSummary } from '../survey/fieldAudit';
 import { summarizeRegister, type RegisterSummary } from '../survey/localRegister';
 import type { DocumentedValue } from '../evidence/types';
@@ -42,18 +44,34 @@ export function rakingTargetsFrom(ctx: NeighborhoodContext): RakingTargets {
   const t: RakingTargets = {};
   if (ctx.structure.male && ctx.structure.female) t.sex = { male: ctx.structure.male, female: ctx.structure.female };
   if (ctx.structure.ageBands) t.ageBand = ctx.structure.ageBands;
+  // جایگزین: ترکیب جنسی منطقهٔ شهرداری از سرشماری ۱۳۹۵ (فقط نسبت به کار می‌رود، نه شمار)
+  if (!t.sex) {
+    const d = districtSexTargets(ctx.neighborhoodId);
+    if (d) {
+      t.sex = { male: d.male, female: d.female };
+      t.note = t.ageBand ? `وزن‌دهی سن از جمعیت قراردادی محله و جنس از ${d.source} (سطح منطقه)` : `وزن‌دهی جنسیتی با ترکیب ${d.source} (سطح منطقه؛ ترکیب سنی محله در دسترس نیست)`;
+    }
+  }
   return t;
 }
 
+/** گزینه‌های برآورد پیمایش: معیار درآمد استان (فقط برای محلات تهران که بستهٔ رسمی دارند) */
+export function surveyOptionsFor(neighborhoodId: string): SurveyOptions {
+  return tehranDistrictOf(neighborhoodId) ? { incomeBenchmark: (at) => incomeBenchmark(at) } : {};
+}
+
 export function surveyValues(neighborhoodId: string, ctx: NeighborhoodContext): { values: DocumentedValue[]; summary: SurveySummary } {
-  const summary = summarizeSurvey(neighborhoodId, rakingTargetsFrom(ctx));
+  const summary = summarizeSurvey(neighborhoodId, rakingTargetsFrom(ctx), surveyOptionsFor(neighborhoodId));
   const values: DocumentedValue[] = summary.indicators.map((e) => ({
     code: e.code, raw: e.score, unit: e.unit ?? '0..100',
-    source: `${e.module === 'household' ? 'پیمایش محله — ماژول خانوار' : 'پیمایش ادراکی محله'} (n=${e.n}، ${summary.weighting === 'raked' ? 'وزن‌دار' : 'بدون وزن'})`,
-    sourceIds: [e.module === 'household' ? 'survey:household' : 'survey:perceptual'], channel: 'survey', tier: 'survey', geographyLevel: 'neighborhood',
+    source: `${e.module === 'household' ? 'پیمایش محله — ماژول خانوار' : e.module === 'economic' ? 'پیمایش محله — ماژول مسکن و درآمد' : 'پیمایش ادراکی محله'} (n=${e.n}، ${summary.weighting === 'raked' ? 'وزن‌دار' : 'بدون وزن'})`,
+    sourceIds: [e.module === 'perceptual' ? 'survey:perceptual' : `survey:${e.module}`], channel: 'survey', tier: 'survey', geographyLevel: 'neighborhood',
+    lowerIsBetter: LOWER_BETTER.has(e.code),
     observedAt: summary.latestResponseAt, fetchedAt: new Date().toISOString(),
     numerator: null, denominator: e.n,
-    method: e.module === 'household'
+    method: e.module === 'economic'
+      ? `${ECONOMIC_INDICATORS[e.code]?.method ?? ''}؛ جامعه: ${e.denominator}؛ CI95=[${e.ci95.join('، ')}]${e.benchmark ? `؛ معیار: ${e.benchmark}` : ''}`
+      : e.module === 'household'
       ? `سهم وزنی پاسخ «بله» گویهٔ ${e.item} در جامعهٔ واجد شرایط (${e.denominator}) × ۱۰۰؛ CI95=[${e.ci95.join('، ')}]`
       : `(میانگین وزنی لیکرت − ۱) ÷ ۴ × ۱۰۰ روی گویهٔ ${e.item}؛ CI95=[${e.ci95.join('، ')}]`,
     methodQuality: summary.alpha !== null && summary.alpha >= 0.7 ? 1 : 0.6,

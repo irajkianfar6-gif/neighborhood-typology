@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { serverDataDir } from '../paths';
 import { getNeighborhood, neighborhoodsOfCity } from '../neighborhood/gazetteer';
+import { districtPopulation, tehranDistrictOf } from '../official/tehranReference';
 
 export const CONTRACT_COLUMNS = [
   'indicator_code', 'neighborhood_id', 'block_id', 'postal_prefix', 'numerator', 'denominator', 'value', 'unit',
@@ -19,6 +20,8 @@ export const CONTRACT_COLUMNS = [
 const CORE_40 = new Set('H1 H2 H3 H4 H5 S1 S2 S3 S4 S5 E1 E2 E3 E4 E5 P1 P2 P3 P4 P5 N1 N2 N3 N4 N5 C1 C2 C3 C4 C5 G1 G2 G3 G4 G5 R1 R2 R3 R4 R5'.split(' '));
 /** متغیرهای بافت (مخرج‌ها) که از قرارداد هم پذیرفته می‌شوند */
 export const CONTEXT_CODES = new Set(['POP', 'POP_25PLUS', 'POP_15_64', 'POP_15PLUS', 'POP_MALE', 'POP_FEMALE', 'POP_AGE_18_29', 'POP_AGE_30_44', 'POP_AGE_45_64', 'POP_AGE_65PLUS', 'HOUSEHOLDS']);
+/** متغیرهای شمارشی که فقط در سطح محله معنا دارند */
+const COUNT_CODES = new Set(['POP', 'POP_25PLUS', 'POP_15_64', 'POP_15PLUS', 'POP_MALE', 'POP_FEMALE', 'POP_AGE_18_29', 'POP_AGE_30_44', 'POP_AGE_45_64', 'POP_AGE_65PLUS', 'HOUSEHOLDS']);
 /** شاخص‌هایی که خروجی‌شان درصد است و باید ۰..۱۰۰ باشند */
 const PERCENT_CODES = new Set('H1 H2 H3 H4 H5 S3 S4 S5 E3 E5 P1 P2 P4 P5 N1 N2 N4 C2 C4 C5 G1 G2 G4 G5 R4'.split(' '));
 const MIN_CELL = Number(process.env.ARA_PRIVACY_MIN_CELL || 10);
@@ -170,6 +173,8 @@ export function validateContractCsv(text: string): { rows: ContractRow[]; issues
     };
     if (districtMembers) {
       if (groupKey) { err('DISTRICT_GROUP', 'شکاف گروهی در سطح منطقه پذیرفته نمی‌شود', 'group_key'); return; }
+      // متغیرهای شمارشی (جمعیت، خانوار) را نمی‌توان روی همهٔ محلات منطقه گستراند؛ جمعیت منطقه ≠ جمعیت محله
+      if (COUNT_CODES.has(code)) { err('DISTRICT_COUNT', `${code} شمارشی است و در سطح منطقه روی محلات گسترده نمی‌شود؛ جمعیت منطقه در بافت مرجع (data/official) نگه داشته می‌شود`, 'indicator_code'); return; }
       const norm = normalizeDistrict(district)!;
       for (const member of districtMembers) rows.push({ ...row, neighborhood_id: member, district: `${norm.city}:${norm.n}`, geography_level: 'district' });
       return;
@@ -188,7 +193,30 @@ export function validateContractCsv(text: string): { rows: ContractRow[]; issues
     rows.push(row);
   });
   rows.push(...blockAgg.values());
+  issues.push(...populationConsistency(rows));
   return { rows, issues };
+}
+
+/**
+ * هم‌خوانی جمعیت: مجموع POP محلات یک منطقهٔ تهران نباید بیش از ۱۵٪ از جمعیت سرشماری ۱۳۹۵ همان منطقه بیشتر باشد
+ * (نشانهٔ تطبیق اشتباه نام یا ورود جمعیت منطقه به‌جای محله). فقط هشدار است؛ تصمیم با بازبین.
+ */
+export function populationConsistency(rows: ContractRow[]): RowIssue[] {
+  const sums = new Map<string, number>();
+  for (const r of rows) {
+    if (r.indicator_code !== 'POP' || r.group_key || r.geography_level === 'district') continue;
+    const d = tehranDistrictOf(r.neighborhood_id);
+    if (!d) continue;
+    const k = `${d}|${r.period_end.slice(0, 4)}`;
+    sums.set(k, (sums.get(k) ?? 0) + r.value);
+  }
+  const out: RowIssue[] = [];
+  for (const [k, sum] of sums) {
+    const [d] = k.split('|');
+    const ref = districtPopulation(Number(d));
+    if (ref && sum > ref * 1.15) out.push({ row: 0, field: 'value', code: 'POP_EXCEEDS_DISTRICT', severity: 'warning', message: `مجموع جمعیت محلات منطقهٔ ${d} (${Math.round(sum).toLocaleString('fa-IR')}) بیش از ۱۵٪ از جمعیت سرشماری ۱۳۹۵ منطقه (${ref.toLocaleString('fa-IR')}) است` });
+  }
+  return out;
 }
 
 function batchDir(): string {

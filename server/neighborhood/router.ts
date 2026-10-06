@@ -18,7 +18,8 @@ import { getNeighborhood, listCities, publicEntry } from './gazetteer';
 import { loadRuns } from './history';
 import { analyzeByName, type AnalyzeResult } from './orchestrator';
 import { resolveNeighborhood } from './resolver';
-import { rakingTargetsFrom } from './channels';
+import { rakingTargetsFrom, surveyOptionsFor } from './channels';
+import { districtProfile, incomeBenchmark, listOfficialPacks, readOfficialPack, tehranDistrictOf } from '../official/tehranReference';
 import { buildNeighborhoodContext } from './context';
 import { schedulerStatus } from '../scheduler';
 
@@ -35,6 +36,15 @@ function cardFile(id: string) {
 function latest(id: string): Extract<AnalyzeResult, { card: unknown }> | null {
   const f = cardFile(id);
   return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null;
+}
+
+/** وضعیت هر بستهٔ رسمی: آیا با همان محتوا (sha256) دسته‌ای ساخته/تأیید شده است؟ */
+function packStatus() {
+  const batches = listBatches();
+  return listOfficialPacks().map((p) => {
+    const b = batches.find((x) => x.fileSha256 === p.sha256 && x.status !== 'REJECTED' && x.status !== 'INVALID');
+    return { ...p, batch: b ? { batchId: b.batchId, status: b.status, uploadedAt: b.uploadedAt, accepted: b.stats.accepted } : null };
+  });
 }
 
 export function createNeighborhoodRouter(): Router {
@@ -100,6 +110,21 @@ export function createNeighborhoodRouter(): Router {
     ok(res, { ...batch, rows: batch.rows.slice(0, 20), rowsTruncated: batch.rows.length > 20 }, batch.status === 'INVALID' ? 422 : 201);
   });
   router.get('/ingestion/batches', (_req, res) => { ok(res, listBatches()); });
+  // ---------- بستهٔ دادهٔ رسمی آماده (همان چرخهٔ بازبینی: stage → PENDING_REVIEW → تأیید admin) ----------
+  router.get('/ingestion/official-packs', (_req, res) => { ok(res, packStatus()); });
+  router.post('/ingestion/official-packs/:packId/stage', (req: AuthedRequest, res) => {
+    const p = readOfficialPack(req.params.packId);
+    if (!p) { fail(res, 404, 'NOT_FOUND', 'بستهٔ رسمی یافت نشد'); return; }
+    const open = packStatus().find((x) => x.id === p.pack.id)?.batch;
+    if (open && (open.status === 'PENDING_REVIEW' || open.status === 'APPROVED')) { fail(res, 409, 'ALREADY_STAGED', `این بسته قبلاً بارگذاری شده است (${open.batchId}، ${open.status})`, open); return; }
+    const batch = createBatch(p.text, `official-pack:${p.pack.id}`, tokenFingerprint(req.header('authorization'), req.araRole ?? 'unknown'));
+    ok(res, { ...batch, rows: batch.rows.slice(0, 20), rowsTruncated: batch.rows.length > 20 }, batch.status === 'INVALID' ? 422 : 201);
+  });
+  router.get('/official/district/:neighborhoodId', (req, res) => {
+    const d = tehranDistrictOf(req.params.neighborhoodId);
+    if (!d) { fail(res, 404, 'NO_OFFICIAL_CONTEXT', 'بافت رسمی فقط برای محلات تهران موجود است'); return; }
+    ok(res, { district: d, profile: districtProfile(d), incomeBenchmark: incomeBenchmark() });
+  });
   router.get('/ingestion/:batchId', (req, res) => {
     const b = getBatch(req.params.batchId);
     if (!b) { fail(res, 404, 'NOT_FOUND', 'دسته یافت نشد'); return; }
@@ -133,7 +158,7 @@ export function createNeighborhoodRouter(): Router {
     const e = getNeighborhood(req.params.neighborhoodId);
     if (!e) { fail(res, 404, 'NOT_FOUND', 'محله یافت نشد'); return; }
     const ctx = await buildNeighborhoodContext(e, { useKernel: false });
-    ok(res, summarizeSurvey(e.neighborhoodId, rakingTargetsFrom(ctx)));
+    ok(res, summarizeSurvey(e.neighborhoodId, rakingTargetsFrom(ctx), surveyOptionsFor(e.neighborhoodId)));
   }));
 
   // ---------- ممیزی میدانی P3 ----------
@@ -174,7 +199,8 @@ export function createNeighborhoodRouter(): Router {
     const e = getNeighborhood(req.params.neighborhoodId);
     if (!e) { fail(res, 404, 'NOT_FOUND', 'محله یافت نشد'); return; }
     const ctx = await buildNeighborhoodContext(e, { useKernel: false });
-    const survey = summarizeSurvey(e.neighborhoodId, rakingTargetsFrom(ctx));
+    const survey = summarizeSurvey(e.neighborhoodId, rakingTargetsFrom(ctx), surveyOptionsFor(e.neighborhoodId));
+    const district = tehranDistrictOf(e.neighborhoodId);
     const audit = summarizeAudits(e.neighborhoodId);
     const register = summarizeRegister(e.neighborhoodId);
     const card = latest(e.neighborhoodId)?.card as { indicators?: Array<{ code: string; score: number | null; channel: string; tier: string }> } | undefined;
@@ -185,6 +211,8 @@ export function createNeighborhoodRouter(): Router {
       survey, audit, register,
       plan: buildCollectionPlan({ survey, audit, register, population: ctx.population?.value ?? null, cardIndicators: card?.indicators ?? [] }),
       indicatorNames: CORE_40_NAMES,
+      populationSource: ctx.population ? { source: ctx.population.source, year: ctx.population.year, tier: ctx.population.tier } : null,
+      official: district ? { district, profile: districtProfile(district), incomeBenchmark: incomeBenchmark(), packs: packStatus() } : null,
     });
   }));
 

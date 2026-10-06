@@ -2,7 +2,7 @@
 import { apiUrl } from './realDataConnectors';
 import { NeighborhoodApiError } from './neighborhoodApi';
 
-export interface SurveyIndicatorEstimate { code: string; label: string; score: number; ci95: [number, number]; n: number; nEffective: number; item: string; module: 'perceptual' | 'household'; unit: string; denominator?: string }
+export interface SurveyIndicatorEstimate { code: string; label: string; score: number; ci95: [number, number]; n: number; nEffective: number; item: string; module: 'perceptual' | 'household' | 'economic'; unit: string; denominator?: string; benchmark?: string }
 export interface SurveySummary {
   neighborhoodId: string; nReceived: number; nAccepted: number; rejectedByReason: Record<string, number>;
   weighting: 'raked' | 'unweighted'; weightingNote: string; alpha: number | null; alphaItems: string[];
@@ -13,7 +13,28 @@ export interface SurveySummary {
   chainProfile: Record<string, { score: number; n: number } | null>; itemScores: Record<string, number>;
   followUpSamples: Array<{ code: string; text: string; at: string }>; byMode: Record<string, number>; byCollector: Record<string, number>;
   instrumentVersion: string;
+  economy?: {
+    incomeN: number; medianIncomeMToman: number | null; tenure: Record<string, number>;
+    burdenN: number; medianBurdenPct: number | null; overburdenSharePct: number | null; excludedImplausible: number;
+    rentPerM2: { n: number; medianMToman: number | null };
+    incomeBenchmark: { monthlyMToman: number; month: string; basis: string } | null; medianHouseholdSize: number | null;
+  };
 }
+export interface OfficialMacroItem { key: string; value: number; unit: string; period: string; geo: string; source: string }
+export interface OfficialDistrictProfile {
+  district: number; level: 'district';
+  population: { census1395: { pop: number; male: number; female: number; households: number; areaHa: number } | null; latestEstimate: { pop: number; year: string; source: string } | null; densityPerKm2: number | null; maleShare: number | null; householdSize: number | null };
+  housing: {
+    latest: { period: string; priceMRialPerM2: number; transactions: number; rank: number; ofDistricts: number; ratioToCity: number; source: string } | null;
+    trend: { from: string; to: string; changePct: number } | null;
+    monthlyTail: Array<{ period: string; priceMRialPerM2: number; transactions: number }>;
+    priceToIncomeYears: { value: number; unitM2: number; basis: string } | null;
+    marketRentBurdenRef: { value: number; unitM2: number; period: string; basis: string } | null;
+  };
+  neighborhoodPopCoverage: { matched: number; sum: number; shareOfDistrict1395: number | null };
+  macro: OfficialMacroItem[]; notes: string[];
+}
+export interface OfficialPackStatus { id: string; title: string; indicator: string; rows: number; period: string; source: string; batch: null | { batchId: string; status: string; uploadedAt: string; accepted: number } }
 export interface FieldAuditSummary {
   neighborhoodId: string; points: number; audits: number; auditors: number; p3: number | null; kappa: number | null;
   adequacy: 'ADEQUATE' | 'INSUFFICIENT'; reasons: string[]; itemMeans: Record<string, number>; latestAuditAt: string | null;
@@ -29,7 +50,7 @@ export interface RegisterSummary {
 }
 export type PlanStatus = 'ready' | 'partial' | 'empty';
 export interface PlanIndicator { code: string; name: string; status: PlanStatus; value: number | null; progress: number; have: number; need: number; unit: string; card: { score: number | null; channel: string | null; tier: string | null; coveredElsewhere: boolean } }
-export interface PlanModule { key: 'survey' | 'household' | 'audit' | 'register' | 'network'; title: string; progress: number; status: PlanStatus; indicators: PlanIndicator[]; guidance: string }
+export interface PlanModule { key: 'survey' | 'household' | 'economy' | 'audit' | 'register' | 'network'; title: string; progress: number; status: PlanStatus; indicators: PlanIndicator[]; guidance: string }
 export interface CollectionStatus {
   neighborhood: { neighborhoodId: string; nameFa: string; cityFa: string; centroid: { lat: number; lng: number } };
   population: number | null;
@@ -37,6 +58,8 @@ export interface CollectionStatus {
   survey: SurveySummary; audit: FieldAuditSummary; register: RegisterSummary;
   plan: { modules: PlanModule[]; recommendedN: number; gateN: number; overall: number; unlockable: string[] };
   indicatorNames: Record<string, string>;
+  populationSource?: { source: string; year: number | null; tier: string } | null;
+  official?: null | { district: number; profile: OfficialDistrictProfile | null; incomeBenchmark: { monthlyMToman: number; month: string; basis: string } | null; packs: OfficialPackStatus[] };
 }
 
 export interface SurveySubmission {
@@ -67,6 +90,8 @@ const enc = encodeURIComponent;
 const post = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
 
 export const getCollectionStatus = (id: string) => call<CollectionStatus>(`/api/decision-support/data-collection/${enc(id)}/status`);
+export const stageOfficialPack = (packId: string) =>
+  call<{ batchId: string; status: string; stats: { accepted: number; rejected: number; neighborhoods: number }; issues: Array<{ code: string; message: string; severity: string }> }>(`/api/decision-support/ingestion/official-packs/${enc(packId)}/stage`, post({}));
 export const submitSurveyResponses = (id: string, responses: SurveySubmission[]) =>
   call<{ received: number; accepted: number; rejected: Array<{ responseId: string; reasons: string[] }> }>(`/api/decision-support/survey/${enc(id)}/responses`, post({ responses }));
 export const submitAudits = (id: string, audits: AuditSubmission[]) =>
