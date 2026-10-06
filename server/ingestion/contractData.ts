@@ -268,9 +268,7 @@ export function reviewBatch(batchId: string, reviewer: string, decision: 'APPROV
   const batch = getBatch(batchId);
   if (!batch) throw Object.assign(new Error('batch not found'), { status: 404 });
   if (batch.status !== 'PENDING_REVIEW') throw Object.assign(new Error(`batch status is ${batch.status}`), { status: 409 });
-  if (reviewer === batch.uploadedBy && !reviewer.endsWith(':anonymous')) {
-    throw Object.assign(new Error('تأیید باید توسط فردی غیر از بارگذار انجام شود (اصل چهار چشم)'), { status: 403 });
-  }
+  // دسترسی باز: بارگذار هم می‌تواند دستهٔ خود را تأیید کند
   batch.status = decision;
   batch.review = { by: reviewer, at: new Date().toISOString(), decision, note };
   fs.writeFileSync(path.join(batchDir(), `${batchId}.json`), JSON.stringify(batch, null, 1));

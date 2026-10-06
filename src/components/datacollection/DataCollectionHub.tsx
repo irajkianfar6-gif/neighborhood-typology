@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ClipboardList, FileSpreadsheet, KeyRound, LayoutDashboard, Loader2, MapPin, RefreshCw, Sparkles, Landmark, UploadCloud } from 'lucide-react';
+import { ClipboardList, FileSpreadsheet, LayoutDashboard, Loader2, MapPin, RefreshCw, Sparkles, Landmark, UploadCloud } from 'lucide-react';
 import { getCollectionStatus, loadQueue, saveQueue, submitSurveyResponses, type CollectionStatus } from '../../algorithm/dataCollectionApi';
 import { LEVEL_FA, type DecisionCardV2 } from '../../algorithm/neighborhoodApi';
 import CollectionOverview, { type HubTab } from './CollectionOverview';
@@ -7,7 +7,7 @@ import SurveyWizard from './SurveyWizard';
 import BulkSurveyImport from './BulkSurveyImport';
 import FieldAuditWizard from './FieldAuditWizard';
 import LocalRegisterPanel from './LocalRegisterPanel';
-import { Notice, ProgressRing, fa, ghostBtn, inputCls, primaryBtn } from './ui';
+import { Notice, ProgressRing, fa, ghostBtn, primaryBtn } from './ui';
 
 const TABS: Array<{ key: HubTab; label: string; icon: React.ReactNode; hint: string }> = [
   { key: 'overview', label: 'داشبورد گردآوری', icon: <LayoutDashboard size={15} />, hint: 'پیشرفت، کیفیت نمونه و شاخص‌های قابل گشودن' },
@@ -23,8 +23,6 @@ export default function DataCollectionHub({ card, onReanalyze, reanalyzing }: { 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queue, setQueue] = useState(0);
-  const [showToken, setShowToken] = useState(false);
-  const [token, setToken] = useState(() => { try { return localStorage.getItem('ara_api_token') ?? ''; } catch { return ''; } });
   const id = card?.neighborhood.neighborhoodId ?? null;
 
   const refresh = useCallback(async () => {
@@ -80,21 +78,12 @@ export default function DataCollectionHub({ card, onReanalyze, reanalyzing }: { 
           <div className="flex flex-wrap items-center gap-2">
             {queue > 0 && <button type="button" className={ghostBtn} onClick={() => void flushQueue()}><UploadCloud size={13} /> ارسال {fa(queue)} پاسخ در صف</button>}
             <button type="button" className={ghostBtn} onClick={() => void refresh()} disabled={loading}>{loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} به‌روزرسانی</button>
-            <button type="button" className={ghostBtn} onClick={() => setShowToken((v) => !v)} aria-expanded={showToken}><KeyRound size={13} /> توکن</button>
             <button type="button" className={`${primaryBtn} ${freshTotal ? 'animate-pulse' : ''}`} onClick={() => onReanalyze(id)} disabled={reanalyzing}>
               {reanalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
               بازمحاسبهٔ تصمیم‌یار{freshTotal ? ` (${fa(freshTotal)} دادهٔ تازه)` : ''}
             </button>
           </div>
         </div>
-        {showToken && (
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
-            <label className="flex-1 text-[11px] font-bold text-ink-600 dark:text-slate-300">توکن API (اختیاری؛ نقش پیش‌فرض شما «تحلیلگر» است و برای ثبت داده کافی است)
-              <input type="password" className={`${inputCls} mt-1`} value={token} onChange={(e) => setToken(e.target.value)} autoComplete="off" />
-            </label>
-            <button type="button" className={primaryBtn} onClick={() => { try { if (token.trim()) localStorage.setItem('ara_api_token', token.trim()); else localStorage.removeItem('ara_api_token'); } catch { /* optional */ } setShowToken(false); }}>ذخیره در این مرورگر</button>
-          </div>
-        )}
         {freshTotal > 0 && (
           <p className="mt-3 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
             از آخرین تحلیل: {fresh.survey ? `${fa(fresh.survey)} پاسخ معتبر ` : ''}{fresh.audit ? `${fa(fresh.audit)} نقطهٔ ممیزی ` : ''}{fresh.register ? `${fa(fresh.register)} پرونده ` : ''}اضافه شده است؛ برای اثر در تشخیص و تجویز «بازمحاسبه» را بزنید.

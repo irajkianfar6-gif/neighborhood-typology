@@ -58,7 +58,7 @@ curl -X POST localhost:4001/api/decision-support/neighborhoods/analyze -H 'conte
 
 ## متغیرهای محیطی
 
-`ARA_API_TOKENS` (`token:role,…`)، `ARA_ALLOWED_ORIGINS`، `ARA_ANTHROPIC_MAX_TOKENS`،
+`ARA_LAYER_DEADLINE_MS`، `ARA_ALLOWED_ORIGINS`، `ARA_ANTHROPIC_MAX_TOKENS`،
 `ARA_PUBLIC_DATA_DIR`، `ARA_SERVER_DATA_DIR`، `ARA_GAZETTEER_DIRS`، `ARA_REFERENCE_DIR`،
 `WORLDPOP_COG_PATH`، `NDVI_COG_PATH`، `JRC_FLOOD_COG_PATH`، `GHSL_COG_PATH`، `WORLDCOVER_COG_PATH`، `DEM_COG_PATH`، `SLOPE_COG_PATH`، `ARA_OPEN_RASTER_DIR`،
 `ARA_FAULTS_GEOJSON_PATH`، `ARA_FAULT_BUFFER_M`، `ARA_STEEP_SLOPE_PCT`، `ARA_JOB_WALK_MIN`،
@@ -86,3 +86,8 @@ CI در `.github/workflows/ci.yml` روی هر push به main و هر PR اجر�
 
 `npm run test:all` — شامل `server/noFabrication.test.ts` (رد مقادیر ملی/استانی، حذف سازندهٔ ابتکاری، امتناع در نبود داده)،
 resolver روی هر ۳۹۱ نام رسمی تهران، دروازهٔ انتشار، احراز هویت، قرارداد داده و آزمون‌های kernel (شامل `gis/test_zonal.py`).
+
+
+## دسترسی
+
+سامانه دسترسی باز دارد: توکن و نقش لازم نیست و هر کاربر می‌تواند پرسشنامه، ممیزی، ثبت محلی و فایل قراردادی وارد کند، دسته‌ها را تأیید کند و تحلیل بگیرد. محدودیت نرخ درخواست و لاگ ممیزی نوشتنی‌ها همچنان فعال‌اند.
