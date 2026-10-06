@@ -3,7 +3,7 @@ import { Bot, MessageCircle, Send, User } from 'lucide-react';
 
 interface Message { role: 'user' | 'ai'; text: string; }
 
-const MODEL = import.meta.env.VITE_ANTHROPIC_MODEL || 'claude-opus-5-thinking';
+const MODEL = import.meta.env.VITE_ANTHROPIC_MODEL || 'claude-opus-4-8';
 
 export default function AIDecisionAdvisor({ neighborhoodName }: { neighborhoodName?: string }) {
   const [messages, setMessages] = useState<Message[]>([{
@@ -77,7 +77,7 @@ export default function AIDecisionAdvisor({ neighborhoodName }: { neighborhoodNa
         <div>
           <h3 className="text-base font-black text-ink-900 dark:text-white">مشاور هوشمند</h3>
           <p className="mt-1 text-[10px] text-ink-400 dark:text-slate-500">
-            متصل به {MODEL} از طریق tabitoken.com
+            متصل به {MODEL} از طریق api.justwoker.icu
           </p>
         </div>
       </div>

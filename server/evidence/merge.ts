@@ -21,8 +21,12 @@ export function mergeDocumentedValues(all: DocumentedValue[], citySlug: string, 
   const out = new Map<string, ScoredValue>();
   for (const [code, list] of byCode) {
     const scored = list.map((v) => ({ v, s: scoreValue(v, citySlug) }));
+    // سنجهٔ «کنترلی» (مثلاً گویهٔ پرسشنامهٔ سفارشی برای شاخص عینی) هرگز مقدار اصلی نمی‌شود؛ فقط در مقایسه/همگرایی
+    const isCheck = (v: DocumentedValue) => (v.details as { role?: string } | undefined)?.role === 'check';
+    if (scored.every((x) => isCheck(x.v))) continue;
     const withValue = scored.filter((x) => x.v.raw !== null && x.s.score !== null);
-    const pool = withValue.length ? withValue : scored;
+    const eligible = withValue.filter((x) => !isCheck(x.v));
+    const pool = eligible.length ? eligible : scored.filter((x) => !isCheck(x.v));
     pool.sort((a, b) => TIER_RANK[a.v.tier] - TIER_RANK[b.v.tier] || (b.v.methodQuality - a.v.methodQuality));
     const primary = pool[0];
     const { C, conflict } = convergence(withValue.map((x) => x.s.score));

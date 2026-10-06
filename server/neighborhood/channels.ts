@@ -5,6 +5,8 @@ import { districtSexTargets, incomeBenchmark, tehranDistrictOf } from '../offici
 import { ECONOMIC_INDICATORS } from '../../src/algorithm/surveyInstrument';
 import { summarizeAudits, type FieldAuditSummary } from '../survey/fieldAudit';
 import { summarizeRegister, type RegisterSummary } from '../survey/localRegister';
+import { questionnairesWithData, summarizeCustom, type CustomSurveySummary } from '../survey/customSurvey';
+import { METHOD_LABELS } from '../../src/algorithm/customSurveyModel';
 import type { DocumentedValue } from '../evidence/types';
 import type { NeighborhoodContext } from './context';
 
@@ -79,6 +81,34 @@ export function surveyValues(neighborhoodId: string, ctx: NeighborhoodContext): 
     details: { ci95: e.ci95, n: e.n, nEffective: e.nEffective, alpha: summary.alpha },
   }));
   return { values, summary };
+}
+
+/**
+ * پرسشنامه‌های سفارشی: فقط شاخص‌های هستهٔ ۴۰ که برآورد «قابل انتشار» دارند وارد کارت می‌شوند.
+ * نقش «اصلی» = ردهٔ پیمایش؛ نقش «کنترلی» = ردهٔ proxy (فقط برای مقایسه/همگرایی، اگر منبع دیگری وجود داشته باشد).
+ */
+export function customSurveyValues(neighborhoodId: string, ctx: NeighborhoodContext): { values: DocumentedValue[]; summaries: CustomSurveySummary[] } {
+  const targets = rakingTargetsFrom(ctx);
+  const values: DocumentedValue[] = [];
+  const summaries: CustomSurveySummary[] = [];
+  for (const q of questionnairesWithData(neighborhoodId)) {
+    const s = summarizeCustom(q, neighborhoodId, targets);
+    summaries.push(s);
+    for (const e of s.indicators) {
+      if (!e.core || !e.publishable || e.score === null) continue;
+      values.push({
+        code: e.code, raw: e.score, unit: 'score_0_100',
+        source: `پرسشنامهٔ سفارشی «${q.title}» نسخهٔ ${q.version} (n=${e.n}، ${s.weighting === 'raked' ? 'وزن‌دار' : 'بدون وزن'}${e.role === 'check' ? '، کنترلی' : ''})`,
+        sourceIds: [`survey:custom:${q.id}`], channel: 'survey', tier: e.role === 'check' ? 'proxy' : 'survey', geographyLevel: 'neighborhood',
+        lowerIsBetter: false, observedAt: s.latestResponseAt, fetchedAt: new Date().toISOString(), numerator: null, denominator: e.n,
+        method: `میانگین وزنی امتیاز ۰..۱۰۰ گویه‌های ${e.items.join('، ')} (${e.methods.map((m) => METHOD_LABELS[m as keyof typeof METHOD_LABELS] ?? m).join('، ')})؛ ۱۰۰ = وضعیت مطلوب؛ CI95=[${e.ci95?.join('، ')}]${e.alpha !== null ? `؛ α=${e.alpha}` : ''}`,
+        methodQuality: e.items.length === 1 || (e.alpha !== null && e.alpha >= 0.7) ? 1 : 0.6,
+        sampleAdequacy: Math.min(1, e.nEffective / TARGET_N), cadence: 'annual',
+        details: { ci95: e.ci95, n: e.n, nEffective: e.nEffective, alpha: e.alpha, questionnaireId: q.id, version: q.version, role: e.role },
+      });
+    }
+  }
+  return { values, summaries };
 }
 
 export function fieldValues(neighborhoodId: string): { values: DocumentedValue[]; summary: FieldAuditSummary } {

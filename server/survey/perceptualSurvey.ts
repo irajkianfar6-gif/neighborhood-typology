@@ -107,7 +107,7 @@ export function addResponses(neighborhoodId: string, inputs: SurveyResponseInput
 export type RakingTargets = Partial<Record<'sex' | 'ageBand', Record<string, number>>> & { note?: string };
 
 /** raking (iterative proportional fitting) روی جنس و گروه سنی */
-export function rake(responses: StoredResponse[], targets: RakingTargets, iterations = 50): number[] {
+export function rake(responses: Array<{ demographics?: { sex?: string; ageBand?: string } }>, targets: RakingTargets, iterations = 50): number[] {
   const w = responses.map(() => 1);
   const dims = (['sex', 'ageBand'] as const).filter((d) => targets[d] && Object.keys(targets[d]!).length);
   if (!dims.length) return w;
@@ -134,7 +134,7 @@ export function rake(responses: StoredResponse[], targets: RakingTargets, iterat
   return w.map((x) => Math.min(5 * mean, Math.max(0.2 * mean, x)) / mean);
 }
 
-function cronbachAlpha(rows: number[][]): number | null {
+export function cronbachAlpha(rows: number[][]): number | null {
   const k = rows[0]?.length ?? 0;
   if (k < 2 || rows.length < 10) return null;
   const variance = (xs: number[]) => { const m = xs.reduce((a, b) => a + b, 0) / xs.length; return xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1); };

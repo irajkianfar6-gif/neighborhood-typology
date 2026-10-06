@@ -17,7 +17,7 @@ import { CAPITAL_KEYS, evaluatePublication, type GateResult, type PublicationLev
 import { reliabilityWeights } from '../evidence/reliability';
 import type { DocumentedValue, ScoredValue } from '../evidence/types';
 import { incCounter, setGauge } from '../ops/metrics';
-import { contractValues, fieldValues, registerValues, surveyValues } from './channels';
+import { contractValues, customSurveyValues, fieldValues, registerValues, surveyValues } from './channels';
 import { buildNeighborhoodContext, type NeighborhoodContext } from './context';
 import { cityBBox, type GazetteerEntry, getNeighborhood, publicEntry } from './gazetteer';
 import { bboxOf } from './geo';
@@ -178,7 +178,9 @@ export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult>
   const survey = surveyValues(entry.neighborhoodId, ctx);
   const field = fieldValues(entry.neighborhoodId);
   const register = registerValues(entry.neighborhoodId);
-  const documented: DocumentedValue[] = [...contract.values, ...open, ...survey.values, ...field.values, ...register.values];
+  const custom = customSurveyValues(entry.neighborhoodId, ctx);
+  // گویه‌های «کنترلی» در ادغام هرگز مقدار اصلی نمی‌شوند (merge.ts)
+  const documented: DocumentedValue[] = [...contract.values, ...open, ...survey.values, ...field.values, ...register.values, ...custom.values];
 
   // ۴) ادغام + نرمال‌سازی + اعتماد
   const merged = mergeDocumentedValues(documented, entry.citySlug);

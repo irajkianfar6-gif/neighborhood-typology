@@ -6,7 +6,7 @@ import { ITEM_BY_CODE, QC_REASON_FA } from '../../algorithm/surveyInstrument';
 import OfficialContextPanel from './OfficialContextPanel';
 import { Bar, Card, ProgressRing, StatusPill, fa, ghostBtn } from './ui';
 
-export type HubTab = 'overview' | 'survey' | 'bulk' | 'audit' | 'register';
+export type HubTab = 'overview' | 'survey' | 'custom' | 'bulk' | 'audit' | 'register';
 const MODULE_TAB: Record<PlanModule['key'], HubTab> = { survey: 'survey', household: 'survey', economy: 'survey', audit: 'audit', register: 'register', network: 'register' };
 const STAGE_FA: Record<string, string> = { CAPACITY: 'ظرفیت', ACCESS: 'دسترسی', USE: 'استفاده', EXPERIENCE: 'تجربه', OUTCOME: 'پیامد' };
 const AGE_FA: Record<string, string> = { '18-29': '۱۸–۲۹', '30-44': '۳۰–۴۴', '45-64': '۴۵–۶۴', '65+': '۶۵+' };

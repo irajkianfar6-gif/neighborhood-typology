@@ -79,6 +79,10 @@ export function scoreValue(v: DocumentedValue, citySlug: string): ScoreResult {
   const pct = dist && dist.values.length >= 20 ? percentileOf(v.raw, dist.values, reg.winsorize) : null;
   const pctGood = pct === null ? null : (v.lowerIsBetter ? 100 - pct : pct);
   const round = (x: number) => Math.round(x * 10) / 10;
+  // پرسشنامهٔ سفارشی: امتیاز از پیش جهت‌دار ۰..۱۰۰ (۱۰۰ = وضعیت مطلوب) طبق نگاشت تعریف‌شده
+  if (v.unit === 'score_0_100') {
+    return { score: round(Math.max(0, Math.min(100, v.raw))), method: 'survey_scale', ref: 'custom-survey-mapping', percentile: pctGood === null ? null : round(pctGood) };
+  }
   if (reg.percent_scale_passthrough.includes(v.code)) {
     return { score: round(Math.max(0, Math.min(100, v.raw))), method: v.channel === 'survey' ? 'survey_scale' : 'contract_scale', ref: reg.version, percentile: pctGood === null ? null : round(pctGood) };
   }
