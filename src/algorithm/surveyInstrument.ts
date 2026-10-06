@@ -5,12 +5,14 @@
  *  ۱) ۱۵ گویهٔ ادراکی زنجیرهٔ C-A-U-E-O (kernel/registries/questionnaire_15.json)
  *  ۲) دو گویهٔ هسته‌ای S3X و C3X (questionnaire_core_extension.json)
  *  ۳) ماژول خانوار و مشارکت (Q-HH-v1) برای شاخص‌های H2، H3، H4، S4، C4، C5 طبق تعریف عملیاتی core_40
+ *  ۴) ماژول مسکن، درآمد و آموزش (Q-HH-v2) برای H1، H5، E1، E4 — هم‌راستا با تعریف‌های مرکز آمار
+ *     (درآمد کل ماهانهٔ خانوار؛ اجاره + ۳٪ ودیعه به‌عنوان اجارهٔ ماهانهٔ معادل؛ نحوهٔ تصرف: مالک/مستأجر/سایر)
  *
  * هیچ عددی در این فایل ساخته نمی‌شود؛ فقط متن گویه، مقیاس و نگاشت گویه ← شاخص.
  */
-export const INSTRUMENT_VERSION = 'Q15+EXT-v1+HH-v1';
+export const INSTRUMENT_VERSION = 'Q15+EXT-v1+HH-v2';
 
-export type ItemKind = 'likert' | 'binary' | 'choice';
+export type ItemKind = 'likert' | 'binary' | 'choice' | 'number';
 export type ChainStageKey = 'CAPACITY' | 'ACCESS' | 'USE' | 'EXPERIENCE' | 'OUTCOME';
 
 export interface InstrumentItem {
@@ -25,10 +27,14 @@ export interface InstrumentItem {
   checksAgainst?: string;
   followUp?: { operator: 'le' | 'ge'; threshold: number; text: string };
   options?: Array<{ value: number; label: string; hint?: string }>;
-  /** شرط نمایش (منطق پرش) */
-  showIf?: (answers: Record<string, number | undefined>) => boolean;
+  /** شرط نمایش (منطق پرش)؛ مشخصات پاسخگو (جنس، سن، نحوهٔ تصرف) هم در دسترس است */
+  showIf?: (answers: Record<string, number | undefined>, demo?: Demographics) => boolean;
   help?: string;
+  /** گویه‌های عددی */
+  min?: number; max?: number; unit?: string; step?: number; placeholder?: string;
 }
+
+export interface Demographics { sex?: 'male' | 'female'; ageBand?: '18-29' | '30-44' | '45-64' | '65+'; tenure?: 'owner' | 'renter' | 'other'; disability?: boolean }
 
 export interface InstrumentSection {
   key: string;
@@ -47,6 +53,30 @@ export const EMPLOYMENT_OPTIONS = [
 ];
 
 const employed = (a: Record<string, number | undefined>) => a.EMP === 1 || a.EMP === 2;
+
+export const EDUCATION_OPTIONS = [
+  { value: 1, label: 'بی‌سواد یا ابتدایی' },
+  { value: 2, label: 'راهنمایی یا متوسطه بدون دیپلم' },
+  { value: 3, label: 'دیپلم یا پیش‌دانشگاهی' },
+  { value: 4, label: 'کاردانی یا کارشناسی' },
+  { value: 5, label: 'کارشناسی ارشد و بالاتر' },
+];
+/** نرخ تبدیل ودیعه به اجارهٔ ماهانه (قرارداد مرکز آمار در جدول اجارهٔ مسکن: اجاره + ۳٪ ودیعه) */
+export const DEPOSIT_MONTHLY_RATE = 0.03;
+/** بار هزینهٔ مسکن بیش از این (٪ درآمد) ناممکن تلقی و از برآورد E4 کنار گذاشته می‌شود */
+export const MAX_PLAUSIBLE_BURDEN = 150;
+
+/** هزینهٔ ماهانهٔ مسکن و بار آن بر درآمد خانوار (برای پیش‌نمایش فرم و برآورد سرور) */
+export function housingBurden(a: Record<string, number | undefined>, tenure?: Demographics['tenure']): { costMToman: number; burdenPct: number; payer: 'renter' | 'mortgage' } | null {
+  const inc = a.INC;
+  if (typeof inc !== 'number' || inc <= 0) return null;
+  let cost: number | null = null;
+  let payer: 'renter' | 'mortgage' = 'renter';
+  if (tenure === 'renter' && typeof a.RENT === 'number') cost = a.RENT + DEPOSIT_MONTHLY_RATE * (a.DEPOSIT ?? 0);
+  else if (tenure === 'owner' && typeof a.MORT === 'number' && a.MORT > 0) { cost = a.MORT; payer = 'mortgage'; }
+  if (cost === null) return null;
+  return { costMToman: Math.round(cost * 100) / 100, burdenPct: Math.round((cost / inc) * 1000) / 10, payer };
+}
 
 export const SURVEY_SECTIONS: InstrumentSection[] = [
   {
@@ -107,6 +137,20 @@ export const SURVEY_SECTIONS: InstrumentSection[] = [
       { code: 'C5X', text: 'در یک سال گذشته در روایت یا فعالیت محلی (تاریخ شفاهی، جشن محله، ثبت خاطرات، گروه جوانان) نقش داشته‌ام', kind: 'binary', feeds: ['C5'], help: 'برای شاخص C5 فقط پاسخ جوانان ۱۸ تا ۲۹ سال شمرده می‌شود' },
     ],
   },
+  {
+    key: 'economy', title: 'مسکن، درآمد و آموزش', subtitle: 'برای سنجش استطاعت مسکن، قدرت اقتصادی خانوار و سرمایهٔ انسانی؛ همهٔ مبالغ به میلیون تومان در ماه و بدون نام',
+    items: [
+      { code: 'EDU', text: 'بالاترین مدرک تحصیلی شما چیست؟', kind: 'choice', options: EDUCATION_OPTIONS, feeds: ['H1'] },
+      { code: 'AGE25', text: 'آیا ۲۵ سال یا بیشتر دارید؟', kind: 'binary', showIf: (_a, d) => d?.ageBand === '18-29', help: 'شاخص H1 فقط جمعیت ۲۵ ساله و بیشتر را می‌شمارد' },
+      { code: 'H5X', text: 'در ۱۲ ماه گذشته در یک دورهٔ آموزشی (فنی‌وحرفه‌ای، زبان، مهارت، دانشگاه یا آموزش آنلاین) شرکت کرده‌ام', kind: 'binary', feeds: ['H5'] },
+      { code: 'HHSIZE', text: 'خانوار شما چند نفر است (با خودتان)؟', kind: 'number', min: 1, max: 20, step: 1, unit: 'نفر' },
+      { code: 'INC', text: 'درآمد کل ماهانهٔ خانوار از همهٔ منابع (حقوق، کسب‌وکار، اجاره، یارانه، کمک) حدوداً چقدر است؟', kind: 'number', min: 0, max: 5000, step: 0.5, unit: 'میلیون تومان در ماه', feeds: ['E1', 'E4'], help: 'عدد تقریبی کافی است؛ اگر نمی‌خواهید بگویید «ترجیح می‌دهم پاسخ ندهم» را بزنید' },
+      { code: 'RENT', text: 'اجارهٔ ماهانهٔ محل سکونت چقدر است؟', kind: 'number', min: 0, max: 2000, step: 0.5, unit: 'میلیون تومان در ماه', feeds: ['E4'], showIf: (_a, d) => d?.tenure === 'renter' },
+      { code: 'DEPOSIT', text: 'مبلغ رهن یا ودیعهٔ پرداختی چقدر است؟', kind: 'number', min: 0, max: 200000, step: 10, unit: 'میلیون تومان', feeds: ['E4'], showIf: (_a, d) => d?.tenure === 'renter', help: 'طبق روش مرکز آمار، ۳٪ ودیعه به‌عنوان اجارهٔ ماهانهٔ معادل افزوده می‌شود' },
+      { code: 'MORT', text: 'قسط ماهانهٔ وام خرید یا ساخت مسکن چقدر است؟ (اگر ندارید صفر)', kind: 'number', min: 0, max: 2000, step: 0.5, unit: 'میلیون تومان در ماه', feeds: ['E4'], showIf: (_a, d) => d?.tenure === 'owner' },
+      { code: 'AREA', text: 'مساحت تقریبی واحد مسکونی چند متر مربع است؟', kind: 'number', min: 10, max: 2000, step: 1, unit: 'متر مربع', help: 'برای مقایسهٔ اجارهٔ هر متر با بازار منطقه' },
+    ],
+  },
 ];
 
 export const ALL_ITEMS: InstrumentItem[] = SURVEY_SECTIONS.flatMap((s) => s.items);
@@ -114,6 +158,7 @@ export const ITEM_BY_CODE: Record<string, InstrumentItem> = Object.fromEntries(A
 export const LIKERT_CODES = ALL_ITEMS.filter((i) => i.kind === 'likert').map((i) => i.code);
 export const BINARY_CODES = ALL_ITEMS.filter((i) => i.kind === 'binary').map((i) => i.code);
 export const CHOICE_CODES = ALL_ITEMS.filter((i) => i.kind === 'choice').map((i) => i.code);
+export const NUMBER_CODES = ALL_ITEMS.filter((i) => i.kind === 'number').map((i) => i.code);
 
 /** شاخص‌های ماژول خانوار با جامعهٔ واجد شرایط (مخرج) طبق core_40 */
 export const HOUSEHOLD_INDICATORS: Record<string, { label: string; item: string; numerator: string; denominator: string }> = {
@@ -123,12 +168,25 @@ export const HOUSEHOLD_INDICATORS: Record<string, { label: string; item: string;
   S4: { label: 'اقدام جمعی', item: 'S4X', numerator: 'مشارکت در حل مسئلهٔ محله', denominator: 'همهٔ پاسخگویان' },
   C4: { label: 'مشارکت فرهنگی', item: 'C4X', numerator: 'مشارکت در فعالیت فرهنگی', denominator: 'همهٔ پاسخگویان' },
   C5: { label: 'انتقال هویت', item: 'C5X', numerator: 'جوانان دارای نقش در روایت/فعالیت محلی', denominator: 'جوانان ۱۸ تا ۲۹ سال' },
+  H1: { label: 'سطح تحصیلات', item: 'EDU', numerator: 'پاسخگویان با دیپلم و بالاتر', denominator: 'پاسخگویان ۲۵ ساله و بیشتر' },
+  H5: { label: 'یادگیری مستمر', item: 'H5X', numerator: 'شرکت در دورهٔ آموزشی طی ۱۲ ماه', denominator: 'همهٔ پاسخگویان (۱۸+)' },
+};
+
+/** شاخص‌های اقتصادی ماژول HH-v2 (مقدار پیوسته، نه سهم) */
+export const ECONOMIC_INDICATORS: Record<string, { label: string; items: string[]; denominator: string; unit: string; method: string }> = {
+  E4: { label: 'استطاعت مسکن', items: ['INC', 'RENT', 'DEPOSIT', 'MORT'], denominator: 'خانوارهای مستأجر و مالکان دارای قسط مسکن با درآمد اعلام‌شده', unit: '%', method: 'میانهٔ وزنی (اجاره + ۳٪ ودیعه یا قسط مسکن) ÷ درآمد ماهانهٔ خانوار × ۱۰۰' },
+  E1: { label: 'قدرت اقتصادی خانوار', items: ['INC'], denominator: 'خانوارهای با درآمد اعلام‌شده', unit: 'ratio', method: 'میانهٔ وزنی درآمد ماهانهٔ خانوار ÷ متوسط درآمد خانوار شهری استان تهران (HEIS) تعدیل‌شده با CPI' },
 };
 
 export type Answers = Record<string, number | undefined>;
 
-export function visibleItems(section: InstrumentSection, answers: Answers): InstrumentItem[] {
-  return section.items.filter((i) => !i.showIf || i.showIf(answers));
+export function visibleItems(section: InstrumentSection, answers: Answers, demo?: Demographics): InstrumentItem[] {
+  return section.items.filter((i) => !i.showIf || i.showIf(answers, demo));
+}
+
+/** اعتبار مقدار گویهٔ عددی */
+export function validNumber(item: InstrumentItem, v: unknown): boolean {
+  return typeof v === 'number' && Number.isFinite(v) && (item.min === undefined || v >= item.min) && (item.max === undefined || v <= item.max);
 }
 
 export function followUpActive(item: InstrumentItem, value: number | undefined): boolean {
@@ -153,7 +211,8 @@ export const QC_REASON_FA: Record<string, string> = {
   STRAIGHT_LINING: 'همهٔ پاسخ‌ها یکسان (پاسخ خطی)',
   INCOMPLETE: 'کمتر از ۸ گویهٔ ادراکی پاسخ داده شده',
   INVALID_BINARY: 'پاسخ بله/خیر نامعتبر',
-  INVALID_CHOICE: 'گزینهٔ وضعیت فعالیت نامعتبر',
+  INVALID_CHOICE: 'گزینهٔ انتخابی نامعتبر',
+  INVALID_NUMBER: 'مقدار عددی خارج از بازهٔ مجاز (درآمد، اجاره، ودیعه، بعد خانوار یا مساحت)',
   DUPLICATE_DEVICE: 'پاسخ تکراری از همان دستگاه',
 };
 

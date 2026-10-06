@@ -115,7 +115,7 @@ export default function DataCollectionHub({ card, onReanalyze, reanalyzing }: { 
       {error && <Notice tone="danger">{error}</Notice>}
       {!status && loading && <div className="flex items-center justify-center gap-2 py-10 text-xs text-ink-500"><Loader2 size={16} className="animate-spin" /> در حال دریافت وضعیت گردآوری…</div>}
 
-      {status && tab === 'overview' && <CollectionOverview status={status} card={card} onOpen={setTab} />}
+      {status && tab === 'overview' && <CollectionOverview status={status} card={card} onOpen={setTab} onChanged={() => void refresh()} />}
       {tab === 'survey' && <SurveyWizard neighborhoodId={id} neighborhoodName={card.neighborhood.nameFa} onSubmitted={() => void refresh()} onExit={() => setTab('overview')} />}
       {tab === 'bulk' && <BulkSurveyImport neighborhoodId={id} onSubmitted={() => void refresh()} />}
       {status && tab === 'audit' && <FieldAuditWizard neighborhoodId={id} centroid={card.neighborhood.centroid} summary={status.audit} onSubmitted={() => void refresh()} />}

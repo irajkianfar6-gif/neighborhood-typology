@@ -3,15 +3,16 @@ import { Activity, ArrowLeft, BarChart3, CheckCircle2, ClipboardList, MessageSqu
 import type { CollectionStatus, PlanModule } from '../../algorithm/dataCollectionApi';
 import type { DecisionCardV2 } from '../../algorithm/neighborhoodApi';
 import { ITEM_BY_CODE, QC_REASON_FA } from '../../algorithm/surveyInstrument';
+import OfficialContextPanel from './OfficialContextPanel';
 import { Bar, Card, ProgressRing, StatusPill, fa, ghostBtn } from './ui';
 
 export type HubTab = 'overview' | 'survey' | 'bulk' | 'audit' | 'register';
-const MODULE_TAB: Record<PlanModule['key'], HubTab> = { survey: 'survey', household: 'survey', audit: 'audit', register: 'register', network: 'register' };
+const MODULE_TAB: Record<PlanModule['key'], HubTab> = { survey: 'survey', household: 'survey', economy: 'survey', audit: 'audit', register: 'register', network: 'register' };
 const STAGE_FA: Record<string, string> = { CAPACITY: 'ظرفیت', ACCESS: 'دسترسی', USE: 'استفاده', EXPERIENCE: 'تجربه', OUTCOME: 'پیامد' };
 const AGE_FA: Record<string, string> = { '18-29': '۱۸–۲۹', '30-44': '۳۰–۴۴', '45-64': '۴۵–۶۴', '65+': '۶۵+' };
 const SEX_FA: Record<string, string> = { male: 'مرد', female: 'زن' };
 
-export default function CollectionOverview({ status, card, onOpen }: { status: CollectionStatus; card: DecisionCardV2 | null; onOpen: (t: HubTab) => void }) {
+export default function CollectionOverview({ status, card, onOpen, onChanged }: { status: CollectionStatus; card: DecisionCardV2 | null; onOpen: (t: HubTab) => void; onChanged?: () => void }) {
   const { survey, plan } = status;
   const cardScore = new Map((card?.indicators ?? []).map((i) => [i.code, i]));
   const totalRejected = survey.nReceived - survey.nAccepted;
@@ -21,8 +22,10 @@ export default function CollectionOverview({ status, card, onOpen }: { status: C
 
   const quota = (dim: 'sex' | 'ageBand') => {
     const got = survey.quotas[dim] ?? {};
+    const census = status.official?.profile?.population.census1395;
     const tgt = dim === 'sex'
-      ? (status.structure.male && status.structure.female ? { male: status.structure.male, female: status.structure.female } : null)
+      ? (status.structure.male && status.structure.female ? { male: status.structure.male, female: status.structure.female }
+        : census ? { male: census.male, female: census.female } : null)
       : status.structure.ageBands;
     const keys = dim === 'sex' ? ['female', 'male'] : ['18-29', '30-44', '45-64', '65+'];
     const gotTotal = Object.values(got).reduce((a, b) => a + b, 0) || 1;
@@ -68,6 +71,8 @@ export default function CollectionOverview({ status, card, onOpen }: { status: C
         ))}
       </div>
 
+      {status.official && <OfficialContextPanel status={status} onChanged={() => onChanged?.()} />}
+
       <div className="grid gap-3 lg:grid-cols-3">
         <Card title="ترکیب نمونه در برابر جمعیت محله" icon={<Users size={14} />}>
           {(['sex', 'ageBand'] as const).map((dim) => (
@@ -80,7 +85,7 @@ export default function CollectionOverview({ status, card, onOpen }: { status: C
               ))}
             </div>
           ))}
-          <p className="text-[10px] text-ink-400">{status.structure.source ? `خط عمودی = سهم در جمعیت (${status.structure.source})` : 'ترکیب جمعیتی محله در دادهٔ قراردادی نیست؛ وزن‌دهی انجام نمی‌شود.'}</p>
+          <p className="text-[10px] text-ink-400">{status.structure.source ? `خط عمودی = سهم در جمعیت (${status.structure.source})` : status.official?.profile?.population.census1395 ? `ترکیب جنسی محله در دسترس نیست؛ خط عمودی جنس = سهم در منطقهٔ ${fa(status.official.district)} (سرشماری ۱۳۹۵) و وزن‌دهی با همین سهم انجام می‌شود.` : 'ترکیب جمعیتی محله در دادهٔ قراردادی نیست؛ وزن‌دهی انجام نمی‌شود.'}</p>
         </Card>
 
         <Card title="پروفایل ادراکی زنجیرهٔ C-A-U-E-O" icon={<BarChart3 size={14} />}>

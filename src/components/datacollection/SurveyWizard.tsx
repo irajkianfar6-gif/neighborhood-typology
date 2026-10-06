@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Clock, RotateCcw, Send, ShieldCheck, UserRound, Users, XCircle } from 'lucide-react';
 import {
   ITEM_BY_CODE, LIKERT_LABELS, QC_REASON_FA, SURVEY_SECTIONS, INSTRUMENT_VERSION,
-  followUpActive, precheck, visibleItems, type Answers, type InstrumentItem,
+  followUpActive, housingBurden, precheck, validNumber, visibleItems, MAX_PLAUSIBLE_BURDEN, type Answers, type InstrumentItem,
 } from '../../algorithm/surveyInstrument';
 import { deviceId, loadQueue, saveQueue, submitSurveyResponses, type SurveySubmission } from '../../algorithm/dataCollectionApi';
 import { NeighborhoodApiError } from '../../algorithm/neighborhoodApi';
@@ -51,8 +51,9 @@ export default function SurveyWizard({ neighborhoodId, neighborhoodName, onSubmi
   const elapsed = startedAt ? Math.floor((now - startedAt) / 1000) : 0;
   const sectionIndex = step - 2;
   const section = SURVEY_SECTIONS[sectionIndex];
-  const items = section ? visibleItems(section, answers) : [];
-  const allVisible = SURVEY_SECTIONS.flatMap((s) => visibleItems(s, answers));
+  const items = section ? visibleItems(section, answers, demo) : [];
+  const allVisible = SURVEY_SECTIONS.flatMap((s) => visibleItems(s, answers, demo));
+  const burden = housingBurden(answers, demo.tenure);
   const answeredCount = allVisible.filter((i) => answers[i.code] !== undefined).length;
   const overall = allVisible.length ? answeredCount / allVisible.length : 0;
   const warnings = precheck(answers, elapsed, MIN_SECONDS);
@@ -61,18 +62,25 @@ export default function SurveyWizard({ neighborhoodId, neighborhoodName, onSubmi
   const canNext = (() => {
     if (step === 0) return consent && (mode === 'self' || collectorId.trim().length > 0);
     if (step === 1) return Boolean(demo.sex && demo.ageBand && demo.tenure);
-    if (section) return items.every((i) => answers[i.code] !== undefined || skipped.has(i.code));
+    if (section) return items.every((i) => (answers[i.code] !== undefined && (i.kind !== 'number' || validNumber(i, answers[i.code]))) || skipped.has(i.code));
     return true;
   })();
 
-  const setAnswer = (code: string, value: number) => {
+  // پاسخ گویه‌هایی که شرط نمایششان (پاسخ‌ها یا مشخصات) از بین رفته پاک می‌شود
+  const prune = (next: Answers, d: Demo): Answers => {
+    for (const s of SURVEY_SECTIONS) for (const it of s.items) if (it.showIf && !it.showIf(next, d)) delete next[it.code];
+    return next;
+  };
+  const setAnswer = (code: string, value: number | undefined) => {
     setAnswers((prev) => {
-      const next = { ...prev, [code]: value };
-      // پاسخ گویه‌هایی که شرط نمایششان از بین رفته پاک می‌شود
-      for (const s of SURVEY_SECTIONS) for (const it of s.items) if (it.showIf && !it.showIf(next)) delete next[it.code];
-      return next;
+      const next = { ...prev };
+      if (value === undefined) delete next[code]; else next[code] = value;
+      return prune(next, demo);
     });
     setSkipped((prev) => { const n = new Set(prev); n.delete(code); return n; });
+  };
+  const updateDemo = (patch: Partial<Demo>) => {
+    setDemo((d) => { const nd = { ...d, ...patch }; setAnswers((prev) => prune({ ...prev }, nd)); return nd; });
   };
   const skip = (code: string) => {
     setAnswers((prev) => { const n = { ...prev }; delete n[code]; return n; });
@@ -192,7 +200,7 @@ export default function SurveyWizard({ neighborhoodId, neighborhoodName, onSubmi
                   const sel = cur === o.v;
                   return (
                     <button key={o.v} type="button" aria-pressed={sel}
-                      onClick={() => setDemo((d) => ({ ...d, [k]: k === 'disability' ? o.v === 'true' : o.v }))}
+                      onClick={() => updateDemo({ [k]: k === 'disability' ? o.v === 'true' : o.v } as Partial<Demo>)}
                       className={`min-w-20 rounded-xl border px-4 py-2.5 text-xs font-black transition ${sel ? 'border-brand-800 bg-brand-800 text-white dark:border-signal-400 dark:bg-signal-400 dark:text-wall-950' : 'border-line bg-paper text-ink-600 hover:border-brand-300 dark:border-wall-700 dark:bg-wall-850 dark:text-slate-300'}`}>
                       {o.l}
                     </button>
@@ -216,6 +224,12 @@ export default function SurveyWizard({ neighborhoodId, neighborhoodName, onSubmi
               onAnswer={(v) => setAnswer(item.code, v)} onSkip={() => skip(item.code)}
               followUp={followUps[item.code] ?? ''} onFollowUp={(t) => setFollowUps((f: Record<string, string>) => ({ ...f, [item.code]: t }))} /></React.Fragment>
           ))}
+          {section.key === 'economy' && burden && (
+            <Notice tone={burden.burdenPct > MAX_PLAUSIBLE_BURDEN ? 'danger' : burden.burdenPct > 30 ? 'warn' : 'ok'}>
+              هزینهٔ مسکن معادل ماهانه حدود {fa(burden.costMToman, 1)} میلیون تومان است؛ یعنی {fa(burden.burdenPct)}٪ درآمد خانوار
+              {burden.burdenPct > MAX_PLAUSIBLE_BURDEN ? ' — این عدد غیرمعمول است؛ لطفاً درآمد و اجاره/ودیعه را دوباره بپرسید.' : burden.burdenPct > 30 ? ' (بیش از آستانهٔ ۳۰٪ استطاعت).' : '.'}
+            </Notice>
+          )}
         </div>
       )}
 
@@ -234,9 +248,9 @@ export default function SurveyWizard({ neighborhoodId, neighborhoodName, onSubmi
               <button key={s.key} type="button" onClick={() => setStep(si + 2)} className="rounded-2xl border border-line p-3 text-right transition hover:border-brand-300 dark:border-wall-700">
                 <div className="flex items-center justify-between text-xs font-black text-ink-800 dark:text-slate-100"><span>{s.title}</span><span className="text-[10px] text-brand-700 dark:text-signal-400">ویرایش</span></div>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {visibleItems(s, answers).map((i) => {
+                  {visibleItems(s, answers, demo).map((i) => {
                     const v = answers[i.code];
-                    return <span key={i.code} title={i.text} className={`rounded-lg px-1.5 py-0.5 font-mono text-[10px] ${v === undefined ? 'bg-black/5 text-ink-400 dark:bg-white/5' : 'bg-brand-50 text-brand-800 dark:bg-wall-850 dark:text-signal-400'}`}>{i.code}:{v === undefined ? '—' : i.kind === 'binary' ? (v ? 'بله' : 'خیر') : fa(v)}</span>;
+                    return <span key={i.code} title={i.text} className={`rounded-lg px-1.5 py-0.5 font-mono text-[10px] ${v === undefined ? 'bg-black/5 text-ink-400 dark:bg-white/5' : 'bg-brand-50 text-brand-800 dark:bg-wall-850 dark:text-signal-400'}`}>{i.code}:{v === undefined ? '—' : i.kind === 'binary' ? (v ? 'بله' : 'خیر') : i.kind === 'choice' ? (i.options?.find((o) => o.value === v)?.label ?? fa(v)) : fa(v)}</span>;
                   })}
                 </div>
               </button>
@@ -262,7 +276,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function QuestionCard({ item, index, value, skipped, showMeta, onAnswer, onSkip, followUp, onFollowUp }: {
   item: InstrumentItem; index: number; value: number | undefined; skipped: boolean; showMeta: boolean;
-  onAnswer: (v: number) => void; onSkip: () => void; followUp: string; onFollowUp: (t: string) => void;
+  onAnswer: (v: number | undefined) => void; onSkip: () => void; followUp: string; onFollowUp: (t: string) => void;
 }) {
   const fu = followUpActive(item, value);
   return (
@@ -313,6 +327,7 @@ function QuestionCard({ item, index, value, skipped, showMeta, onAnswer, onSkip,
             ))}
           </div>
         )}
+        {item.kind === 'number' && <NumberInput item={item} value={value} onAnswer={onAnswer} />}
       </div>
       <div className="mt-2 flex justify-end">
         <button type="button" onClick={onSkip} className={`text-[10px] font-bold ${skipped ? 'text-amber-600' : 'text-ink-400 hover:text-ink-600'}`}>{skipped ? 'بی‌پاسخ ثبت شد' : 'ترجیح می‌دهم پاسخ ندهم'}</button>
@@ -325,5 +340,24 @@ function QuestionCard({ item, index, value, skipped, showMeta, onAnswer, onSkip,
         </div>
       )}
     </fieldset>
+  );
+}
+
+function NumberInput({ item, value, onAnswer }: { item: InstrumentItem; value: number | undefined; onAnswer: (v: number | undefined) => void }) {
+  const [text, setText] = useState(value === undefined ? '' : String(value));
+  useEffect(() => { if (value === undefined) setText(''); }, [value]);
+  const toLatin = (t: string) => t.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[٫,،]/g, '.').replace(/\s/g, '');
+  const n = text.trim() === '' ? undefined : Number(toLatin(text));
+  const invalid = n !== undefined && !validNumber(item, n);
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <input inputMode="decimal" dir="ltr" value={text} placeholder={item.placeholder ?? ''}
+          onChange={(e) => { const t = e.target.value; setText(t); const v = t.trim() === '' ? undefined : Number(toLatin(t)); onAnswer(v !== undefined && Number.isFinite(v) ? v : undefined); }}
+          className={`${inputCls} max-w-48 text-left font-mono ${invalid ? 'border-rose-400 ring-2 ring-rose-200' : ''}`} aria-label={item.text} />
+        {item.unit && <span className="text-[11px] font-bold text-ink-500">{item.unit}</span>}
+      </div>
+      {invalid && <p className="mt-1 text-[10px] font-bold text-rose-600">عدد باید بین {fa(item.min ?? 0)} و {fa(item.max ?? 0)} باشد.</p>}
+    </div>
   );
 }

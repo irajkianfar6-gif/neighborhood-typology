@@ -50,7 +50,7 @@ export default function BulkSurveyImport({ neighborhoodId, onSubmitted }: { neig
         actions={<button type="button" className={ghostBtn} onClick={downloadTemplate}><Download size={13} /> دریافت الگوی CSV</button>}>
         <ol className="mb-3 grid gap-2 text-[11px] text-ink-500 md:grid-cols-3">
           <li className="rounded-xl bg-paper p-2 dark:bg-wall-850"><strong className="text-ink-800 dark:text-slate-100">۱. الگو</strong> — هر سطر یک پرسشنامه؛ ستون‌ها کد گویه‌ها ({fa(ALL_ITEMS.length)} گویه) و مشخصات‌اند.</li>
-          <li className="rounded-xl bg-paper p-2 dark:bg-wall-850"><strong className="text-ink-800 dark:text-slate-100">۲. مقادیر</strong> — لیکرت ۱ تا ۵، بله/خیر یا ۰/۱، EMP از ۱ تا ۴؛ ارقام فارسی و برچسب‌های «زن/مرد/مالک/مستأجر» پذیرفته می‌شود.</li>
+          <li className="rounded-xl bg-paper p-2 dark:bg-wall-850"><strong className="text-ink-800 dark:text-slate-100">۲. مقادیر</strong> — لیکرت ۱ تا ۵، بله/خیر یا ۰/۱، EMP از ۱ تا ۴، EDU از ۱ تا ۵؛ INC، RENT و MORT به میلیون تومان در ماه و DEPOSIT به میلیون تومان، HHSIZE نفر و AREA متر مربع؛ خانهٔ خالی یعنی بی‌پاسخ؛ ارقام فارسی و برچسب‌های «زن/مرد/مالک/مستأجر» پذیرفته می‌شود.</li>
           <li className="rounded-xl bg-paper p-2 dark:bg-wall-850"><strong className="text-ink-800 dark:text-slate-100">۳. کنترل</strong> — پیش‌نمایش سطرهای معیوب را نشان می‌دهد؛ فقط سطرهای سالم ارسال می‌شوند.</li>
         </ol>
         <div className="grid gap-3 md:grid-cols-[1fr_220px]">

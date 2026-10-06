@@ -86,7 +86,8 @@ test('collection plan reports progress per module and recommended sample size', 
   assert.equal(recommendedSampleSize(null), 384);
   assert.equal(recommendedSampleSize(1000), 278);
   const plan = buildCollectionPlan({ survey: summarizeSurvey(NB), audit: summarizeAudits(NB), register: summarizeRegister(NB), population: 20000, cardIndicators: [{ code: 'S5', score: 70, channel: 'contract', tier: 'official' }] });
-  assert.equal(plan.modules.length, 5);
+  assert.equal(plan.modules.length, 6);
+  assert.ok(plan.modules.some((m) => m.key === "economy" && m.indicators.map((i) => i.code).join() === "E4,E1"));
   const audit = plan.modules.find((m) => m.key === 'audit')!;
   assert.equal(audit.status, 'empty');
   const s5 = plan.modules.find((m) => m.key === 'register')!.indicators.find((i) => i.code === 'S5')!;

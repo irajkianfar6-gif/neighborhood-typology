@@ -1,0 +1,350 @@
+﻿source_name,district,pop,neighborhood_id,gazetteer_name,method
+حکمت,1,40434,tehran:m124,حکمت _ دزاشيب,exact
+شهرک محلاتی,1,32186,tehran:m112,شهرک شهيد محلاتي,municipal
+زعفرانيه,1,30377,tehran:m104,زعفرانيه,municipal
+کاشانک,1,30216,tehran:m109,کاشانک,municipal
+ولنجک,1,26587,tehran:m103,ولنجک,municipal
+ازگل,1,25362,tehran:m122,ازگل,municipal
+قيطريه,1,24680,tehran:m126,قيطريه,municipal
+شهرک نفت,1,24137,tehran:m111,شهرک نفت,municipal
+امامزاده قاسم,1,23845,tehran:m117,امام زاده قاسم,municipal
+سوهانک,1,22829,tehran:m113,سوهانک,municipal
+فرمانيه,1,22574,,,unmatched
+چيذر,1,18995,tehran:m125,چيذر,municipal
+باغ فردوس,1,17579,tehran:m115,باغ فردوس,municipal
+اراج,1,16408,tehran:m121,اراج,municipal
+دارآباد,1,15236,tehran:m110,داراباد,municipal
+دزاشيب,1,15178,tehran:m124,حکمت _ دزاشيب,merged_into_compound
+تجريش,1,14564,tehran:m116,تجريش,municipal
+گلابدره,1,14224,tehran:m106,گلاب دره,municipal
+حصار بوعلي,1,13368,,,unmatched
+دربند,1,11282,tehran:m105,دربند,municipal
+نياوران,1,9791,tehran:m108,نياوران,municipal
+محموديه,1,8763,tehran:m114,محموديه,municipal
+جماران,1,8373,tehran:m107,جماران,municipal
+اوين,1,8226,tehran:m102,اوين,municipal
+درکه,1,6719,tehran:m101,درکه,municipal
+دانشگاه - گلها,1,3048,tehran:m123,شهرک گلها,part
+کوهسار,1,1088,,,unmatched
+سعادت آباد,2,62423,tehran:m206,سعادت آباد,municipal
+مرزداران غربي,2,54387,,,unmatched
+دریان نو,2,45841,,,unmatched
+کوي نصر,2,44870,tehran:m218,کوي نصر,municipal
+صادقيه,2,42945,tehran:m220,صادقيه,municipal
+مرزداران شرقي,2,42043,,,unmatched
+دريا,2,37403,tehran:m210,دريا,municipal
+شهر آرا,2,36305,tehran:m223,شهرآرا,municipal
+توحيد,2,34358,tehran:m224,توحيد,municipal
+سپهر,2,33619,,,unmatched
+آسمان,2,33397,tehran:m207,آسمان,municipal
+فراز,2,30508,,,unmatched
+شهرک قدس,2,29776,tehran:m213,شهرک غرب,municipal
+برق آلستوم(ستارخان),2,26267,tehran:m221,آلستوم,contains
+پونک,2,25981,tehran:m208,پونک,municipal
+طرشت,2,25110,tehran:m228,طرشت,municipal
+ايوانک,2,24679,tehran:m214,ايوانک,municipal
+تيموري,2,17555,tehran:m229,تيموري,municipal
+تهران ويلا,2,17173,tehran:m222,تهران ويلا,municipal
+فرحزاد,2,13807,tehran:m201,فرحزاد,municipal
+پرواز,2,13348,,,unmatched
+اختياريه,3,56697,tehran:m306,رستم آباد_ اختياريه,exact
+حسن آباد - زرگنده,3,39828,tehran:m304,حسن آباد_ زرگنده,municipal
+دروس,3,32355,tehran:m307,دروس,municipal
+سيد خندان,3,30658,tehran:m312,سيدخندان,contains
+امانيه,3,26745,tehran:m303,امانيه,municipal
+داووديه,3,24511,tehran:m310,داووديه,municipal
+قلهک,3,22963,tehran:m308,قلهک,municipal
+آرارات,3,21009,tehran:m302,آرارات,municipal
+کاووسيه,3,20626,tehran:m309,کاووسيه,municipal
+ونک,3,19143,,,unmatched
+درب دوم,3,18277,tehran:m305,درب دوم,municipal
+قبا,3,17192,tehran:m311,قبا,municipal
+تهرانپارس غربي,4,124634,tehran:m411,تهرانپارس غربي,municipal
+شمس آباد - مجيديه,4,68003,tehran:m414,شمس آباد _ مجيديه,municipal
+تهرانپارس شرقي,4,66818,tehran:m410,تهرانپارس شرقي,municipal
+حسين آباد - مبارك آباد,4,62773,tehran:m402,حسين آباد_ مبارک آباد,municipal
+جواديه,4,58768,tehran:m420,جواديه,municipal
+گلشن,4,57312,tehran:m409,گلشن,municipal
+حكيميه,4,51698,tehran:m408,حکيميه,municipal
+اوقاف,4,49864,tehran:m412,اوقاف,municipal
+علم و صنعت,4,46880,tehran:m418,علم وصنعت,municipal
+شميران نو,4,44857,tehran:m413,شميران نو,municipal
+كوهسار,4,40336,tehran:m407,کوهسار,municipal
+مجيد آباد,4,32569,tehran:m406,مجيدآباد,municipal
+كاظم اباد,4,30228,tehran:m415,کاظم آباد,municipal
+نارمك شمالي,4,29784,,,unmatched
+مهران,4,29497,tehran:m416,مهران,municipal
+لويزان  - شيان,4,25723,tehran:m403,لويزان _ شيان,municipal
+قنات كوثر,4,24138,tehran:m405,قنات کوثر,municipal
+قاسم آباد-ده نارمک,4,21787,tehran:m419,نارمک,contains
+كالاد,4,21603,tehran:m417,کالاد,municipal
+پاسداران - ضرابخانه,4,19326,tehran:m401,پاسدارن_ ضرابخانه,part
+جنت آباد جنوبي,5,71891,tehran:m516,جنت آباد جنوبي,municipal
+فردوس,5,66323,tehran:m526,فردوس,municipal
+باغ فيض,5,64263,tehran:m515,باغ فيض,municipal
+جنت آباد شمالي,5,51011,tehran:m508,جنت آباد شمالي,municipal
+المهدي,5,43465,tehran:m507,المهدي,municipal
+اکباتان,5,40641,tehran:m529,اکباتان,municipal
+جنت آباد مرکزي,5,38758,tehran:m511,جنت آباد مرکزي,municipal
+پونک جنوبي,5,35408,tehran:m514,پونک جنوبي,municipal
+مهران,5,34036,tehran:m524,مهران,municipal
+شهران شمالي,5,32889,tehran:m502,شهران شمالي,municipal
+سازمان آب,5,30557,tehran:m519,سازمان آب,municipal
+پونک شمالي,5,29387,,,unmatched
+سازمان برنامه شمالي,5,29223,tehran:m520,سازمان برنامه شمالي,municipal
+سازمان برنامه جنوبي,5,28758,tehran:m522,سازمان برنامه جنوبي,municipal
+اباذر,5,28191,tehran:m525,ابوذر,municipal
+شهرک پرواز,5,26312,tehran:m523,شهرک پرواز,municipal
+شهران جنوبي,5,26232,tehran:m510,شهران جنوبي,municipal
+شاهين,5,25328,tehran:m512,شاهين,municipal
+ارم,5,24536,tehran:m521,ارم,municipal
+انديشه,5,23743,tehran:m518,انديشه,municipal
+کن,5,18116,tehran:m509,کن,municipal
+آپادانا,5,18037,tehran:m527,آپادانا,municipal
+بيمه,5,15899,tehran:m528,بيمه,municipal
+شهرک نفت,5,14997,tehran:m505,شهرک نفت,municipal
+بهاران,5,11201,tehran:m501,بهاران,municipal
+کوهسار,5,9705,tehran:m506,شهرک کوهسار,municipal
+حصارک,5,6545,tehran:m503,حصارک,municipal
+شهرزيبا,5,4427,tehran:m517,شهرزيبا,municipal
+مراد آباد,5,3333,tehran:m504,مرادآباد,municipal
+يوسف اباد,6,40985,tehran:m605,يوسف اباد,municipal
+فاطمي,6,32856,,,unmatched
+اميرآباد,6,31012,tehran:m601,اميرآباد,municipal
+جمالزاده,6,25495,,,unmatched
+جهاد,6,16697,,,unmatched
+کشاورز,6,14567,,,unmatched
+سنائي,6,13634,tehran:m611,قائم مقام _ سنائي,exact
+وليعصر,6,13432,tehran:m617,ميدان وليعصر,contains
+بهجت آباد,6,12672,tehran:m612,بهجت آباد,municipal
+دانشگاه تهران,6,10938,tehran:m616,دانشگاه تهران,municipal
+والفجر,6,10218,,,unmatched
+نظامي گنجوي,6,9779,,,unmatched
+ايرانشهر,6,9593,tehran:m618,ايرانشهر,municipal
+ساعي,6,8875,tehran:m604,آرژانتين _ ساعي,exact
+شاهد,7,42153,,,unmatched
+خواجه نظام الملک,7,34031,,,unmatched
+ارامنه,7,31341,,,unmatched
+نيلوفر- شهيد قندي,7,27721,tehran:m701,نيلوفر _ شهيد قندي,municipal
+مجيديه - دبستان,7,22372,tehran:m702,دبستان _ مجيديه,part
+بهار,7,21519,tehran:m713,بهار,municipal
+دهقان - گرگان,7,21390,tehran:m719,گرگان,part
+سهروردي - باغ صبا,7,21177,tehran:m706,باغ صبا_سهروردي,part
+عباس آباد - انديشه,7,19427,tehran:m705,عباس آباد_ انديشه,municipal
+کاج,7,17392,tehran:m707,کاج,municipal
+خواجه نصير - حقوقي,7,16890,tehran:m714,خواجه نصير _حقوقي,municipal
+قصر - حشمتيه,7,14767,tehran:m704,قصر,part
+نظام آباد,7,12264,tehran:m718,نظام آباد,municipal
+امجديه - خاقاني,7,9558,tehran:m712,امجديه _ خاقاني,municipal
+تهرانپارس,8,56763,tehran:m807,تهرانپارس,municipal
+کرمان,8,53078,tehran:m802,کرمان,municipal
+فدک,8,40134,tehran:m803,فدک,municipal
+مدائن,8,36865,tehran:m805,مدائن,municipal
+وحيديه,8,35048,tehran:m813,وحيديه,municipal
+هفت حوض,8,32960,tehran:m804,هفت حوض,municipal
+دردشت,8,30387,tehran:m806,دردشت,municipal
+نارمک,8,30372,,,unmatched
+لشگر غربي,8,26773,tehran:m812,لشکرغربي,municipal
+زرکش,8,23983,tehran:m809,زرکش,municipal
+تسليحات,8,22549,tehran:m810,تسليحات,municipal
+مجيديه,8,18836,tehran:m801,مجيديه,municipal
+لشگرشرقي,8,17296,tehran:m811,لشکر شرقي,municipal
+دکتر هوشيار,9,36394,tehran:m903,دکتر هوشيار,municipal
+سراسياب مهراباد,9,24140,tehran:m908,سرآسياب مهرآباد,municipal
+شمشيري,9,23885,tehran:m907,شمشيري,municipal
+مهرآباد جنوبي,9,23672,tehran:m906,مهرآباد جنوبي,municipal
+دستغيب,9,22087,tehran:m904,شهيد دستغيب,municipal
+امامزاده عبداله,9,19790,tehran:m905,امام زاده عبدالله,fuzzy:0.97
+استاد معين,9,18523,tehran:m902,استاد معين,municipal
+فرودگاه مهرآباد,9,5538,tehran:m901,فرودگاه,contains
+محله فتح,9,86,tehran:m909,فتح _ صنعتي,exact
+سليماني تيموري,10,44543,tehran:m1008,سليماني _ تيموري,municipal
+هفت چنار,10,38560,tehran:m1009,هفت چنار,municipal
+سلسبيل جنوبي,10,37828,tehran:m1004,سلسبيل جنوبي,municipal
+هاشمي,10,37586,tehran:m1006,هاشمي,municipal
+سلسبيل شمالي,10,35984,tehran:m1003,سلسبيل شمالي,municipal
+بريانک,10,32285,tehran:m1010,بريانک,municipal
+كارون جنوبي,10,27968,tehran:m1005,کارون جنوبي,municipal
+كارون شمالي,10,27148,tehran:m1002,کارون شمالي,municipal
+زنجان جنوبي,10,26220,tehran:m1001,زنجان جنوبي,municipal
+شبيري-جي,10,18763,tehran:m1007,شبيري_ جي,municipal
+اميريه,11,31062,tehran:m1111,اميريه,municipal
+شيخ هادي,11,30541,tehran:m1104,شيخ هادي,municipal
+منيريه,11,26997,tehran:m1106,منيريه,municipal
+فروزش -اميربهادر,11,24934,tehran:m1112,فروزش_ اميربهادر,municipal
+مخصوص,11,19455,tehran:m1110,مخصوص,municipal
+اسکندري,11,18600,tehran:m1108,اسکندري,municipal
+عباسي,11,17882,tehran:m1115,عباسي,municipal
+آگاهي,11,17407,tehran:m1117,آگاهي,municipal
+حر,11,16444,,,unmatched
+سلامت,11,15941,,,unmatched
+قلمستان,11,13184,tehran:m1113,قلمستان_ برادران جواديان,exact
+جمهوري,11,12927,tehran:m1101,جمهوري,municipal
+حشمت الدوله-جمالزاده,11,12840,tehran:m1102,جمالزاده _حشمت الدوله,part
+راه آهن,11,12711,tehran:m1118,راه آهن,municipal
+انبارنفت,11,12430,tehran:m1116,انبارنفت,municipal
+انقلاب -فلسطين,11,12321,tehran:m1103,فلسطين_ انقلاب,part
+هلال احمر,11,11793,tehran:m1114,هلال احمر,municipal
+دروازه شميران,12,33637,tehran:m1203,دروازه شميران,municipal
+کوثر,12,26623,tehran:m1211,کوثر,municipal
+سنگلج,12,25040,tehran:m1208,سنگلج,municipal
+مختاري-تختي,12,24584,tehran:m1213,تختي,part
+هرندي,12,24479,tehran:m1212,شهيد هرندي,municipal
+آبشار-دردار,12,24186,tehran:m1205,آبشار,part
+ايران,12,22600,tehran:m1204,ايران,municipal
+قيام,12,19355,tehran:m1210,قيام,municipal
+بهارستان,12,15128,tehran:m1202,بهارستان,municipal
+امامزاده يحيي,12,11318,tehran:m1206,امامزاده يحيي,municipal
+فردوسي,12,7637,tehran:m1201,فردوسي,municipal
+بازار,12,4273,tehran:m1209,بازار,municipal
+ارگ-پامنار,12,2049,tehran:m1207,ارگ _پامنار,municipal
+حافظيه,13,32812,tehran:m1308,حافظيه,municipal
+شورا,13,26706,tehran:m1304,شورا,municipal
+نيروي هوايي,13,26396,tehran:m1309,نيروي هوايي,municipal
+دهقان,13,22750,tehran:m1312,دهقان,municipal
+آشتياني,13,22585,tehran:m1305,آشتياني,municipal
+صفا,13,22406,tehran:m1310,صفا,municipal
+پيروزي,13,20504,tehran:m1313,پيروزي,municipal
+امامت,13,19915,tehran:m1303,امامت,municipal
+قاسم آباد,13,17131,tehran:m1302,قاسم آباد,municipal
+زاهدگيلاني,13,16578,tehran:m1311,زاهد گيلاني,municipal
+اسدي,13,16068,tehran:m1301,شهيد اسدي,municipal
+زينبيه,13,3459,tehran:m1307,زينبيه,municipal
+سرخه حصار,13,1415,tehran:m1306,سرخه حصار,municipal
+پرستار,14,41127,tehran:m1405,پرستار,municipal
+ابوذر,14,37422,tehran:m1417,ابوذر,municipal
+نبي اکرم,14,31417,tehran:m1416,نبي اکرم,municipal
+شهداي گمنام,14,28570,,,unmatched
+دولاب,14,25474,tehran:m1424,دولاب,municipal
+شيوا,14,24870,tehran:m1415,شيوا,municipal
+صددستگاه,14,24744,tehran:m1404,صددستگاه,municipal
+جواديه,14,24682,,,unmatched
+حسين آباد دولاب,14,23985,,,unmatched
+تاکسيراني,14,22330,tehran:m1418,تاکسيراني,municipal
+شکوفه,14,22317,tehran:m1401,شکوفه,municipal
+گذر پايين دولاب,14,22237,,,unmatched
+صاحب الزمان,14,22166,,,unmatched
+دلگشا,14,21690,,,unmatched
+چهارصددستگاه,14,20459,tehran:m1402,چهارصددستگاه,municipal
+مينا,14,19787,,,unmatched
+عارف,14,18322,,,unmatched
+شاهد,14,18256,,,unmatched
+شاهين,14,15985,tehran:m1421,شاهين,municipal
+سرآسياب دولاب,14,11911,tehran:m1409,سر آسياب دولاب,municipal
+قصرفيروزه,14,11350,tehran:m1406,قصرفيروزه,municipal
+مسعوديه,15,74641,tehran:m1515,مسعوديه,municipal
+مشيريه,15,71434,tehran:m1516,مشيريه,municipal
+ابوذر,15,65826,tehran:m1504,ابوذر,municipal
+افسريه شمالي,15,59587,tehran:m1505,افسريه بالا,municipal
+كيان شهر شمالي,15,45321,tehran:m1512,کيانشهر شمالي,municipal
+افسريه جنوبي,15,42000,tehran:m1506,افسريه پايين,municipal
+رضويه,15,40493,tehran:m1518,شهرک رضويه,municipal
+كيان شهرجنوبي,15,35085,tehran:m1517,کيانشهر جنوبي,municipal
+اسلام آباد- والفجر,15,28885,tehran:m1514,اسلام آباد_ والفجر,municipal
+طيب,15,27859,tehran:m1502,طيب,municipal
+مينابي,15,25267,tehran:m1503,مينابي,municipal
+هاشم آباد,15,24396,tehran:m1507,هاشم آباد,municipal
+اتابك,15,20492,tehran:m1508,اتابک,municipal
+وليعصر- بي سيم,15,18254,tehran:m1509,وليعصر _ بي سيم,municipal
+مطهري,15,17450,tehran:m1511,شهيد مطهري,municipal
+مظاهري,15,14556,tehran:m1510,مظاهري,municipal
+شوش,15,13967,tehran:m1501,شوش,municipal
+بروجردي,15,10298,tehran:m1513,بروجردي _ دهقان,exact
+ياخچي آباد,16,50397,tehran:m1607,ياخچي آباد_ رضوان,exact
+جواديه,16,48252,tehran:m1601,جواديه,municipal
+نازي آباد,16,44318,tehran:m1606,نازي آباد,municipal
+خزانه,16,38015,tehran:m1604,خزانه,municipal
+علي آباد جنوبي,16,30345,tehran:m1609,علي آباد جنوبي,municipal
+تختي,16,18517,tehran:m1608,تختي,municipal
+علي آبادشمالي,16,17410,,,unmatched
+شهرك بعثت,16,10224,tehran:m1603,شهرک بعثت,municipal
+باغ آذري,16,10200,tehran:m1602,باغ آذري,municipal
+يافت آباد,17,25792,tehran:m1708,يافت آباد,municipal
+سجاد,17,25174,tehran:m1709,سجاد,municipal
+ابوذرشرقي,17,22920,tehran:m1706,ابوذر شرقي,municipal
+باغ خزانه,17,22736,tehran:m1703,باغ خزانه,municipal
+گلچين,17,21417,tehran:m1710,گلچين,municipal
+بلورسازي,17,21145,tehran:m1704,بلورسازي,municipal
+آذري,17,20420,tehran:m1701,آذري,municipal
+جليلي,17,20061,tehran:m1712,جليلي,municipal
+وصفنارد,17,19735,tehran:m1713,وصفنارد,municipal
+زهتابي,17,19359,tehran:m1714,زهتابي,municipal
+ابوذرغربي,17,18554,tehran:m1707,ابوذر غربي,municipal
+مقدم,17,15628,tehran:m1705,مقدم,municipal
+امام زاده حسن,17,14553,tehran:m1702,امام زاده حسن,municipal
+زمزم,17,10860,tehran:m1711,زمزم,municipal
+شهيد رجايي,18,43277,tehran:m1816,شهيد رجايي,municipal
+ولي عصر شمالي,18,36772,tehran:m1813,وليعصر شمالي,municipal
+هفده شهريور,18,35697,tehran:m1802,هفده شهريور,municipal
+فردوس,18,34739,tehran:m1804,حسيني _ فردوس,exact
+خليج فارس شمالي,18,34720,tehran:m1801,خليج فارس شمالي,municipal
+خليج فارس جنوبي,18,31007,,,unmatched
+ولي عصر جنوبي,18,30523,tehran:m1814,وليعصر جنوبي,municipal
+يافت آباد جنوبي,18,30224,tehran:m1812,يافت آباد جنوبي,municipal
+بهداشت,18,26965,tehran:m1806,بهداشت,municipal
+صاحب الزمان,18,25065,tehran:m1807,صاحب الزمان,municipal
+يافت آباد شمالي,18,22091,,,unmatched
+توليد دارو,18,20071,tehran:m1805,توليددارو,municipal
+شمس آباد,18,11694,tehran:m1808,شمس آباد,municipal
+شاد آباد,18,10188,tehran:m1809,شادآباد,municipal
+نوروزآباد,18,8997,,,unmatched
+امام خميني,18,8217,tehran:m1803,شهرک امام خميني,municipal
+صادقيه,18,6547,tehran:m1815,صادقيه,municipal
+سعيد آباد,18,2455,,,unmatched
+نعمت آباد,19,36941,tehran:m1909,نعمت آباد,municipal
+خاني آباد شمالي,19,29117,tehran:m1904,خاني آباد شمالي,municipal
+(اسفندياري (بستان,19,29110,tehran:m1903,اسفندياري و بستان,fuzzy:0.97
+شريعتي جنوبي,19,27883,,,unmatched
+شريعتي شمالي,19,24840,tehran:m1902,شريعتي شمالي,municipal
+شکوفه جنوبي,19,23750,,,unmatched
+شکوفه شمالي,19,21666,tehran:m1908,شکوفه شمالي,municipal
+خاني آباد جنوبي,19,17865,tehran:m1906,خاني آباد جنوبي,municipal
+بهمنيار,19,13162,tehran:m1905,بهمنيار,municipal
+دولتخواه جنوبي,19,11964,tehran:m1911,دولتخواه,contains
+شهيد کاظمي,19,11005,tehran:m1912,شهيد کاظمي,municipal
+دولتخواه شمالي,19,4137,,,unmatched
+اسماعيل آباد,19,3887,tehran:m1910,اسماعيل آباد,municipal
+بوستان ولايت,19,206,tehran:m1901,بوستان ولايت,municipal
+دولت آباد,20,56901,tehran:m2003,دولت آباد,municipal
+شهادت,20,45026,tehran:m2004,شهادت,municipal
+سيزده آبان,20,35423,tehran:m2001,سيزده آبان,municipal
+ديلمان,20,31801,tehran:m2008,ديلمان,municipal
+فيروزآبادي,20,28394,tehran:m2012,فيروزآبادي,municipal
+ظهيرآباد,20,23866,tehran:m2010,ابن بابويه و ظهيرآباد,contains
+جوانمرد قصاب,20,23849,tehran:m2002,جوانمرد قصاب,municipal
+اقدسيه,20,20246,tehran:m2011,اقدسيه,municipal
+حمزه آباد,20,18187,tehran:m2007,حمزه آباد,municipal
+نفرآباد، هاشم آباد,20,14452,,,unmatched
+منصوريه منگل,20,12817,tehran:m2006,منصوريه ومنگل,fuzzy:0.96
+استخر,20,12509,tehran:m2014,استخر,municipal
+ولي آباد,20,10381,tehran:m2016,ولي آباد,municipal
+صفائيه,20,9437,tehran:m2005,صفائيه و چشمه علي,contains
+ابن بابويه,20,8498,tehran:m2010,ابن بابويه و ظهيرآباد,merged_into_compound
+تقي آباد,20,7306,tehran:m2019,تقي آباد,municipal
+سرتخت,20,5707,tehran:m2013,سرتخت,municipal
+علائين,20,2629,tehran:m2018,علايين,municipal
+باشگاه نفت,21,60163,tehran:m2112,باشگاه نفت,municipal
+پاسداران,21,43924,tehran:m2114,شهرک پاسداران,municipal
+شهرک فرهنگیان-آزادي,21,19615,,,unmatched
+وردآورد,21,12924,tehran:m2101,وردآورد,municipal
+تهرانسر غربي,21,11759,tehran:m2115,تهرانسرغربي,municipal
+شهرک دريا,21,9402,tehran:m2116,شهرک دريا,municipal
+دانشگاه تهران,21,7662,tehran:m2106,شهرک دانشگاه تهران,municipal
+شهرک استقلال,21,6885,tehran:m2107,شهرک استقلال,municipal
+چيتگر شمالي,21,4398,,,unmatched
+ویلاشهر,21,4269,tehran:m2103,ويلا شهر,municipal
+شهرک شهرداری,21,2453,tehran:m2104,شهرک شهرداري,municipal
+چيتگر جنوبي,21,1556,tehran:m2117,چيتگرجنوبي,municipal
+شهرک غزالي,21,1309,tehran:m2102,شهرک غزالي,municipal
+قائم,22,36856,,,unmatched
+گلستان,22,20338,,,unmatched
+زيبادشت,22,17397,,,unmatched
+سرو آزاد,22,16530,,,unmatched
+هوانيروز,22,16028,,,unmatched
+شهيد باقري,22,13538,tehran:m2202,شهرک شهيد باقري,municipal
+آبشار,22,13231,,,unmatched
+صدرا,22,12676,tehran:m2210,شهرک صدرا,municipal
+درياچه شهداي خليج فارس,22,12360,tehran:m2209,درياچه,contains
+دهکده المپيک,22,6706,tehran:m2204,دهکده المپيک,municipal
+کوهک,22,5475,,,unmatched
+شريف,22,3092,tehran:m2201,شهرک دانشگاه صنعتي شريف,contains

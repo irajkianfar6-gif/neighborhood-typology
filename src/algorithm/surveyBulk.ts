@@ -2,7 +2,7 @@
  * ورود دسته‌ای پرسشنامه‌های کاغذی/اکسل: تجزیهٔ CSV/TSV، نگاشت برچسب‌های فارسی و اعتبارسنجی سطری.
  * هیچ مقدار جاافتاده‌ای حدس زده نمی‌شود؛ خانهٔ خالی = بی‌پاسخ.
  */
-import { ALL_ITEMS, BULK_COLUMNS, INSTRUMENT_VERSION, precheck } from './surveyInstrument';
+import { ALL_ITEMS, BULK_COLUMNS, INSTRUMENT_VERSION, housingBurden, MAX_PLAUSIBLE_BURDEN, precheck, validNumber } from './surveyInstrument';
 import type { SurveySubmission } from './dataCollectionApi';
 import { toLatinDigits } from './dataCollectionApi';
 
@@ -57,10 +57,16 @@ export function parseSurveyCsv(text: string, defaults: { collectorId?: string } 
       if (!raw) continue;
       if (item.kind === 'binary') {
         if (YES.has(raw)) answers[item.code] = 1; else if (NO.has(raw)) answers[item.code] = 0; else errs.push(`${item.code}: «${raw}» بله/خیر نیست`);
+      } else if (item.kind === 'number') {
+        const n = Number(raw.replace(/[,٬\s]/g, '').replace(/٫/g, '.'));
+        if (validNumber(item, n)) answers[item.code] = n; else errs.push(`${item.code}: «${raw}» باید عددی بین ${item.min ?? 0} و ${item.max ?? '∞'} (${item.unit ?? ''}) باشد`);
+      } else if (item.kind === 'choice') {
+        const n = Number(raw);
+        const opt = item.options?.find((o) => o.value === n || o.label === raw);
+        if (opt) answers[item.code] = opt.value; else errs.push(`${item.code}: «${raw}» یکی از گزینه‌های ${item.options?.map((o) => o.value).join('، ')} نیست`);
       } else {
         const n = Number(raw);
-        const max = item.kind === 'choice' ? 4 : 5;
-        if (Number.isInteger(n) && n >= 1 && n <= max) answers[item.code] = n; else errs.push(`${item.code}: «${raw}» باید عدد ۱ تا ${max} باشد`);
+        if (Number.isInteger(n) && n >= 1 && n <= 5) answers[item.code] = n; else errs.push(`${item.code}: «${raw}» باید عدد ۱ تا ۵ باشد`);
       }
     }
     const consentRaw = get('consent').toLowerCase();
@@ -81,6 +87,9 @@ export function parseSurveyCsv(text: string, defaults: { collectorId?: string } 
     const collectedAt = get('collected_at');
     if (collectedAt && !Number.isFinite(Date.parse(collectedAt))) errs.push(`collected_at: «${collectedAt}» تاریخ میلادی نیست`);
     if (errs.length) { errs.forEach((m) => issues.push({ row: rowNo, level: 'error', message: m })); continue; }
+    if (demographics.tenure !== 'renter' && (answers.RENT !== undefined || answers.DEPOSIT !== undefined)) issues.push({ row: rowNo, level: 'warning', message: 'اجاره/ودیعه برای خانوار غیرمستأجر ثبت شده و در E4 شمرده نمی‌شود' });
+    const hb = housingBurden(answers, demographics.tenure);
+    if (hb && hb.burdenPct > MAX_PLAUSIBLE_BURDEN) issues.push({ row: rowNo, level: 'warning', message: `هزینهٔ مسکن ${hb.burdenPct}٪ درآمد است؛ ناممکن تلقی و از E4 کنار گذاشته می‌شود (واحد میلیون تومان را بررسی کنید)` });
     for (const w of precheck(answers, durationSec)) issues.push({ row: rowNo, level: 'warning', message: w === 'TOO_FAST' ? 'زمان تکمیل کوتاه است؛ سرور این پاسخ را رد می‌کند' : w === 'STRAIGHT_LINING' ? 'همهٔ پاسخ‌ها یکسان است؛ سرور رد می‌کند' : 'کمتر از ۸ گویهٔ ادراکی؛ سرور رد می‌کند' });
     rows.push({
       respondentId: get('respondent_id') || undefined, durationSec, answers, demographics, consent,
@@ -94,6 +103,6 @@ export function parseSurveyCsv(text: string, defaults: { collectorId?: string } 
 
 export function bulkTemplateCsv(): string {
   const example = ['R-001', '2025-05-01', 'enum-01', '420', '1', 'female', '30-44', 'renter', '0',
-    ...ALL_ITEMS.map((i) => (i.kind === 'binary' ? '1' : i.kind === 'choice' ? '1' : '4'))];
+    ...ALL_ITEMS.map((i) => (i.kind === 'binary' ? '1' : i.kind === 'choice' ? (i.code === 'EDU' ? '3' : '1') : i.kind === 'number' ? ({ HHSIZE: '3', INC: '40', RENT: '12', DEPOSIT: '300', MORT: '', AREA: '75' } as Record<string, string>)[i.code] ?? '' : '4'))];
   return '\uFEFF' + [BULK_COLUMNS.join(','), example.join(',')].join('\n') + '\n';
 }

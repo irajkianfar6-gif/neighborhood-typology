@@ -1,0 +1,40 @@
+{
+  "note": "ارقام زیر عیناً از گزارش‌های رسمی بارگذاری‌شده رونویسی شده‌اند (هیچ برآوردی اضافه نشده). واحدها مطابق منبع.",
+  "items": [
+    {"key": "heis_1404_urban_income_tehran_province", "value": 7210015, "unit": "هزار ریال در سال (متوسط درآمد کل یک خانوار شهری)", "period": "1404", "geo": "استان تهران — شهری", "source": "مرکز آمار ایران، چکیدهٔ نتایج طرح هزینه و درآمد خانوار ۱۴۰۴، جدول ۱۳", "file": "hazinedaramad1404.pdf"},
+    {"key": "heis_1404_urban_expense_tehran_province", "value": 5775913, "unit": "هزار ریال در سال (متوسط هزینهٔ کل)", "period": "1404", "geo": "استان تهران — شهری", "source": "مرکز آمار ایران، طرح هزینه و درآمد خانوار ۱۴۰۴، جدول ۱۳", "file": "hazinedaramad1404.pdf"},
+    {"key": "heis_1404_urban_income_national", "value": 4846105, "unit": "هزار ریال در سال", "period": "1404", "geo": "کل کشور — شهری", "source": "مرکز آمار ایران، طرح هزینه و درآمد خانوار ۱۴۰۴، جدول ۱۳", "file": "hazinedaramad1404.pdf"},
+    {"key": "heis_1404_urban_tenure_owner_pct", "value": 70.68, "unit": "%", "period": "1404", "geo": "کل کشور — شهری", "source": "مرکز آمار ایران، طرح هزینه و درآمد خانوار ۱۴۰۴ (نحوهٔ تصرف محل سکونت)", "file": "hazinedaramad1404.pdf"},
+    {"key": "heis_1404_urban_tenure_renter_pct", "value": 22.79, "unit": "%", "period": "1404", "geo": "کل کشور — شهری", "source": "مرکز آمار ایران، طرح هزینه و درآمد خانوار ۱۴۰۴", "file": "hazinedaramad1404.pdf"},
+    {"key": "heis_1404_urban_tenure_other_pct", "value": 6.53, "unit": "%", "period": "1404", "geo": "کل کشور — شهری", "source": "مرکز آمار ایران، طرح هزینه و درآمد خانوار ۱۴۰۴", "file": "hazinedaramad1404.pdf"},
+    {"key": "housing_cost_share_tehran_province_1403", "value": 59.9, "unit": "%", "period": "1403", "geo": "استان تهران — شهری", "source": "مرکز آمار ایران، شاخص‌های کلان اقتصادی و اجتماعی (مرداد ۱۴۰۵)، نمودار «نسبت هزینهٔ خالص مسکن به کل هزینه‌های خانوار شهری برحسب استان»", "file": "shakhes.kalan.05.05.pdf"},
+    {"key": "unemployment_tehran_province_1404", "value": 6.4, "unit": "%", "period": "1404", "geo": "استان تهران", "source": "مرکز آمار ایران، شاخص‌های کلان (مرداد ۱۴۰۵)، نرخ بیکاری برحسب استان", "file": "shakhes.kalan.05.05.pdf"},
+    {"key": "unemployment_national_1404", "value": 7.5, "unit": "%", "period": "1404", "geo": "کل کشور", "source": "مرکز آمار ایران، شاخص‌های کلان (مرداد ۱۴۰۵)", "file": "shakhes.kalan.05.05.pdf"},
+    {"key": "gini_urban_1403", "value": 0.3689, "unit": "ضریب", "period": "1403", "geo": "کل کشور — شهری", "source": "مرکز آمار ایران، شاخص‌های کلان (مرداد ۱۴۰۵)", "file": "ne_shakhes_kalan_1405_05.xlsx"},
+    {"key": "household_size_urban_1400", "value": 3.13, "unit": "نفر", "period": "1400", "geo": "کل کشور — شهری", "source": "مرکز آمار ایران، شاخص‌های کلان (مرداد ۱۴۰۵)", "file": "ne_shakhes_kalan_1405_05.xlsx"},
+    {"key": "construction_input_index_tehran_spring_1405", "value": 336.4, "unit": "شاخص (۱۴۰۲=۱۰۰)", "period": "1405-Q1", "geo": "شهر تهران", "source": "مرکز آمار ایران، شاخص قیمت نهاده‌های ساختمان‌های مسکونی شهر تهران — بهار ۱۴۰۵", "file": "nahadehayesakhtemal 1405-1.pdf"},
+    {"key": "private_construction_cost_m2_tehran_province_1404", "value": 169.0, "unit": "میلیون ریال به ازای هر مترمربع (ساختمان‌های مسکونی تکمیل‌شده)", "period": "1404", "geo": "استان تهران", "source": "بانک مرکزی، فعالیت‌های ساختمانی بخش خصوصی در مناطق شهری ۱۴۰۴", "file": "Building14044.pdf"},
+    {"key": "private_completed_units_tehran_province_1404", "value": 55373, "unit": "واحد مسکونی", "period": "1404", "geo": "استان تهران", "source": "بانک مرکزی، فعالیت‌های ساختمانی بخش خصوصی ۱۴۰۴", "file": "Building14044.pdf"},
+    {"key": "private_avg_unit_area_tehran_province_1404", "value": 149, "unit": "مترمربع", "period": "1404", "geo": "استان تهران", "source": "بانک مرکزی، فعالیت‌های ساختمانی بخش خصوصی ۱۴۰۴", "file": "Building14044.pdf"},
+    {"key": "rent_index_yoy_tehran_1403_05", "value": 45.5, "unit": "% تغییر سالانهٔ شاخص اجاره", "period": "1403-05", "geo": "شهر تهران", "source": "بانک مرکزی، گزارش تحولات بازار مسکن شهر تهران — مرداد ۱۴۰۳", "file": "گزارش تحولات معاملات بازار مسکن شهر تهران مرداد1403.pdf"}
+  ],
+  "tehranCityHousingAnnual": {
+    "source": "مرکز آمار ایران، شاخص‌های کلان (مرداد ۱۴۰۵)، جدول ۱۱-۴ متوسط قیمت و اجارهٔ ماهانهٔ مسکن در شهر تهران",
+    "file": "shakhes.kalan.05.05.pdf",
+    "units": {"priceKRialPerM2": "هزار ریال برای هر مترمربع زیربنای مسکونی", "rentRialPerM2Month": "ریال؛ اجارهٔ ماهانه + ۳٪ ودیعه برای هر مترمربع"},
+    "rows": [
+      {"period": "1396", "priceKRialPerM2": 51186, "rentRialPerM2Month": 256496},
+      {"period": "1397", "priceKRialPerM2": 81862, "rentRialPerM2Month": 326635},
+      {"period": "1398", "priceKRialPerM2": 141558, "rentRialPerM2Month": 437732},
+      {"period": "1399", "priceKRialPerM2": 245539, "rentRialPerM2Month": 630927},
+      {"period": "1400", "priceKRialPerM2": 344028, "rentRialPerM2Month": 890200}
+    ]
+  },
+  "cbiDistrictMordad1403": {
+    "source": "بانک مرکزی، گزارش تحولات بازار مسکن شهر تهران — مرداد ۱۴۰۳ (متوسط قیمت هر مترمربع و تعداد معاملات به تفکیک منطقه)",
+    "file": "گزارش تحولات معاملات بازار مسکن شهر تهران مرداد1403.pdf",
+    "unit": "میلیون ریال برای هر مترمربع",
+    "period": "1403-05",
+    "rows": {"1": [1790.1, 197], "2": [1373.0, 298], "3": [1433.1, 175], "4": [971.0, 284], "5": [1064.1, 512], "6": [1116.8, 156], "7": [865.1, 222], "8": [843.4, 224], "9": [673.8, 108], "10": [641.6, 354], "11": [641.9, 157], "12": [588.7, 74], "13": [820.6, 125], "14": [698.4, 206], "15": [507.5, 182], "16": [491.0, 43], "17": [518.2, 80], "18": [421.2, 78], "19": [477.1, 35], "20": [525.6, 33], "21": [660.0, 55], "22": [827.0, 67], "city": [885.0, 3665]}
+  }
+}
