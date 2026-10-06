@@ -116,8 +116,10 @@ export function createNeighborhoodRouter(): Router {
     const p = readOfficialPack(req.params.packId);
     if (!p) { fail(res, 404, 'NOT_FOUND', 'بستهٔ رسمی یافت نشد'); return; }
     const open = packStatus().find((x) => x.id === p.pack.id)?.batch;
-    if (open && (open.status === 'PENDING_REVIEW' || open.status === 'APPROVED')) { fail(res, 409, 'ALREADY_STAGED', `این بسته قبلاً بارگذاری شده است (${open.batchId}، ${open.status})`, open); return; }
-    const batch = createBatch(p.text, `official-pack:${p.pack.id}`, tokenFingerprint(req.header('authorization'), req.araRole ?? 'unknown'));
+    if (open && open.status === 'APPROVED') { fail(res, 409, 'ALREADY_STAGED', `این بسته قبلاً بارگذاری شده است (${open.batchId}، ${open.status})`, open); return; }
+    let batch = createBatch(p.text, `official-pack:${p.pack.id}`, tokenFingerprint(req.header('authorization'), req.araRole ?? 'unknown'));
+    // بستهٔ رسمی از پیش اعتبارسنجی شده است؛ در دسترسی باز بی‌درنگ فعال می‌شود
+    if (batch.status === 'PENDING_REVIEW') batch = reviewBatch(batch.batchId, 'system:official-pack', 'APPROVED', `بستهٔ رسمی ${p.pack.id}`);
     ok(res, { ...batch, rows: batch.rows.slice(0, 20), rowsTruncated: batch.rows.length > 20 }, batch.status === 'INVALID' ? 422 : 201);
   });
   router.get('/official/district/:neighborhoodId', (req, res) => {

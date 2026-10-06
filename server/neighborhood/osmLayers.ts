@@ -132,15 +132,19 @@ export function parseLayer(category: LayerCategory, payload: { elements?: OsmEl[
   };
 }
 
-export async function overpass(query: string, timeoutMs = 300_000): Promise<{ payload: unknown; endpoint: string }> {
+export async function overpass(query: string, timeoutMs = 240_000): Promise<{ payload: unknown; endpoint: string }> {
   let lastError: unknown;
+  // timeoutMs بودجهٔ کل است (نه هر سرور)؛ تا زنجیرهٔ سرورهای جایگزین تحلیل را چند دقیقه معطل نکند
+  const until = Date.now() + timeoutMs;
   for (const endpoint of OVERPASS_ENDPOINTS) {
+    const left = until - Date.now();
+    if (left < 5_000) break;
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'ARA-Neighborhood-Decision-Support/2.0', accept: 'application/json' },
         body: `data=${encodeURIComponent(query)}`,
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(left),
       });
       const text = await res.text();
       if (!res.ok || !text.trimStart().startsWith('{')) throw new Error(`overpass ${res.status} ${text.slice(0, 120).replace(/\s+/g, ' ')}`);
@@ -151,7 +155,7 @@ export async function overpass(query: string, timeoutMs = 300_000): Promise<{ pa
       lastError = error;
     }
   }
-  throw lastError instanceof Error ? lastError : new Error('all overpass endpoints failed');
+  throw lastError instanceof Error ? lastError : new Error('overpass: مهلت واکشی به پایان رسید');
 }
 
 function cacheFile(citySlug: string, category: LayerCategory): string {

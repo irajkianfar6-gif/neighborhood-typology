@@ -23,8 +23,11 @@ import { cityBBox, type GazetteerEntry, getNeighborhood, publicEntry } from './g
 import { bboxOf } from './geo';
 import { appendRun, detectAnomalies, loadRuns, type RunRecord } from './history';
 import { computeOpenIndicators, type CityLayers } from './indicators';
-import { ALL_CATEGORIES, getCityLayer, type LayerCategory } from './osmLayers';
+import { ALL_CATEGORIES, getCityLayer, readCachedLayer, type LayerCategory } from './osmLayers';
 import { resolveNeighborhood } from './resolver';
+
+/** حداکثر انتظار تحلیل برای هر لایهٔ شهری (میلی‌ثانیه) */
+const LAYER_DEADLINE_MS = Number(process.env.ARA_LAYER_DEADLINE_MS || 45_000);
 
 export const METHOD_VERSION = 'ARA-NB-2.0';
 const LOWER_BETTER = new Set(ALGORITHM_INDICATORS.filter((i) => i.direction === 'desc').map((i) => i.code));
@@ -84,7 +87,20 @@ export async function loadCityLayers(entry: GazetteerEntry, offline = false): Pr
   const status: Record<string, string> = {};
   await Promise.all(ALL_CATEGORIES.map(async (cat: LayerCategory) => {
     if (!bbox) { layers[cat] = null; status[cat] = 'NO_BBOX'; return; }
-    const r = await getCityLayer(entry.citySlug, cat, bbox, { offline });
+    // واکشی سرد Overpass برای کل شهر ممکن است چند دقیقه طول بکشد؛ تحلیل منتظر نمی‌ماند و
+    // واکشی در پس‌زمینه ادامه می‌یابد تا کش برای تحلیل بعدی آماده شود
+    const pending = getCityLayer(entry.citySlug, cat, bbox, { offline });
+    let timer: NodeJS.Timeout | undefined;
+    const deadline = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), LAYER_DEADLINE_MS); });
+    const r = await Promise.race([pending, deadline]);
+    if (timer) clearTimeout(timer);
+    if (!r) {
+      pending.catch(() => undefined);
+      const stale = readCachedLayer(entry.citySlug, cat);
+      layers[cat] = stale?.layer ?? null;
+      status[cat] = stale ? 'STALE (در حال به‌روزرسانی)' : 'PENDING (در حال دریافت در پس‌زمینه؛ چند دقیقهٔ دیگر دوباره تحلیل کنید)';
+      return;
+    }
     layers[cat] = r.layer;
     status[cat] = r.cache + (r.error ? ` (${r.error.slice(0, 80)})` : '');
   }));

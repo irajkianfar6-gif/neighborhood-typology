@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Building2, Database, Landmark, Loader2, Upload } from 'lucide-react';
-import { stageOfficialPack, type CollectionStatus } from '../../algorithm/dataCollectionApi';
+import { approveBatch, stageOfficialPack, type CollectionStatus } from '../../algorithm/dataCollectionApi';
 import { Card, Notice, fa, ghostBtn } from './ui';
 
-const BATCH_FA: Record<string, string> = { PENDING_REVIEW: 'در انتظار تأیید مدیر', APPROVED: 'تأییدشده و فعال', REJECTED: 'ردشده', SUPERSEDED: 'جایگزین‌شده' };
+const BATCH_FA: Record<string, string> = { PENDING_REVIEW: 'در انتظار تأیید', APPROVED: 'تأییدشده و فعال', REJECTED: 'ردشده', SUPERSEDED: 'جایگزین‌شده' };
 
 /** زمینهٔ رسمی منطقهٔ شهرداری: جمعیت، بازار مسکن، معیار درآمد و بسته‌های دادهٔ رسمی آمادهٔ ورود */
 export default function OfficialContextPanel({ status, onChanged }: { status: CollectionStatus; onChanged: () => void }) {
@@ -18,9 +18,15 @@ export default function OfficialContextPanel({ status, onChanged }: { status: Co
     setBusy(id); setMsg(null);
     try {
       const r = await stageOfficialPack(id);
-      setMsg({ tone: 'ok', text: `${fa(r.stats.accepted)} ردیف برای ${fa(r.stats.neighborhoods)} محله بارگذاری شد و در انتظار تأیید مدیر است.` });
+      setMsg({ tone: 'ok', text: `${fa(r.stats.accepted)} ردیف برای ${fa(r.stats.neighborhoods)} محله وارد و فعال شد؛ برای اثر در تحلیل «بازمحاسبه» را بزنید.` });
       onChanged();
     } catch (e) { setMsg({ tone: 'danger', text: e instanceof Error ? e.message : 'بارگذاری ناموفق بود' }); } finally { setBusy(null); }
+  };
+
+  const approve = async (batchId: string, id: string) => {
+    setBusy(id); setMsg(null);
+    try { await approveBatch(batchId); setMsg({ tone: 'ok', text: 'دسته تأیید و فعال شد.' }); onChanged(); }
+    catch (e) { setMsg({ tone: 'danger', text: e instanceof Error ? e.message : 'تأیید ناموفق بود' }); } finally { setBusy(null); }
   };
 
   return (
@@ -65,14 +71,19 @@ export default function OfficialContextPanel({ status, onChanged }: { status: Co
                 <span className="text-[10px] font-bold text-ink-600 dark:text-slate-300">{pk.batch ? BATCH_FA[pk.batch.status] ?? pk.batch.status : 'هنوز وارد نشده'}</span>
                 {(!pk.batch || pk.batch.status === 'REJECTED') && (
                   <button type="button" className={ghostBtn} disabled={busy !== null} onClick={() => void stage(pk.id)}>
-                    {busy === pk.id ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} ورود برای بازبینی
+                    {busy === pk.id ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} ورود داده
+                  </button>
+                )}
+                {pk.batch?.status === 'PENDING_REVIEW' && (
+                  <button type="button" className={ghostBtn} disabled={busy !== null} onClick={() => void approve(pk.batch!.batchId, pk.id)}>
+                    {busy === pk.id ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} تأیید و فعال‌سازی
                   </button>
                 )}
               </div>
             </div>
           ))}
           {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
-          <p className="text-[10px] leading-5 text-ink-400">پس از ورود، مدیر باید دسته را در بخش «ورود داده» تأیید کند تا جمعیت محله‌ها در وزن‌دهی و نمونه‌گیری به کار رود.</p>
+          <p className="text-[10px] leading-5 text-ink-400">با زدن «ورود داده» جمعیت محله‌ها فعال می‌شود و در حجم نمونه و وزن‌دهی به کار می‌رود.</p>
         </div>
       </Card>
     </div>

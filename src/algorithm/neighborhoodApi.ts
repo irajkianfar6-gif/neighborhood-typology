@@ -88,24 +88,3 @@ export const LEVEL_FA: Record<PublicationLevel, { label: string; tone: string; d
   INSUFFICIENT: { label: 'شواهد ناکافی', tone: 'rose', description: 'سامانه از صدور حکم خودداری کرد؛ فهرست دادهٔ لازم را ببینید.' },
 };
 
-/** افزودن توکن API (در صورت وجود در localStorage) به همهٔ درخواست‌های /api */
-export function installApiAuthFetch(): void {
-  if (typeof window === 'undefined' || (window as unknown as { __araAuthFetch?: boolean }).__araAuthFetch) return;
-  const original = window.fetch.bind(window);
-  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-    let token: string | null = null;
-    try { token = localStorage.getItem('ara_api_token'); } catch { /* storage optional */ }
-    const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    let isApi = false;
-    try {
-      const target = new URL(raw, window.location.href);
-      const apiBase = new URL(apiUrl('/api/'), window.location.href);
-      isApi = target.pathname.startsWith('/api/') && (target.origin === window.location.origin || target.origin === apiBase.origin);
-    } catch { isApi = false; }
-    if (!token || !isApi) return original(input, init);
-    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
-    if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
-    return original(input, { ...init, headers });
-  };
-  (window as unknown as { __araAuthFetch?: boolean }).__araAuthFetch = true;
-}

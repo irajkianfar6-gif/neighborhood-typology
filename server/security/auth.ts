@@ -1,20 +1,16 @@
 /**
- * احراز هویت و نقش‌ها برای API سامانه.
- *
- * ARA_API_TOKENS="tokenA:admin,tokenB:analyst,tokenC:viewer"
- * نقش کاربر بدون توکن به‌صورت ثابت و دائمی «analyst» (تحلیلگر) است — در توسعه و تولید.
- * تحلیلگر می‌تواند تحلیل کند و دادهٔ میدانی (پرسشنامه، ممیزی، ثبت محلی) ثبت کند؛
- * تأیید دسته‌های داده، کالیبراسیون و حافظه/مداخله‌ها همچنان نقش بالاتر (با توکن) می‌خواهد.
- * نقش‌ها سلسله‌مراتبی‌اند: viewer < analyst < operator < admin
+ * دسترسی باز: سامانه به توکن یا سطح دسترسی نیاز ندارد.
+ * هر کاربر (با یا بدون توکن) می‌تواند تحلیل کند، داده وارد کند و دسته‌های داده را تأیید کند.
+ * قواعد مسیر (DEFAULT_ROUTE_RULES) فقط برای مستندسازی نگه داشته شده‌اند و اعمال نمی‌شوند.
+ * محدودیت نرخ و لاگ ممیزی جداگانه فعال می‌مانند.
  */
-import crypto from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 
 export type Role = 'none' | 'viewer' | 'analyst' | 'operator' | 'admin';
 export const ROLE_RANK: Record<Role, number> = { none: -1, viewer: 0, analyst: 1, operator: 2, admin: 3 };
 const VALID: Role[] = ['none', 'viewer', 'analyst', 'operator', 'admin'];
 /** نقش پیش‌فرض و دائمی کاربر (درخواست بدون توکن) */
-export const DEFAULT_ROLE: Role = 'analyst';
+export const DEFAULT_ROLE: Role = 'admin';
 
 export interface AuthConfig {
   tokens: Map<string, Role>;
@@ -27,35 +23,15 @@ export function loadAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig
     const idx = pair.lastIndexOf(':');
     const token = idx > 0 ? pair.slice(0, idx) : pair;
     const role = (idx > 0 ? pair.slice(idx + 1) : 'viewer') as Role;
-    if (token.length < 16) {
-      console.warn('[auth] توکن کوتاه‌تر از ۱۶ نویسه نادیده گرفته شد');
-      continue;
-    }
+    if (token.length < 16) continue;
     tokens.set(token, VALID.includes(role) ? role : 'viewer');
-  }
-  if (env.ARA_ANON_ROLE && env.ARA_ANON_ROLE !== DEFAULT_ROLE) {
-    console.warn(`[auth] ARA_ANON_ROLE نادیده گرفته شد؛ نقش پیش‌فرض کاربر همیشه «${DEFAULT_ROLE}» است`);
   }
   return { tokens, anonRole: DEFAULT_ROLE };
 }
 
-function safeLookup(tokens: Map<string, Role>, presented: string): Role | undefined {
-  // مقایسهٔ زمان‌ثابت برای جلوگیری از حملهٔ زمان‌سنجی
-  const a = Buffer.from(presented);
-  for (const [token, role] of tokens) {
-    const b = Buffer.from(token);
-    if (a.length === b.length && crypto.timingSafeEqual(a, b)) return role;
-  }
-  return undefined;
-}
-
-export function resolveRole(req: Request, config: AuthConfig): { role: Role; authenticated: boolean; invalidToken: boolean } {
-  const header = req.header('authorization') ?? '';
-  const presented = header.replace(/^Bearer\s+/i, '').trim() || (req.header('x-ara-token') ?? '').trim();
-  if (!presented) return { role: config.anonRole, authenticated: false, invalidToken: false };
-  const role = safeLookup(config.tokens, presented);
-  if (!role) return { role: 'none', authenticated: false, invalidToken: true };
-  return { role, authenticated: true, invalidToken: false };
+export function resolveRole(_req: Request, config: AuthConfig): { role: Role; authenticated: boolean; invalidToken: boolean } {
+  // دسترسی باز: توکن بررسی نمی‌شود و هیچ درخواستی رد نمی‌شود
+  return { role: config.anonRole, authenticated: false, invalidToken: false };
 }
 
 export type AuthedRequest = Request & { araRole?: Role; araAuthenticated?: boolean };
@@ -90,37 +66,16 @@ export function requiredRole(method: string, pathName: string, rules: RouteRule[
   return 'none';
 }
 
-/** میان‌افزار سراسری: نقش را تعیین و بر اساس قواعد مسیر، دسترسی را کنترل می‌کند */
-export function authMiddleware(config: AuthConfig = loadAuthConfig(), rules: RouteRule[] = DEFAULT_ROUTE_RULES) {
-  return (req: AuthedRequest, res: Response, next: NextFunction) => {
-    if (req.method === 'OPTIONS') { next(); return; }
-    const min = requiredRole(req.method, req.path, rules);
-    const { role, authenticated, invalidToken } = resolveRole(req, config);
-    req.araRole = role;
-    req.araAuthenticated = authenticated;
-    if (invalidToken) {
-      res.status(401).json({ success: false, error: { code: 'INVALID_TOKEN', message: 'توکن نامعتبر است.' } });
-      return;
-    }
-    if (ROLE_RANK[role] < ROLE_RANK[min]) {
-      res.status(authenticated ? 403 : 401).json({
-        success: false,
-        error: { code: authenticated ? 'FORBIDDEN' : 'UNAUTHORIZED', message: `این عملیات حداقل نقش «${min}» می‌خواهد.`, requiredRole: min },
-      });
-      return;
-    }
+/** میان‌افزار سراسری: نقش کامل را برای همه ثبت می‌کند و هیچ درخواستی را رد نمی‌کند */
+export function authMiddleware(config: AuthConfig = loadAuthConfig(), _rules: RouteRule[] = DEFAULT_ROUTE_RULES) {
+  return (req: AuthedRequest, _res: Response, next: NextFunction) => {
+    req.araRole = config.anonRole;
+    req.araAuthenticated = false;
     next();
   };
 }
 
-/** میان‌افزار محلی برای روترهایی که مستقل از سرور اصلی تست می‌شوند */
-export function requireRole(min: Role, config: AuthConfig = loadAuthConfig()) {
-  return (req: AuthedRequest, res: Response, next: NextFunction) => {
-    const role = req.araRole ?? resolveRole(req, config).role;
-    if (ROLE_RANK[role] < ROLE_RANK[min]) {
-      res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', requiredRole: min } });
-      return;
-    }
-    next();
-  };
+/** سازگاری با کد قدیمی: بدون محدودیت */
+export function requireRole(_min: Role, _config: AuthConfig = loadAuthConfig()) {
+  return (_req: AuthedRequest, _res: Response, next: NextFunction) => { next(); };
 }

@@ -79,9 +79,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   }
   const payload = await response.json().catch(() => null) as { success?: boolean; data?: T; error?: { code?: string; message?: string } } | null;
   if (!response.ok || !payload?.success) {
-    const message = response.status === 401 || response.status === 403
-      ? 'برای ثبت داده به توکن «اپراتور» نیاز است.'
-      : payload?.error?.message ?? `درخواست با کد ${response.status} ناموفق بود.`;
+    const message = payload?.error?.message ?? `درخواست با کد ${response.status} ناموفق بود.`;
     throw new NeighborhoodApiError(message, response.status, payload?.error?.code ?? 'HTTP_ERROR');
   }
   return payload.data as T;
@@ -92,6 +90,8 @@ const post = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.strin
 export const getCollectionStatus = (id: string) => call<CollectionStatus>(`/api/decision-support/data-collection/${enc(id)}/status`);
 export const stageOfficialPack = (packId: string) =>
   call<{ batchId: string; status: string; stats: { accepted: number; rejected: number; neighborhoods: number }; issues: Array<{ code: string; message: string; severity: string }> }>(`/api/decision-support/ingestion/official-packs/${enc(packId)}/stage`, post({}));
+export const approveBatch = (batchId: string, decision: 'APPROVED' | 'REJECTED' = 'APPROVED') =>
+  call<{ batchId: string; status: string }>(`/api/decision-support/ingestion/${enc(batchId)}/approve`, post({ decision }));
 export const submitSurveyResponses = (id: string, responses: SurveySubmission[]) =>
   call<{ received: number; accepted: number; rejected: Array<{ responseId: string; reasons: string[] }> }>(`/api/decision-support/survey/${enc(id)}/responses`, post({ responses }));
 export const submitAudits = (id: string, audits: AuditSubmission[]) =>

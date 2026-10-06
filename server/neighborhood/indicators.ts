@@ -136,7 +136,7 @@ async function computeP2(entry: GazetteerEntry, opts: { offline?: boolean }): Pr
   if (!fresh && !opts.offline) {
     try {
       const q = `[out:json][timeout:120];way["highway"~"^(${WALKABLE})$"]["foot"!~"no"]["access"!~"private|no"](poly:"${overpassPoly(entry.boundary.geojson)}");out geom qt;`;
-      const { payload, endpoint } = await overpass(q, 150_000);
+      const { payload, endpoint } = await overpass(q, 60_000);
       const p = payload as { elements?: Array<{ geometry?: Array<{ lat: number; lon: number }> }>; osm3s?: { timestamp_osm_base?: string } };
       cached = { ways: (p.elements ?? []).map((e) => (e.geometry ?? []).map((g) => [g.lon, g.lat] as [number, number])).filter((w) => w.length >= 2), observedAt: p.osm3s?.timestamp_osm_base ?? null, fetchedAt: nowIso(), endpoint };
       fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
