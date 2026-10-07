@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Building2, Database, Landmark, Loader2, Upload } from 'lucide-react';
 import { approveBatch, stageOfficialPack, type CollectionStatus } from '../../algorithm/dataCollectionApi';
 import { Card, Notice, fa, ghostBtn } from './ui';
+import NeighborhoodLayersPanel from '../NeighborhoodLayersPanel';
 
 const BATCH_FA: Record<string, string> = { PENDING_REVIEW: 'در انتظار تأیید', APPROVED: 'تأییدشده و فعال', REJECTED: 'ردشده', SUPERSEDED: 'جایگزین‌شده' };
 
@@ -30,6 +31,8 @@ export default function OfficialContextPanel({ status, onChanged }: { status: Co
   };
 
   return (
+    <div className="space-y-3">
+    {off.layers && <NeighborhoodLayersPanel layers={off.layers} />}
     <div className="grid gap-3 lg:grid-cols-3">
       <Card title={`منطقهٔ ${fa(off.district)} شهرداری تهران — جمعیت`} icon={<Landmark size={14} />}>
         {!p ? <p className="text-[11px] text-ink-400">دادهٔ رسمی این منطقه در دسترس نیست.</p> : (
@@ -86,6 +89,7 @@ export default function OfficialContextPanel({ status, onChanged }: { status: Co
           <p className="text-[10px] leading-5 text-ink-400">با زدن «ورود داده» جمعیت محله‌ها فعال می‌شود و در حجم نمونه و وزن‌دهی به کار می‌رود.</p>
         </div>
       </Card>
+    </div>
     </div>
   );
 }

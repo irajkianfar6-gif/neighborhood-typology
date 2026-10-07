@@ -25,6 +25,7 @@ import { appendRun, detectAnomalies, loadRuns, type RunRecord } from './history'
 import { computeOpenIndicators, type CityLayers } from './indicators';
 import { ALL_CATEGORIES, getCityLayer, readCachedLayer, type LayerCategory } from './osmLayers';
 import { resolveNeighborhood } from './resolver';
+import { assessLayers, layerValues, type NeighborhoodLayersAssessment } from '../official/tehranLayers';
 
 /** حداکثر انتظار تحلیل برای هر لایهٔ شهری (میلی‌ثانیه) */
 const LAYER_DEADLINE_MS = Number(process.env.ARA_LAYER_DEADLINE_MS || 45_000);
@@ -51,7 +52,7 @@ export interface DecisionCardV2 {
   engine: null | {
     runId: string; qualityVerdict: DecisionCard['qualityVerdict']; diagnosticType: DecisionCard['diagnosticType'] | null;
     bottleneck: DecisionCard['bottleneck']; interventions: Array<DecisionCard['interventions'][number] & { library?: unknown }>;
-    hypotheses: DecisionCard['hypotheses']; causalLevel: string; finalStatement: string; equityDataStatus: string;
+    hypotheses: Array<DecisionCard['hypotheses'][number] & { layerTests?: NeighborhoodLayersAssessment['hypothesisTests'] }>; causalLevel: string; finalStatement: string; equityDataStatus: string;
   };
   dataVintage: { oldest: string | null; newest: string | null; staleIndicators: string[] };
   benchmarks: Array<{ code: string; level: 'city'; value: number; source: string }>;
@@ -59,6 +60,8 @@ export interface DecisionCardV2 {
   survey: { nAccepted: number; adequacy: string; alpha: number | null; marginOfError: number | null; weighting: string } | null;
   fieldAudit: { points: number; kappa: number | null; adequacy: string } | null;
   localRegister: { records: number; indicators: string[]; networkActors: number } | null;
+  /** لایه‌های محله‌ای تهران: سنجه‌های تکمیلی، یافته‌های تشخیصی (LR-v1) و تجویز مبتنی بر یافته */
+  localLayers: NeighborhoodLayersAssessment | null;
   anomalies: ReturnType<typeof detectAnomalies>;
   reproducibilityKey: Record<string, string>;
   fingerprint: string;
@@ -170,17 +173,19 @@ export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult>
   const ctx = await buildNeighborhoodContext(entry, { useKernel: input.useKernel, asOf: input.asOf });
 
   // ۳) شواهد موازی از همهٔ کانال‌ها
-  const { layers, status: layerStatus } = await loadCityLayers(entry, input.offline);
+  const { layers: cityLayers, status: layerStatus } = await loadCityLayers(entry, input.offline);
   const [open, contract] = await Promise.all([
-    computeOpenIndicators(entry, ctx, layers, { offline: input.offline, useKernel: input.useKernel }),
+    computeOpenIndicators(entry, ctx, cityLayers, { offline: input.offline, useKernel: input.useKernel }),
     Promise.resolve(contractValues(entry.neighborhoodId, input.asOf)),
   ]);
   const survey = surveyValues(entry.neighborhoodId, ctx);
   const field = fieldValues(entry.neighborhoodId);
   const register = registerValues(entry.neighborhoodId);
   const custom = customSurveyValues(entry.neighborhoodId, ctx);
+  // لایه‌های محله‌ای تهران (برآورد مدل‌شده؛ ردهٔ open_model — پیمایش/قرارداد بر آن مقدم است)
+  const layers = layerValues(entry.neighborhoodId);
   // گویه‌های «کنترلی» در ادغام هرگز مقدار اصلی نمی‌شوند (merge.ts)
-  const documented: DocumentedValue[] = [...contract.values, ...open, ...survey.values, ...field.values, ...register.values, ...custom.values];
+  const documented: DocumentedValue[] = [...contract.values, ...open, ...survey.values, ...field.values, ...register.values, ...custom.values, ...layers];
 
   // ۴) ادغام + نرمال‌سازی + اعتماد
   const merged = mergeDocumentedValues(documented, entry.citySlug);
@@ -192,6 +197,7 @@ export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult>
     reliabilityWeights: reliabilityWeights().version,
     capitalWeights: 'W-v1-equal',
     reference: ref?.version ?? 'none',
+    localLayers: layers.length ? `${layers[0].sourceIds[0].split(':')[1]}+LR-v1` : 'none',
     boundary: `${entry.boundary.version}#${entry.boundary.hash}`,
     code: codeVersion(),
   };
@@ -278,6 +284,21 @@ export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult>
     }
   }
 
+  // ۶ب) لایه‌های محله‌ای: یافته‌ها، آزمون فرضیه‌ها و تجویز هم‌راستا با گلوگاه
+  const localLayers = assessLayers(entry.neighborhoodId, {
+    surveyItemScores: survey.summary.itemScores, surveyN: survey.summary.nAccepted,
+    fieldItemMeans: field.summary.itemMeans, fieldPoints: field.summary.points,
+    bottleneck: engine?.bottleneck ? { capital: engine.bottleneck.capital, transition: engine.bottleneck.transition } : null,
+  });
+  if (engine && localLayers) {
+    engine.hypotheses = engine.hypotheses.map((h) => {
+      const t = localLayers.hypothesisTests.filter((x) => x.frictionType === h.frictionType);
+      if (!t.length) return h;
+      const extra = t.filter((x) => x.result === 'supports').map((x) => `spatial:layer:${x.test}`);
+      return { ...h, sources: [...h.sources, ...extra.filter((s) => !h.sources.includes(s))], layerTests: t };
+    });
+  }
+
   // ۷) کارت V2
   const evidence = [...merged.values()];
   const observed = evidence.map((v) => v.observedAt).filter((x): x is string => Boolean(x)).sort();
@@ -333,6 +354,7 @@ export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult>
     localRegister: register.summary.records.length || register.summary.network
       ? { records: register.summary.records.length, indicators: register.summary.indicators.map((i) => i.code), networkActors: register.summary.network?.actors.length ?? 0 }
       : null,
+    localLayers,
     anomalies,
     reproducibilityKey,
     fingerprint,

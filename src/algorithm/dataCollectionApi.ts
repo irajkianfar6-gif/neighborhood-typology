@@ -1,3 +1,4 @@
+import type { NeighborhoodLayersAssessment } from './neighborhoodApi';
 /** کلاینت API گردآوری داده (پیمایش ساکنان، ممیزی میدانی، ثبت‌های محلی) */
 import { apiUrl } from './realDataConnectors';
 import { NeighborhoodApiError } from './neighborhoodApi';
@@ -59,7 +60,7 @@ export interface CollectionStatus {
   plan: { modules: PlanModule[]; recommendedN: number; gateN: number; overall: number; unlockable: string[] };
   indicatorNames: Record<string, string>;
   populationSource?: { source: string; year: number | null; tier: string } | null;
-  official?: null | { district: number; profile: OfficialDistrictProfile | null; incomeBenchmark: { monthlyMToman: number; month: string; basis: string } | null; packs: OfficialPackStatus[] };
+  official?: null | { district: number; profile: OfficialDistrictProfile | null; incomeBenchmark: { monthlyMToman: number; month: string; basis: string } | null; packs: OfficialPackStatus[]; layers?: NeighborhoodLayersAssessment | null };
 }
 
 export interface SurveySubmission {
