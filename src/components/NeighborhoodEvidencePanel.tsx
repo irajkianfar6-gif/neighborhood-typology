@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { AlertTriangle, ChevronDown, ClipboardList, Database, Download, FileWarning, MapPin, ShieldCheck } from 'lucide-react';
 import { CAPITAL_FA } from '../algorithm/types';
 import { LEVEL_FA, templateUrl, type DecisionCardV2, type NeighborhoodCandidate } from '../algorithm/neighborhoodApi';
+import NeighborhoodLayersPanel from './NeighborhoodLayersPanel';
 
 const LEVEL_CLASS: Record<string, string> = {
   PUBLISHABLE: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-200',
@@ -71,6 +72,8 @@ export default function NeighborhoodEvidencePanel({ card, onCollect }: { card: D
           </div>
         ))}
       </div>
+
+      {card.localLayers && <NeighborhoodLayersPanel layers={card.localLayers} />}
 
       {card.abstentions.length > 0 && (
         <div className="rounded-2xl border border-line bg-surface p-4 text-xs dark:border-wall-700 dark:bg-wall-800">

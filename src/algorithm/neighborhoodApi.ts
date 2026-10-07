@@ -22,6 +22,18 @@ export interface DecisionCardV2Indicator {
   conflict: boolean; missingReason?: string; nextAction?: string; notes?: string[];
 }
 
+// ---------- لایه‌های محله‌ای تهران (روشنایی، استطاعت مسکن، اشتغال پایدار، تحصیلات) ----------
+export type LayerKey = 'lighting' | 'housing' | 'employment' | 'education';
+export interface LayerMeasure { key: LayerKey; title: string; value: number | null; unit: string; percentileInTehran: number | null; band: string | null; quality: string | null; level: 'neighborhood' | 'district'; observedAt: string; note?: string; extra: Array<{ label: string; value: string }> }
+export interface LayerFinding { id: string; layer: LayerKey; severity: 'high' | 'medium' | 'low' | 'info'; title: string; evidence: string[]; capital: CapitalKey; indicator?: string; friction?: string[]; confidence: 'high' | 'medium' | 'low'; corroboration?: string[] }
+export interface LayerPrescription {
+  libraryId: string; name: string; owner: string; costBnRial: number | null; months: number | null; capital: CapitalKey; transition: [string, string]; findingIds: string[];
+  rationale: string; steps: string[]; prerequisite?: string; kpi: string; spatialTargets?: Array<{ name: string; lengthKm: number | null; lat: number | null; lng: number | null; mapUrl: string | null }>;
+  alignedWithBottleneck?: boolean; priority: number;
+}
+export interface HypothesisTest { frictionType: string; test: string; result: 'supports' | 'contradicts' | 'neutral'; detail: string }
+export interface NeighborhoodLayersAssessment { version: string; rules: string; neighborhoodId: string; measures: LayerMeasure[]; findings: LayerFinding[]; prescriptions: LayerPrescription[]; hypothesisTests: HypothesisTest[]; caveats: string[] }
+
 export interface DecisionCardV2 {
   schema: 'ara.decision-card.v2';
   generatedAt: string;
@@ -32,13 +44,14 @@ export interface DecisionCardV2 {
   capitals: Array<{ capital: CapitalKey; level: PublicationLevel; score: number | null; indicatorsUsed: string[] }>;
   indicators: DecisionCardV2Indicator[];
   abstentions: Array<{ section: string; reason: string }>;
-  engine: null | { runId: string; diagnosticType: string | null; causalLevel: string; finalStatement: string; equityDataStatus: string; qualityVerdict: DecisionCard['qualityVerdict']; bottleneck: DecisionCard['bottleneck']; interventions: DecisionCard['interventions'] };
+  engine: null | { runId: string; diagnosticType: string | null; causalLevel: string; finalStatement: string; equityDataStatus: string; qualityVerdict: DecisionCard['qualityVerdict']; bottleneck: DecisionCard['bottleneck']; interventions: DecisionCard['interventions']; hypotheses?: Array<DecisionCard['hypotheses'][number] & { layerTests?: HypothesisTest[] }> };
   dataVintage: { oldest: string | null; newest: string | null; staleIndicators: string[] };
   benchmarks: Array<{ code: string; level: 'city'; value: number; source: string }>;
   whatWouldChangeThis: MissingDataItem[];
   survey: { nAccepted: number; adequacy: string; alpha: number | null; marginOfError: number | null; weighting: string } | null;
   fieldAudit: { points: number; kappa: number | null; adequacy: string } | null;
   localRegister?: { records: number; indicators: string[]; networkActors: number } | null;
+  localLayers?: NeighborhoodLayersAssessment | null;
   anomalies: Array<{ code: string; previousMean: number; current: number; z: number }>;
   reproducibilityKey: Record<string, string>;
   fingerprint: string;

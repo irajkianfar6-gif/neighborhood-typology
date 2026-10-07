@@ -10,6 +10,7 @@ import path from 'node:path';
 import { PROJECT_ROOT } from '../paths';
 import type { DocumentedValue } from './types';
 import { approvedCityDistribution } from '../ingestion/contractData';
+import { layerDistribution } from '../official/tehranLayers';
 
 interface ThresholdRegistry {
   version: string;
@@ -85,6 +86,15 @@ export function scoreValue(v: DocumentedValue, citySlug: string): ScoreResult {
   }
   if (reg.percent_scale_passthrough.includes(v.code)) {
     return { score: round(Math.max(0, Math.min(100, v.raw))), method: v.channel === 'survey' ? 'survey_scale' : 'contract_scale', ref: reg.version, percentile: pctGood === null ? null : round(pctGood) };
+  }
+  // لایهٔ محله‌ای با تعریف متفاوت از استاندارد هنجاری (مثلاً H1 «دانشگاهی از کل جمعیت»): امتیاز نسبی = صدک در همان لایه
+  if ((v.details as { scoring?: string } | undefined)?.scoring === 'layer_percentile') {
+    const ld = layerDistribution(v.code, v.unit);
+    if (ld && ld.values.length >= 20) {
+      const p = percentileOf(v.raw, ld.values, reg.winsorize);
+      const good = round(v.lowerIsBetter ? 100 - p : p);
+      return { score: good, method: 'percentile', ref: ld.ref, percentile: good };
+    }
   }
   const norm = reg.normative[v.code];
   if (norm && (!v.unit || v.unit === norm.unit)) {

@@ -1,0 +1,1048 @@
+﻿layer,district,source_name,targets,method
+housing,1,ولنجک,tehran:m103,municipal
+housing,1,زعفرانیه,tehran:m104,municipal
+housing,1,محمودیه,tehran:m114,municipal
+housing,1,فرمانیه,tehran:m120,curated
+housing,1,باغ فردوس,tehran:m115,municipal
+housing,1,حصار بوعلی,tehran:hd7e7b4078b,extra_boundary_name
+housing,1,نیاوران,tehran:m108,municipal
+housing,1,جماران,tehran:m107,municipal
+housing,1,امامزاده قاسم,tehran:m117,municipal
+housing,1,دزاشیب,tehran:m124,merged_into_compound
+housing,1,کاشانک,tehran:m109,municipal
+housing,1,قیطریه,tehran:m126,municipal
+housing,1,تجریش,tehran:m116,municipal
+housing,1,اراج,tehran:m121,municipal
+housing,1,کوهسار,,unmatched
+housing,1,حکمت,tehran:m124,exact
+housing,1,چیذر,tehran:m125,municipal
+housing,1,ازگل,tehran:m122,municipal
+housing,1,اوین,tehran:m102,municipal
+housing,1,دربند,tehran:m105,municipal
+housing,1,دانشگاه - گلها,tehran:m123,part
+housing,1,درکه,tehran:m101,municipal
+housing,1,شهرک نفت,tehran:m111,municipal
+housing,1,دارآباد,tehran:m110,municipal
+housing,1,سوهانک,tehran:m113,municipal
+housing,1,شهرک محلاتی,tehran:m112,municipal
+housing,1,گلابدره,tehran:m106,municipal
+housing,2,سعادت آباد,tehran:m206,municipal
+housing,2,ایوانک,tehran:m214,municipal
+housing,2,دریان نو,,unmatched
+housing,2,دریا,tehran:m210,municipal
+housing,2,فراز,,unmatched
+housing,2,کوی نصر,tehran:m218,municipal
+housing,2,آسمان,tehran:m207,municipal
+housing,2,مرزداران غربی,,unmatched
+housing,2,مرزداران شرقی,,unmatched
+housing,2,سپهر,,unmatched
+housing,2,شهرک قدس,tehran:m213,municipal
+housing,2,تیموری,tehran:m229,municipal
+housing,2,پونک,tehran:m208,municipal
+housing,2,پرواز,tehran:m202,curated
+housing,2,شهر آرا,tehran:m223,municipal
+housing,2,تهران ویلا,tehran:m222,municipal
+housing,2,برق آلستوم(ستارخان),tehran:m221,contains
+housing,2,صادقیه,tehran:m220,municipal
+housing,2,توحید,tehran:m224,municipal
+housing,2,طرشت,tehran:m228,municipal
+housing,2,فرحزاد,tehran:m201,municipal
+housing,3,دروس,tehran:m307,municipal
+housing,3,قبا,tehran:m311,municipal
+housing,3,امانیه,tehran:m303,municipal
+housing,3,ونک,,unmatched
+housing,3,اختیاریه,tehran:m306,exact
+housing,3,درب دوم,tehran:m305,municipal
+housing,3,داوودیه,tehran:m310,municipal
+housing,3,کاووسیه,tehran:m309,municipal
+housing,3,قلهک,tehran:m308,municipal
+housing,3,آرارات,tehran:m302,municipal
+housing,3,حسن آباد - زرگنده,tehran:m304,municipal
+housing,3,سید خندان,tehran:m312,contains
+housing,4,پاسداران - ضرابخانه,tehran:m401,part
+housing,4,حسین آباد - مبارک آباد,tehran:m402,municipal
+housing,4,مهران,tehran:m416,municipal
+housing,4,لویزان  - شیان,tehran:m403,municipal
+housing,4,تهرانپارس غربی,tehran:m411,municipal
+housing,4,قنات کوثر,tehran:m405,municipal
+housing,4,نارمک شمالی,,unmatched
+housing,4,شمس آباد - مجیدیه,tehran:m414,municipal
+housing,4,حکیمیه,tehran:m408,municipal
+housing,4,گلشن,tehran:m409,municipal
+housing,4,کوهسار,tehran:m407,municipal
+housing,4,کاظم اباد,tehran:m415,municipal
+housing,4,کالاد,tehran:m417,municipal
+housing,4,علم و صنعت,tehran:m418,municipal
+housing,4,مجید آباد,tehran:m406,municipal
+housing,4,اوقاف,tehran:m412,municipal
+housing,4,قاسم آباد-ده نارمک,tehran:m419,contains
+housing,4,تهرانپارس شرقی,tehran:m410,municipal
+housing,4,جوادیه,tehran:m420,municipal
+housing,4,شمیران نو,tehran:m413,municipal
+housing,5,پونک جنوبی,tehran:m514,municipal
+housing,5,پونک شمالی,tehran:osm4534949256,extra_boundary_name
+housing,5,اباذر,tehran:m525,municipal
+housing,5,مهران,tehran:m524,municipal
+housing,5,شهرک نفت,tehran:m505,municipal
+housing,5,سازمان برنامه شمالی,tehran:m520,municipal
+housing,5,سازمان برنامه جنوبی,tehran:m522,municipal
+housing,5,اکباتان,tehran:m529,municipal
+housing,5,جنت آباد مرکزی,tehran:m511,municipal
+housing,5,جنت آباد جنوبی,tehran:m516,municipal
+housing,5,فردوس,tehran:m526,municipal
+housing,5,شاهین,tehran:m512,municipal
+housing,5,کوهسار,tehran:m506,municipal
+housing,5,جنت آباد شمالی,tehran:m508,municipal
+housing,5,باغ فیض,tehran:m515,municipal
+housing,5,شهرک پرواز,tehran:m523,municipal
+housing,5,ارم,tehran:m521,municipal
+housing,5,شهران شمالی,tehran:m502,municipal
+housing,5,سازمان آب,tehran:m519,municipal
+housing,5,شهران جنوبی,tehran:m510,municipal
+housing,5,المهدی,tehran:m507,municipal
+housing,5,آپادانا,tehran:m527,municipal
+housing,5,بیمه,tehran:m528,municipal
+housing,5,بهاران,tehran:m501,municipal
+housing,5,مراد آباد,tehran:m504,municipal
+housing,5,اندیشه,tehran:m518,municipal
+housing,5,شهرزیبا,tehran:m517,municipal
+housing,5,کن,tehran:m509,municipal
+housing,5,حصارک,tehran:m503,municipal
+housing,6,یوسف اباد,tehran:m605,municipal
+housing,6,نظامی گنجوی,,unmatched
+housing,6,امیرآباد,tehran:m601,municipal
+housing,6,والفجر,,unmatched
+housing,6,جهاد,tehran:h29eb055569,extra_boundary_name
+housing,6,سنائی,tehran:m611,exact
+housing,6,دانشگاه تهران,tehran:m616,municipal
+housing,6,ساعی,tehran:m604,exact
+housing,6,فاطمی,tehran:ha9c148206e,extra_boundary_name
+housing,6,کشاورز,tehran:m613,curated
+housing,6,بهجت آباد,tehran:m612,municipal
+housing,6,ایرانشهر,tehran:m618,municipal
+housing,6,ولیعصر,tehran:m617,contains
+housing,6,جمالزاده,,unmatched
+housing,7,نیلوفر- شهید قندی,tehran:m701,municipal
+housing,7,عباس آباد - اندیشه,tehran:m705,municipal
+housing,7,سهروردی - باغ صبا,tehran:m706,part
+housing,7,بهار,tehran:m713,municipal
+housing,7,امجدیه - خاقانی,tehran:m712,municipal
+housing,7,مجیدیه - دبستان,tehran:m702,part
+housing,7,کاج,tehran:m707,municipal
+housing,7,شاهد,tehran:m710,curated
+housing,7,خواجه نصیر - حقوقی,tehran:m714,municipal
+housing,7,قصر - حشمتیه,tehran:m704,part
+housing,7,دهقان - گرگان,tehran:m719,part
+housing,7,ارامنه,tehran:osm4557460176;tehran:osm4557460177,extra_boundary_split
+housing,7,نظام آباد,tehran:m718,municipal
+housing,7,خواجه نظام الملک,tehran:m715,curated
+housing,8,هفت حوض,tehran:m804,municipal
+housing,8,مدائن,tehran:m805,municipal
+housing,8,نارمک,tehran:m808,curated
+housing,8,فدک,tehran:m803,municipal
+housing,8,دردشت,tehran:m806,municipal
+housing,8,تهرانپارس,tehran:m807,municipal
+housing,8,مجیدیه,tehran:m801,municipal
+housing,8,کرمان,tehran:m802,municipal
+housing,8,زرکش,tehran:m809,municipal
+housing,8,لشگر غربی,tehran:m812,municipal
+housing,8,لشگرشرقی,tehran:m811,municipal
+housing,8,تسلیحات,tehran:m810,municipal
+housing,8,وحیدیه,tehran:m813,municipal
+housing,9,فرودگاه مهرآباد,tehran:m901,contains
+housing,9,دستغیب,tehran:m904,municipal
+housing,9,دکتر هوشیار,tehran:m903,municipal
+housing,9,سراسیاب مهراباد,tehran:m908,municipal
+housing,9,امامزاده عبداله,tehran:m905,fuzzy:0.97
+housing,9,محله فتح,tehran:m909,exact
+housing,9,شمشیری,tehran:m907,municipal
+housing,9,استاد معین,tehran:m902,municipal
+housing,9,مهرآباد جنوبی,tehran:m906,municipal
+housing,10,زنجان جنوبی,tehran:m1001,municipal
+housing,10,هاشمی,tehran:m1006,municipal
+housing,10,سلسبیل جنوبی,tehran:m1004,municipal
+housing,10,سلسبیل شمالی,tehran:m1003,municipal
+housing,10,کارون جنوبی,tehran:m1005,municipal
+housing,10,کارون شمالی,tehran:m1002,municipal
+housing,10,هفت چنار,tehran:m1009,municipal
+housing,10,سلیمانی تیموری,tehran:m1008,municipal
+housing,10,شبیری-جی,tehran:m1007,municipal
+housing,10,بریانک,tehran:m1010,municipal
+housing,11,راه آهن,tehran:m1118,municipal
+housing,11,جمهوری,tehran:m1101,municipal
+housing,11,انقلاب -فلسطین,tehran:m1103,part
+housing,11,حشمت الدوله-جمالزاده,tehran:m1102,part
+housing,11,منیریه,tehran:m1106,municipal
+housing,11,امیریه,tehran:m1111,municipal
+housing,11,عباسی,tehran:m1115,municipal
+housing,11,آگاهی,tehran:m1117,municipal
+housing,11,سلامت,,unmatched
+housing,11,انبارنفت,tehran:m1116,municipal
+housing,11,هلال احمر,tehran:m1114,municipal
+housing,11,شیخ هادی,tehran:m1104,municipal
+housing,11,حر,tehran:m1107,curated
+housing,11,اسکندری,tehran:m1108,municipal
+housing,11,فروزش -امیربهادر,tehran:m1112,municipal
+housing,11,قلمستان,tehran:m1113,exact
+housing,11,مخصوص,tehran:m1110,municipal
+housing,12,بازار,tehran:m1209,municipal
+housing,12,ایران,tehran:m1204,municipal
+housing,12,دروازه شمیران,tehran:m1203,municipal
+housing,12,فردوسی,tehran:m1201,municipal
+housing,12,آبشار-دردار,tehran:m1205,part
+housing,12,بهارستان,tehran:m1202,municipal
+housing,12,هرندی,tehran:m1212,municipal
+housing,12,امامزاده یحیی,tehran:m1206,municipal
+housing,12,قیام,tehran:m1210,municipal
+housing,12,مختاری-تختی,tehran:m1213,part
+housing,12,کوثر,tehran:m1211,municipal
+housing,12,سنگلج,tehran:m1208,municipal
+housing,12,ارگ-پامنار,tehran:m1207,municipal
+housing,13,نیروی هوایی,tehran:m1309,municipal
+housing,13,پیروزی,tehran:m1313,municipal
+housing,13,آشتیانی,tehran:m1305,municipal
+housing,13,حافظیه,tehran:m1308,municipal
+housing,13,قاسم آباد,tehran:m1302,municipal
+housing,13,دهقان,tehran:m1312,municipal
+housing,13,امامت,tehran:m1303,municipal
+housing,13,شورا,tehran:m1304,municipal
+housing,13,زینبیه,tehran:m1307,municipal
+housing,13,سرخه حصار,tehran:m1306,municipal
+housing,13,زاهدگیلانی,tehran:m1311,municipal
+housing,13,اسدی,tehran:m1301,municipal
+housing,13,صفا,tehran:m1310,municipal
+housing,14,پرستار,tehran:m1405,municipal
+housing,14,نبی اکرم,tehran:m1416,municipal
+housing,14,تاکسیرانی,tehran:m1418,municipal
+housing,14,ابوذر,tehran:m1417,municipal
+housing,14,صددستگاه,tehran:m1404,municipal
+housing,14,شهدای گمنام,,unmatched
+housing,14,جوادیه,,unmatched
+housing,14,حسین آباد دولاب,,unmatched
+housing,14,گذر پایین دولاب,,unmatched
+housing,14,صاحب الزمان,,unmatched
+housing,14,دلگشا,,unmatched
+housing,14,عارف,,unmatched
+housing,14,شاهد,,unmatched
+housing,14,شاهین,tehran:m1421,municipal
+housing,14,قصرفیروزه,tehran:m1406,municipal
+housing,14,چهارصددستگاه,tehran:m1402,municipal
+housing,14,شکوفه,tehran:m1401,municipal
+housing,14,سرآسیاب دولاب,tehran:m1409,municipal
+housing,14,مینا,tehran:m1413;tehran:m1422,curated_split
+housing,14,شیوا,tehran:m1415,municipal
+housing,14,دولاب,tehran:m1424,municipal
+housing,15,افسریه شمالی,tehran:m1505,municipal
+housing,15,بروجردی,tehran:m1513,exact
+housing,15,کیان شهر شمالی,tehran:m1512,municipal
+housing,15,کیان شهرجنوبی,tehran:m1517,municipal
+housing,15,مسعودیه,tehran:m1515,municipal
+housing,15,مشیریه,tehran:m1516,municipal
+housing,15,افسریه جنوبی,tehran:m1506,municipal
+housing,15,اسلام آباد- والفجر,tehran:m1514,municipal
+housing,15,مطهری,tehran:m1511,municipal
+housing,15,مظاهری,tehran:m1510,municipal
+housing,15,طیب,tehran:m1502,municipal
+housing,15,ولیعصر- بی سیم,tehran:m1509,municipal
+housing,15,هاشم آباد,tehran:m1507,municipal
+housing,15,مینابی,tehran:m1503,municipal
+housing,15,رضویه,tehran:m1518,municipal
+housing,15,اتابک,tehran:m1508,municipal
+housing,15,شوش,tehran:m1501,municipal
+housing,15,ابوذر,tehran:m1504,municipal
+housing,16,نازی آباد,tehran:m1606,municipal
+housing,16,یاخچی آباد,tehran:m1607,exact
+housing,16,تختی,tehran:m1608,municipal
+housing,16,شهرک بعثت,tehran:m1603,municipal
+housing,16,خزانه,tehran:m1604,municipal
+housing,16,جوادیه,tehran:m1601,municipal
+housing,16,علی آباد جنوبی,tehran:m1609,municipal
+housing,16,علی آبادشمالی,tehran:h09c4ce2b4c,extra_boundary_name
+housing,16,باغ آذری,tehran:m1602,municipal
+housing,17,باغ خزانه,tehran:m1703,municipal
+housing,17,گلچین,tehran:m1710,municipal
+housing,17,بلورسازی,tehran:m1704,municipal
+housing,17,سجاد,tehran:m1709,municipal
+housing,17,ابوذرشرقی,tehran:m1706,municipal
+housing,17,ابوذرغربی,tehran:m1707,municipal
+housing,17,آذری,tehran:m1701,municipal
+housing,17,جلیلی,tehran:m1712,municipal
+housing,17,مقدم,tehran:m1705,municipal
+housing,17,یافت آباد,tehran:m1708,municipal
+housing,17,امام زاده حسن,tehran:m1702,municipal
+housing,17,زمزم,tehran:m1711,municipal
+housing,17,زهتابی,tehran:m1714,municipal
+housing,17,وصفنارد,tehran:m1713,municipal
+housing,18,تولید دارو,tehran:m1805,municipal
+housing,18,بهداشت,tehran:m1806,municipal
+housing,18,خلیج فارس شمالی,tehran:m1801,municipal
+housing,18,خلیج فارس جنوبی,tehran:h41e1fc4888,extra_boundary_name
+housing,18,فردوس,tehran:m1804,exact
+housing,18,هفده شهریور,tehran:m1802,municipal
+housing,18,شاد آباد,tehran:m1809,municipal
+housing,18,شمس آباد,tehran:m1808,municipal
+housing,18,نوروزآباد,,unmatched
+housing,18,امام خمینی,tehran:m1803,municipal
+housing,18,صادقیه,tehran:m1815,municipal
+housing,18,ولی عصر شمالی,tehran:m1813,municipal
+housing,18,ولی عصر جنوبی,tehran:m1814,municipal
+housing,18,شهید رجایی,tehran:m1816,municipal
+housing,18,صاحب الزمان,tehran:m1807,municipal
+housing,18,یافت آباد شمالی,tehran:osm4822624313,extra_boundary_name
+housing,18,سعید آباد,,unmatched
+housing,18,یافت آباد جنوبی,tehran:m1812,municipal
+housing,19,خانی آباد جنوبی,tehran:m1906,municipal
+housing,19,شکوفه جنوبی,tehran:h377ba9bf6c,extra_boundary_name
+housing,19,شکوفه شمالی,tehran:m1908,municipal
+housing,19,بهمنیار,tehran:m1905,municipal
+housing,19,شریعتی جنوبی,tehran:ha12bfed883,extra_boundary_name
+housing,19,شریعتی شمالی,tehran:m1902,municipal
+housing,19,(اسفندیاری (بستان,tehran:m1903,fuzzy:0.97
+housing,19,شهید کاظمی,tehran:m1912,municipal
+housing,19,اسماعیل آباد,tehran:m1910,municipal
+housing,19,بوستان ولایت,tehran:m1901,municipal
+housing,19,خانی آباد شمالی,tehran:m1904,municipal
+housing,19,دولتخواه جنوبی,tehran:m1911,contains
+housing,19,دولتخواه شمالی,,unmatched
+housing,19,نعمت آباد,tehran:m1909,municipal
+housing,20,دولت آباد,tehran:m2003,municipal
+housing,20,شهادت,tehran:m2004,municipal
+housing,20,سیزده آبان,tehran:m2001,municipal
+housing,20,دیلمان,tehran:m2008,municipal
+housing,20,فیروزآبادی,tehran:m2012,municipal
+housing,20,ظهیرآباد,tehran:m2010,contains
+housing,20,جوانمرد قصاب,tehran:m2002,municipal
+housing,20,اقدسیه,tehran:m2011,municipal
+housing,20,حمزه آباد,tehran:m2007,municipal
+housing,20,نفرآباد، هاشم آباد,tehran:h315dbafd65,extra_boundary_name
+housing,20,منصوریه منگل,tehran:m2006,fuzzy:0.96
+housing,20,استخر,tehran:m2014,municipal
+housing,20,ولی آباد,tehran:m2016,municipal
+housing,20,صفائیه,tehran:m2005,contains
+housing,20,ابن بابویه,tehran:m2010,merged_into_compound
+housing,20,تقی آباد,tehran:m2019,municipal
+housing,20,سرتخت,tehran:m2013,municipal
+housing,20,علائین,tehran:m2018,municipal
+housing,21,پاسداران,tehran:m2114,municipal
+housing,21,شهرک دریا,tehran:m2116,municipal
+housing,21,ویلاشهر,tehran:m2103,municipal
+housing,21,شهرک فرهنگیان-آزادی,tehran:m2108;tehran:m2109,curated_split
+housing,21,باشگاه نفت,tehran:m2112,municipal
+housing,21,دانشگاه تهران,tehran:m2106,municipal
+housing,21,شهرک شهرداری,tehran:m2104,municipal
+housing,21,چیتگر شمالی,tehran:h52c97be6d5,extra_boundary_name
+housing,21,تهرانسر غربی,tehran:m2115,municipal
+housing,21,وردآورد,tehran:m2101,municipal
+housing,21,شهرک غزالی,tehran:m2102,municipal
+housing,21,چیتگر جنوبی,tehran:m2117,municipal
+housing,21,شهرک استقلال,tehran:m2107,municipal
+housing,22,صدرا,tehran:m2210,municipal
+housing,22,کوهک,,unmatched
+housing,22,دریاچه شهدای خلیج فارس,tehran:m2209,contains
+housing,22,زیبادشت,tehran:m2205,curated
+housing,22,دهکده المپیک,tehran:m2204,municipal
+housing,22,گلستان,tehran:m2206,curated
+housing,22,قائم,tehran:m2207,curated
+housing,22,سرو آزاد,tehran:m2208,curated
+housing,22,شریف,tehran:m2201,contains
+housing,22,هوانیروز,,unmatched
+housing,22,شهید باقری,tehran:m2202,municipal
+housing,22,آبشار,tehran:m2203,curated
+employment,1,ولنجک,tehran:m103,municipal
+employment,1,زعفرانیه,tehran:m104,municipal
+employment,1,محمودیه,tehran:m114,municipal
+employment,1,باغ فردوس,tehran:m115,municipal
+employment,1,فرمانیه,tehran:m120,curated
+employment,1,حصار بوعلی,tehran:hd7e7b4078b,extra_boundary_name
+employment,1,نیاوران,tehran:m108,municipal
+employment,1,جماران,tehran:m107,municipal
+employment,1,امامزاده قاسم,tehran:m117,municipal
+employment,1,دزاشیب,tehran:m124,merged_into_compound
+employment,1,کاشانک,tehran:m109,municipal
+employment,1,قیطریه,tehran:m126,municipal
+employment,1,تجریش,tehran:m116,municipal
+employment,1,اراج,tehran:m121,municipal
+employment,1,کوهسار,,unmatched
+employment,1,حکمت,tehran:m124,exact
+employment,1,چیذر,tehran:m125,municipal
+employment,1,ازگل,tehran:m122,municipal
+employment,1,اوین,tehran:m102,municipal
+employment,1,دربند,tehran:m105,municipal
+employment,1,دانشگاه - گلها,tehran:m123,part
+employment,1,درکه,tehran:m101,municipal
+employment,1,شهرک نفت,tehran:m111,municipal
+employment,1,دارآباد,tehran:m110,municipal
+employment,1,سوهانک,tehran:m113,municipal
+employment,1,شهرک محلاتی,tehran:m112,municipal
+employment,1,گلابدره,tehran:m106,municipal
+employment,2,سعادت آباد,tehran:m206,municipal
+employment,2,ایوانک,tehran:m214,municipal
+employment,2,دریان نو,,unmatched
+employment,2,دریا,tehran:m210,municipal
+employment,2,فراز,,unmatched
+employment,2,کوی نصر,tehran:m218,municipal
+employment,2,آسمان,tehran:m207,municipal
+employment,2,مرزداران غربی,,unmatched
+employment,2,مرزداران شرقی,,unmatched
+employment,2,سپهر,,unmatched
+employment,2,شهرک قدس,tehran:m213,municipal
+employment,2,تیموری,tehran:m229,municipal
+employment,2,پونک,tehran:m208,municipal
+employment,2,پرواز,tehran:m202,curated
+employment,2,شهر آرا,tehran:m223,municipal
+employment,2,تهران ویلا,tehran:m222,municipal
+employment,2,برق آلستوم(ستارخان),tehran:m221,contains
+employment,2,صادقیه,tehran:m220,municipal
+employment,2,توحید,tehran:m224,municipal
+employment,2,طرشت,tehran:m228,municipal
+employment,2,فرحزاد,tehran:m201,municipal
+employment,3,دروس,tehran:m307,municipal
+employment,3,قبا,tehran:m311,municipal
+employment,3,امانیه,tehran:m303,municipal
+employment,3,ونک,,unmatched
+employment,3,اختیاریه,tehran:m306,exact
+employment,3,درب دوم,tehran:m305,municipal
+employment,3,داوودیه,tehran:m310,municipal
+employment,3,کاووسیه,tehran:m309,municipal
+employment,3,قلهک,tehran:m308,municipal
+employment,3,آرارات,tehran:m302,municipal
+employment,3,حسن آباد - زرگنده,tehran:m304,municipal
+employment,3,سید خندان,tehran:m312,contains
+employment,4,پاسداران - ضرابخانه,tehran:m401,part
+employment,4,حسین آباد - مبارک آباد,tehran:m402,municipal
+employment,4,مهران,tehran:m416,municipal
+employment,4,لویزان  - شیان,tehran:m403,municipal
+employment,4,تهرانپارس غربی,tehran:m411,municipal
+employment,4,قنات کوثر,tehran:m405,municipal
+employment,4,نارمک شمالی,,unmatched
+employment,4,شمس آباد - مجیدیه,tehran:m414,municipal
+employment,4,حکیمیه,tehran:m408,municipal
+employment,4,گلشن,tehran:m409,municipal
+employment,4,کوهسار,tehran:m407,municipal
+employment,4,کاظم اباد,tehran:m415,municipal
+employment,4,کالاد,tehran:m417,municipal
+employment,4,علم و صنعت,tehran:m418,municipal
+employment,4,مجید آباد,tehran:m406,municipal
+employment,4,اوقاف,tehran:m412,municipal
+employment,4,قاسم آباد-ده نارمک,tehran:m419,contains
+employment,4,تهرانپارس شرقی,tehran:m410,municipal
+employment,4,جوادیه,tehran:m420,municipal
+employment,4,شمیران نو,tehran:m413,municipal
+employment,5,پونک جنوبی,tehran:m514,municipal
+employment,5,پونک شمالی,tehran:osm4534949256,extra_boundary_name
+employment,5,اباذر,tehran:m525,municipal
+employment,5,مهران,tehran:m524,municipal
+employment,5,شهرک نفت,tehran:m505,municipal
+employment,5,سازمان برنامه شمالی,tehran:m520,municipal
+employment,5,سازمان برنامه جنوبی,tehran:m522,municipal
+employment,5,اکباتان,tehran:m529,municipal
+employment,5,جنت آباد مرکزی,tehran:m511,municipal
+employment,5,جنت آباد جنوبی,tehran:m516,municipal
+employment,5,فردوس,tehran:m526,municipal
+employment,5,شاهین,tehran:m512,municipal
+employment,5,کوهسار,tehran:m506,municipal
+employment,5,جنت آباد شمالی,tehran:m508,municipal
+employment,5,باغ فیض,tehran:m515,municipal
+employment,5,شهرک پرواز,tehran:m523,municipal
+employment,5,ارم,tehran:m521,municipal
+employment,5,شهران شمالی,tehran:m502,municipal
+employment,5,سازمان آب,tehran:m519,municipal
+employment,5,شهران جنوبی,tehran:m510,municipal
+employment,5,المهدی,tehran:m507,municipal
+employment,5,آپادانا,tehran:m527,municipal
+employment,5,بیمه,tehran:m528,municipal
+employment,5,بهاران,tehran:m501,municipal
+employment,5,مراد آباد,tehran:m504,municipal
+employment,5,اندیشه,tehran:m518,municipal
+employment,5,شهرزیبا,tehran:m517,municipal
+employment,5,کن,tehran:m509,municipal
+employment,5,حصارک,tehran:m503,municipal
+employment,6,یوسف اباد,tehran:m605,municipal
+employment,6,نظامی گنجوی,,unmatched
+employment,6,امیرآباد,tehran:m601,municipal
+employment,6,والفجر,,unmatched
+employment,6,جهاد,tehran:h29eb055569,extra_boundary_name
+employment,6,سنائی,tehran:m611,exact
+employment,6,دانشگاه تهران,tehran:m616,municipal
+employment,6,ساعی,tehran:m604,exact
+employment,6,فاطمی,tehran:ha9c148206e,extra_boundary_name
+employment,6,کشاورز,tehran:m613,curated
+employment,6,بهجت آباد,tehran:m612,municipal
+employment,6,ایرانشهر,tehran:m618,municipal
+employment,6,ولیعصر,tehran:m617,contains
+employment,6,جمالزاده,,unmatched
+employment,7,نیلوفر- شهید قندی,tehran:m701,municipal
+employment,7,عباس آباد - اندیشه,tehran:m705,municipal
+employment,7,سهروردی - باغ صبا,tehran:m706,part
+employment,7,بهار,tehran:m713,municipal
+employment,7,امجدیه - خاقانی,tehran:m712,municipal
+employment,7,مجیدیه - دبستان,tehran:m702,part
+employment,7,کاج,tehran:m707,municipal
+employment,7,شاهد,tehran:m710,curated
+employment,7,خواجه نصیر - حقوقی,tehran:m714,municipal
+employment,7,قصر - حشمتیه,tehran:m704,part
+employment,7,دهقان - گرگان,tehran:m719,part
+employment,7,ارامنه,tehran:osm4557460176;tehran:osm4557460177,extra_boundary_split
+employment,7,نظام آباد,tehran:m718,municipal
+employment,7,خواجه نظام الملک,tehran:m715,curated
+employment,8,هفت حوض,tehran:m804,municipal
+employment,8,مدائن,tehran:m805,municipal
+employment,8,نارمک,tehran:m808,curated
+employment,8,فدک,tehran:m803,municipal
+employment,8,دردشت,tehran:m806,municipal
+employment,8,تهرانپارس,tehran:m807,municipal
+employment,8,مجیدیه,tehran:m801,municipal
+employment,8,کرمان,tehran:m802,municipal
+employment,8,زرکش,tehran:m809,municipal
+employment,8,لشگر غربی,tehran:m812,municipal
+employment,8,لشگرشرقی,tehran:m811,municipal
+employment,8,تسلیحات,tehran:m810,municipal
+employment,8,وحیدیه,tehran:m813,municipal
+employment,9,فرودگاه مهرآباد,tehran:m901,contains
+employment,9,دستغیب,tehran:m904,municipal
+employment,9,دکتر هوشیار,tehran:m903,municipal
+employment,9,سراسیاب مهراباد,tehran:m908,municipal
+employment,9,امامزاده عبداله,tehran:m905,fuzzy:0.97
+employment,9,محله فتح,tehran:m909,exact
+employment,9,شمشیری,tehran:m907,municipal
+employment,9,استاد معین,tehran:m902,municipal
+employment,9,مهرآباد جنوبی,tehran:m906,municipal
+employment,10,زنجان جنوبی,tehran:m1001,municipal
+employment,10,هاشمی,tehran:m1006,municipal
+employment,10,سلسبیل جنوبی,tehran:m1004,municipal
+employment,10,سلسبیل شمالی,tehran:m1003,municipal
+employment,10,کارون جنوبی,tehran:m1005,municipal
+employment,10,کارون شمالی,tehran:m1002,municipal
+employment,10,هفت چنار,tehran:m1009,municipal
+employment,10,سلیمانی تیموری,tehran:m1008,municipal
+employment,10,شبیری-جی,tehran:m1007,municipal
+employment,10,بریانک,tehran:m1010,municipal
+employment,11,راه آهن,tehran:m1118,municipal
+employment,11,جمهوری,tehran:m1101,municipal
+employment,11,انقلاب -فلسطین,tehran:m1103,part
+employment,11,حشمت الدوله-جمالزاده,tehran:m1102,part
+employment,11,منیریه,tehran:m1106,municipal
+employment,11,امیریه,tehran:m1111,municipal
+employment,11,عباسی,tehran:m1115,municipal
+employment,11,آگاهی,tehran:m1117,municipal
+employment,11,سلامت,,unmatched
+employment,11,انبارنفت,tehran:m1116,municipal
+employment,11,هلال احمر,tehran:m1114,municipal
+employment,11,شیخ هادی,tehran:m1104,municipal
+employment,11,حر,tehran:m1107,curated
+employment,11,اسکندری,tehran:m1108,municipal
+employment,11,فروزش -امیربهادر,tehran:m1112,municipal
+employment,11,قلمستان,tehran:m1113,exact
+employment,11,مخصوص,tehran:m1110,municipal
+employment,12,بازار,tehran:m1209,municipal
+employment,12,ایران,tehran:m1204,municipal
+employment,12,دروازه شمیران,tehran:m1203,municipal
+employment,12,فردوسی,tehran:m1201,municipal
+employment,12,آبشار-دردار,tehran:m1205,part
+employment,12,بهارستان,tehran:m1202,municipal
+employment,12,هرندی,tehran:m1212,municipal
+employment,12,امامزاده یحیی,tehran:m1206,municipal
+employment,12,قیام,tehran:m1210,municipal
+employment,12,مختاری-تختی,tehran:m1213,part
+employment,12,کوثر,tehran:m1211,municipal
+employment,12,سنگلج,tehran:m1208,municipal
+employment,12,ارگ-پامنار,tehran:m1207,municipal
+employment,13,نیروی هوایی,tehran:m1309,municipal
+employment,13,پیروزی,tehran:m1313,municipal
+employment,13,آشتیانی,tehran:m1305,municipal
+employment,13,حافظیه,tehran:m1308,municipal
+employment,13,قاسم آباد,tehran:m1302,municipal
+employment,13,دهقان,tehran:m1312,municipal
+employment,13,امامت,tehran:m1303,municipal
+employment,13,شورا,tehran:m1304,municipal
+employment,13,زینبیه,tehran:m1307,municipal
+employment,13,سرخه حصار,tehran:m1306,municipal
+employment,13,زاهدگیلانی,tehran:m1311,municipal
+employment,13,اسدی,tehran:m1301,municipal
+employment,13,صفا,tehran:m1310,municipal
+employment,14,پرستار,tehran:m1405,municipal
+employment,14,نبی اکرم,tehran:m1416,municipal
+employment,14,تاکسیرانی,tehran:m1418,municipal
+employment,14,صددستگاه,tehran:m1404,municipal
+employment,14,ابوذر,tehran:m1417,municipal
+employment,14,شهدای گمنام,,unmatched
+employment,14,جوادیه,,unmatched
+employment,14,حسین آباد دولاب,,unmatched
+employment,14,گذر پایین دولاب,,unmatched
+employment,14,صاحب الزمان,,unmatched
+employment,14,دلگشا,,unmatched
+employment,14,عارف,,unmatched
+employment,14,شاهد,,unmatched
+employment,14,شاهین,tehran:m1421,municipal
+employment,14,قصرفیروزه,tehran:m1406,municipal
+employment,14,چهارصددستگاه,tehran:m1402,municipal
+employment,14,شکوفه,tehran:m1401,municipal
+employment,14,سرآسیاب دولاب,tehran:m1409,municipal
+employment,14,مینا,tehran:m1413;tehran:m1422,curated_split
+employment,14,شیوا,tehran:m1415,municipal
+employment,14,دولاب,tehran:m1424,municipal
+employment,15,اسلام آباد- والفجر,tehran:m1514,municipal
+employment,15,افسریه شمالی,tehran:m1505,municipal
+employment,15,بروجردی,tehran:m1513,exact
+employment,15,کیان شهر شمالی,tehran:m1512,municipal
+employment,15,کیان شهرجنوبی,tehran:m1517,municipal
+employment,15,مسعودیه,tehran:m1515,municipal
+employment,15,افسریه جنوبی,tehran:m1506,municipal
+employment,15,مطهری,tehran:m1511,municipal
+employment,15,مظاهری,tehran:m1510,municipal
+employment,15,مشیریه,tehran:m1516,municipal
+employment,15,طیب,tehran:m1502,municipal
+employment,15,ولیعصر- بی سیم,tehran:m1509,municipal
+employment,15,هاشم آباد,tehran:m1507,municipal
+employment,15,مینابی,tehran:m1503,municipal
+employment,15,رضویه,tehran:m1518,municipal
+employment,15,اتابک,tehran:m1508,municipal
+employment,15,شوش,tehran:m1501,municipal
+employment,15,ابوذر,tehran:m1504,municipal
+employment,16,نازی آباد,tehran:m1606,municipal
+employment,16,یاخچی آباد,tehran:m1607,exact
+employment,16,تختی,tehran:m1608,municipal
+employment,16,شهرک بعثت,tehran:m1603,municipal
+employment,16,خزانه,tehran:m1604,municipal
+employment,16,جوادیه,tehran:m1601,municipal
+employment,16,علی آباد جنوبی,tehran:m1609,municipal
+employment,16,علی آبادشمالی,tehran:h09c4ce2b4c,extra_boundary_name
+employment,16,باغ آذری,tehran:m1602,municipal
+employment,17,ابوذرشرقی,tehran:m1706,municipal
+employment,17,ابوذرغربی,tehran:m1707,municipal
+employment,17,باغ خزانه,tehran:m1703,municipal
+employment,17,گلچین,tehran:m1710,municipal
+employment,17,بلورسازی,tehran:m1704,municipal
+employment,17,سجاد,tehran:m1709,municipal
+employment,17,آذری,tehran:m1701,municipal
+employment,17,جلیلی,tehran:m1712,municipal
+employment,17,مقدم,tehran:m1705,municipal
+employment,17,یافت آباد,tehran:m1708,municipal
+employment,17,امام زاده حسن,tehran:m1702,municipal
+employment,17,زمزم,tehran:m1711,municipal
+employment,17,زهتابی,tehran:m1714,municipal
+employment,17,وصفنارد,tehran:m1713,municipal
+employment,18,شمس آباد,tehran:m1808,municipal
+employment,18,تولید دارو,tehran:m1805,municipal
+employment,18,بهداشت,tehran:m1806,municipal
+employment,18,خلیج فارس شمالی,tehran:m1801,municipal
+employment,18,خلیج فارس جنوبی,tehran:h41e1fc4888,extra_boundary_name
+employment,18,فردوس,tehran:m1804,exact
+employment,18,هفده شهریور,tehran:m1802,municipal
+employment,18,نوروزآباد,,unmatched
+employment,18,امام خمینی,tehran:m1803,municipal
+employment,18,صادقیه,tehran:m1815,municipal
+employment,18,شاد آباد,tehran:m1809,municipal
+employment,18,ولی عصر شمالی,tehran:m1813,municipal
+employment,18,ولی عصر جنوبی,tehran:m1814,municipal
+employment,18,شهید رجایی,tehran:m1816,municipal
+employment,18,صاحب الزمان,tehran:m1807,municipal
+employment,18,یافت آباد شمالی,tehran:osm4822624313,extra_boundary_name
+employment,18,سعید آباد,,unmatched
+employment,18,یافت آباد جنوبی,tehran:m1812,municipal
+employment,19,خانی آباد جنوبی,tehran:m1906,municipal
+employment,19,بهمنیار,tehran:m1905,municipal
+employment,19,شکوفه جنوبی,tehran:h377ba9bf6c,extra_boundary_name
+employment,19,شکوفه شمالی,tehran:m1908,municipal
+employment,19,شریعتی جنوبی,tehran:ha12bfed883,extra_boundary_name
+employment,19,شریعتی شمالی,tehran:m1902,municipal
+employment,19,(اسفندیاری (بستان,tehran:m1903,fuzzy:0.97
+employment,19,شهید کاظمی,tehran:m1912,municipal
+employment,19,اسماعیل آباد,tehran:m1910,municipal
+employment,19,بوستان ولایت,tehran:m1901,municipal
+employment,19,خانی آباد شمالی,tehran:m1904,municipal
+employment,19,دولتخواه جنوبی,tehran:m1911,contains
+employment,19,دولتخواه شمالی,,unmatched
+employment,19,نعمت آباد,tehran:m1909,municipal
+employment,20,اقدسیه,tehran:m2011,municipal
+employment,20,دولت آباد,tehran:m2003,municipal
+employment,20,شهادت,tehran:m2004,municipal
+employment,20,سیزده آبان,tehran:m2001,municipal
+employment,20,دیلمان,tehran:m2008,municipal
+employment,20,فیروزآبادی,tehran:m2012,municipal
+employment,20,ظهیرآباد,tehran:m2010,contains
+employment,20,جوانمرد قصاب,tehran:m2002,municipal
+employment,20,حمزه آباد,tehran:m2007,municipal
+employment,20,منصوریه منگل,tehran:m2006,fuzzy:0.96
+employment,20,ولی آباد,tehran:m2016,municipal
+employment,20,صفائیه,tehran:m2005,contains
+employment,20,ابن بابویه,tehran:m2010,merged_into_compound
+employment,20,تقی آباد,tehran:m2019,municipal
+employment,20,سرتخت,tehran:m2013,municipal
+employment,20,علائین,tehran:m2018,municipal
+employment,20,استخر,tehran:m2014,municipal
+employment,20,نفرآباد، هاشم آباد,tehran:h315dbafd65,extra_boundary_name
+employment,21,پاسداران,tehran:m2114,municipal
+employment,21,شهرک دریا,tehran:m2116,municipal
+employment,21,ویلاشهر,tehran:m2103,municipal
+employment,21,شهرک فرهنگیان-آزادی,tehran:m2108;tehran:m2109,curated_split
+employment,21,باشگاه نفت,tehran:m2112,municipal
+employment,21,دانشگاه تهران,tehran:m2106,municipal
+employment,21,شهرک شهرداری,tehran:m2104,municipal
+employment,21,چیتگر شمالی,tehran:h52c97be6d5,extra_boundary_name
+employment,21,تهرانسر غربی,tehran:m2115,municipal
+employment,21,وردآورد,tehran:m2101,municipal
+employment,21,چیتگر جنوبی,tehran:m2117,municipal
+employment,21,شهرک غزالی,tehran:m2102,municipal
+employment,21,شهرک استقلال,tehran:m2107,municipal
+employment,22,صدرا,tehran:m2210,municipal
+employment,22,کوهک,,unmatched
+employment,22,دریاچه شهدای خلیج فارس,tehran:m2209,contains
+employment,22,زیبادشت,tehran:m2205,curated
+employment,22,دهکده المپیک,tehran:m2204,municipal
+employment,22,گلستان,tehran:m2206,curated
+employment,22,قائم,tehran:m2207,curated
+employment,22,سرو آزاد,tehran:m2208,curated
+employment,22,شریف,tehran:m2201,contains
+employment,22,هوانیروز,,unmatched
+employment,22,شهید باقری,tehran:m2202,municipal
+employment,22,آبشار,tehran:m2203,curated
+education,1,ولنجک,tehran:m103,municipal
+education,1,زعفرانیه,tehran:m104,municipal
+education,1,محمودیه,tehran:m114,municipal
+education,1,باغ فردوس,tehran:m115,municipal
+education,1,فرمانیه,tehran:m120,curated
+education,1,حصار بوعلی,tehran:hd7e7b4078b,extra_boundary_name
+education,1,نیاوران,tehran:m108,municipal
+education,1,جماران,tehran:m107,municipal
+education,1,امامزاده قاسم,tehran:m117,municipal
+education,1,دزاشیب,tehran:m124,merged_into_compound
+education,1,کاشانک,tehran:m109,municipal
+education,1,قیطریه,tehran:m126,municipal
+education,1,تجریش,tehran:m116,municipal
+education,1,اراج,tehran:m121,municipal
+education,1,کوهسار,,unmatched
+education,1,حکمت,tehran:m124,exact
+education,1,چیذر,tehran:m125,municipal
+education,1,ازگل,tehran:m122,municipal
+education,1,اوین,tehran:m102,municipal
+education,1,دربند,tehran:m105,municipal
+education,1,دانشگاه - گلها,tehran:m123,part
+education,1,درکه,tehran:m101,municipal
+education,1,شهرک نفت,tehran:m111,municipal
+education,1,دارآباد,tehran:m110,municipal
+education,1,سوهانک,tehran:m113,municipal
+education,1,شهرک محلاتی,tehran:m112,municipal
+education,1,گلابدره,tehran:m106,municipal
+education,2,سعادت آباد,tehran:m206,municipal
+education,2,ایوانک,tehran:m214,municipal
+education,2,دریان نو,,unmatched
+education,2,دریا,tehran:m210,municipal
+education,2,فراز,,unmatched
+education,2,کوی نصر,tehran:m218,municipal
+education,2,آسمان,tehran:m207,municipal
+education,2,مرزداران غربی,,unmatched
+education,2,مرزداران شرقی,,unmatched
+education,2,سپهر,,unmatched
+education,2,شهرک قدس,tehran:m213,municipal
+education,2,تیموری,tehran:m229,municipal
+education,2,پونک,tehran:m208,municipal
+education,2,پرواز,tehran:m202,curated
+education,2,شهر آرا,tehran:m223,municipal
+education,2,تهران ویلا,tehran:m222,municipal
+education,2,برق آلستوم(ستارخان),tehran:m221,contains
+education,2,صادقیه,tehran:m220,municipal
+education,2,توحید,tehran:m224,municipal
+education,2,طرشت,tehran:m228,municipal
+education,2,فرحزاد,tehran:m201,municipal
+education,3,دروس,tehran:m307,municipal
+education,3,قبا,tehran:m311,municipal
+education,3,امانیه,tehran:m303,municipal
+education,3,ونک,,unmatched
+education,3,اختیاریه,tehran:m306,exact
+education,3,درب دوم,tehran:m305,municipal
+education,3,داوودیه,tehran:m310,municipal
+education,3,کاووسیه,tehran:m309,municipal
+education,3,قلهک,tehran:m308,municipal
+education,3,آرارات,tehran:m302,municipal
+education,3,حسن آباد - زرگنده,tehran:m304,municipal
+education,3,سید خندان,tehran:m312,contains
+education,4,پاسداران - ضرابخانه,tehran:m401,part
+education,4,حسین آباد - مبارک آباد,tehran:m402,municipal
+education,4,مهران,tehran:m416,municipal
+education,4,لویزان  - شیان,tehran:m403,municipal
+education,4,تهرانپارس غربی,tehran:m411,municipal
+education,4,قنات کوثر,tehran:m405,municipal
+education,4,نارمک شمالی,,unmatched
+education,4,شمس آباد - مجیدیه,tehran:m414,municipal
+education,4,حکیمیه,tehran:m408,municipal
+education,4,گلشن,tehran:m409,municipal
+education,4,کوهسار,tehran:m407,municipal
+education,4,کاظم اباد,tehran:m415,municipal
+education,4,کالاد,tehran:m417,municipal
+education,4,علم و صنعت,tehran:m418,municipal
+education,4,مجید آباد,tehran:m406,municipal
+education,4,اوقاف,tehran:m412,municipal
+education,4,قاسم آباد-ده نارمک,tehran:m419,contains
+education,4,تهرانپارس شرقی,tehran:m410,municipal
+education,4,جوادیه,tehran:m420,municipal
+education,4,شمیران نو,tehran:m413,municipal
+education,5,پونک جنوبی,tehran:m514,municipal
+education,5,پونک شمالی,tehran:osm4534949256,extra_boundary_name
+education,5,اباذر,tehran:m525,municipal
+education,5,مهران,tehran:m524,municipal
+education,5,شهرک نفت,tehran:m505,municipal
+education,5,سازمان برنامه شمالی,tehran:m520,municipal
+education,5,سازمان برنامه جنوبی,tehran:m522,municipal
+education,5,اکباتان,tehran:m529,municipal
+education,5,جنت آباد مرکزی,tehran:m511,municipal
+education,5,جنت آباد جنوبی,tehran:m516,municipal
+education,5,فردوس,tehran:m526,municipal
+education,5,شاهین,tehran:m512,municipal
+education,5,کوهسار,tehran:m506,municipal
+education,5,جنت آباد شمالی,tehran:m508,municipal
+education,5,باغ فیض,tehran:m515,municipal
+education,5,شهرک پرواز,tehran:m523,municipal
+education,5,ارم,tehran:m521,municipal
+education,5,شهران شمالی,tehran:m502,municipal
+education,5,سازمان آب,tehran:m519,municipal
+education,5,شهران جنوبی,tehran:m510,municipal
+education,5,المهدی,tehran:m507,municipal
+education,5,آپادانا,tehran:m527,municipal
+education,5,بیمه,tehran:m528,municipal
+education,5,بهاران,tehran:m501,municipal
+education,5,مراد آباد,tehran:m504,municipal
+education,5,اندیشه,tehran:m518,municipal
+education,5,شهرزیبا,tehran:m517,municipal
+education,5,کن,tehran:m509,municipal
+education,5,حصارک,tehran:m503,municipal
+education,6,یوسف اباد,tehran:m605,municipal
+education,6,نظامی گنجوی,,unmatched
+education,6,امیرآباد,tehran:m601,municipal
+education,6,والفجر,,unmatched
+education,6,جهاد,tehran:h29eb055569,extra_boundary_name
+education,6,سنائی,tehran:m611,exact
+education,6,دانشگاه تهران,tehran:m616,municipal
+education,6,ساعی,tehran:m604,exact
+education,6,فاطمی,tehran:ha9c148206e,extra_boundary_name
+education,6,کشاورز,tehran:m613,curated
+education,6,بهجت آباد,tehran:m612,municipal
+education,6,ایرانشهر,tehran:m618,municipal
+education,6,ولیعصر,tehran:m617,contains
+education,6,جمالزاده,,unmatched
+education,7,نیلوفر- شهید قندی,tehran:m701,municipal
+education,7,عباس آباد - اندیشه,tehran:m705,municipal
+education,7,سهروردی - باغ صبا,tehran:m706,part
+education,7,بهار,tehran:m713,municipal
+education,7,امجدیه - خاقانی,tehran:m712,municipal
+education,7,مجیدیه - دبستان,tehran:m702,part
+education,7,کاج,tehran:m707,municipal
+education,7,شاهد,tehran:m710,curated
+education,7,خواجه نصیر - حقوقی,tehran:m714,municipal
+education,7,قصر - حشمتیه,tehran:m704,part
+education,7,دهقان - گرگان,tehran:m719,part
+education,7,ارامنه,tehran:osm4557460176;tehran:osm4557460177,extra_boundary_split
+education,7,نظام آباد,tehran:m718,municipal
+education,7,خواجه نظام الملک,tehran:m715,curated
+education,8,هفت حوض,tehran:m804,municipal
+education,8,مدائن,tehran:m805,municipal
+education,8,نارمک,tehran:m808,curated
+education,8,فدک,tehran:m803,municipal
+education,8,دردشت,tehran:m806,municipal
+education,8,تهرانپارس,tehran:m807,municipal
+education,8,مجیدیه,tehran:m801,municipal
+education,8,کرمان,tehran:m802,municipal
+education,8,زرکش,tehran:m809,municipal
+education,8,لشگر غربی,tehran:m812,municipal
+education,8,لشگرشرقی,tehran:m811,municipal
+education,8,تسلیحات,tehran:m810,municipal
+education,8,وحیدیه,tehran:m813,municipal
+education,9,فرودگاه مهرآباد,tehran:m901,contains
+education,9,دستغیب,tehran:m904,municipal
+education,9,دکتر هوشیار,tehran:m903,municipal
+education,9,سراسیاب مهراباد,tehran:m908,municipal
+education,9,امامزاده عبداله,tehran:m905,fuzzy:0.97
+education,9,محله فتح,tehran:m909,exact
+education,9,شمشیری,tehran:m907,municipal
+education,9,استاد معین,tehran:m902,municipal
+education,9,مهرآباد جنوبی,tehran:m906,municipal
+education,10,زنجان جنوبی,tehran:m1001,municipal
+education,10,هاشمی,tehran:m1006,municipal
+education,10,سلسبیل جنوبی,tehran:m1004,municipal
+education,10,سلسبیل شمالی,tehran:m1003,municipal
+education,10,کارون جنوبی,tehran:m1005,municipal
+education,10,کارون شمالی,tehran:m1002,municipal
+education,10,هفت چنار,tehran:m1009,municipal
+education,10,سلیمانی تیموری,tehran:m1008,municipal
+education,10,شبیری-جی,tehran:m1007,municipal
+education,10,بریانک,tehran:m1010,municipal
+education,11,راه آهن,tehran:m1118,municipal
+education,11,جمهوری,tehran:m1101,municipal
+education,11,انقلاب -فلسطین,tehran:m1103,part
+education,11,حشمت الدوله-جمالزاده,tehran:m1102,part
+education,11,منیریه,tehran:m1106,municipal
+education,11,امیریه,tehran:m1111,municipal
+education,11,عباسی,tehran:m1115,municipal
+education,11,آگاهی,tehran:m1117,municipal
+education,11,سلامت,,unmatched
+education,11,انبارنفت,tehran:m1116,municipal
+education,11,هلال احمر,tehran:m1114,municipal
+education,11,شیخ هادی,tehran:m1104,municipal
+education,11,حر,tehran:m1107,curated
+education,11,اسکندری,tehran:m1108,municipal
+education,11,فروزش -امیربهادر,tehran:m1112,municipal
+education,11,قلمستان,tehran:m1113,exact
+education,11,مخصوص,tehran:m1110,municipal
+education,12,بازار,tehran:m1209,municipal
+education,12,ایران,tehran:m1204,municipal
+education,12,دروازه شمیران,tehran:m1203,municipal
+education,12,فردوسی,tehran:m1201,municipal
+education,12,آبشار-دردار,tehran:m1205,part
+education,12,بهارستان,tehran:m1202,municipal
+education,12,هرندی,tehran:m1212,municipal
+education,12,امامزاده یحیی,tehran:m1206,municipal
+education,12,قیام,tehran:m1210,municipal
+education,12,مختاری-تختی,tehran:m1213,part
+education,12,کوثر,tehran:m1211,municipal
+education,12,سنگلج,tehran:m1208,municipal
+education,12,ارگ-پامنار,tehran:m1207,municipal
+education,13,نیروی هوایی,tehran:m1309,municipal
+education,13,پیروزی,tehran:m1313,municipal
+education,13,آشتیانی,tehran:m1305,municipal
+education,13,حافظیه,tehran:m1308,municipal
+education,13,قاسم آباد,tehran:m1302,municipal
+education,13,دهقان,tehran:m1312,municipal
+education,13,امامت,tehran:m1303,municipal
+education,13,شورا,tehran:m1304,municipal
+education,13,زینبیه,tehran:m1307,municipal
+education,13,سرخه حصار,tehran:m1306,municipal
+education,13,زاهدگیلانی,tehran:m1311,municipal
+education,13,اسدی,tehran:m1301,municipal
+education,13,صفا,tehran:m1310,municipal
+education,14,پرستار,tehran:m1405,municipal
+education,14,نبی اکرم,tehran:m1416,municipal
+education,14,تاکسیرانی,tehran:m1418,municipal
+education,14,صددستگاه,tehran:m1404,municipal
+education,14,ابوذر,tehran:m1417,municipal
+education,14,شهدای گمنام,,unmatched
+education,14,جوادیه,,unmatched
+education,14,حسین آباد دولاب,,unmatched
+education,14,گذر پایین دولاب,,unmatched
+education,14,صاحب الزمان,,unmatched
+education,14,دلگشا,,unmatched
+education,14,عارف,,unmatched
+education,14,شاهد,,unmatched
+education,14,شاهین,tehran:m1421,municipal
+education,14,قصرفیروزه,tehran:m1406,municipal
+education,14,چهارصددستگاه,tehran:m1402,municipal
+education,14,شکوفه,tehran:m1401,municipal
+education,14,سرآسیاب دولاب,tehran:m1409,municipal
+education,14,مینا,tehran:m1413;tehran:m1422,curated_split
+education,14,شیوا,tehran:m1415,municipal
+education,14,دولاب,tehran:m1424,municipal
+education,15,اسلام آباد- والفجر,tehran:m1514,municipal
+education,15,افسریه شمالی,tehran:m1505,municipal
+education,15,بروجردی,tehran:m1513,exact
+education,15,کیان شهر شمالی,tehran:m1512,municipal
+education,15,کیان شهرجنوبی,tehran:m1517,municipal
+education,15,مسعودیه,tehran:m1515,municipal
+education,15,افسریه جنوبی,tehran:m1506,municipal
+education,15,مطهری,tehran:m1511,municipal
+education,15,مظاهری,tehran:m1510,municipal
+education,15,مشیریه,tehran:m1516,municipal
+education,15,طیب,tehran:m1502,municipal
+education,15,ولیعصر- بی سیم,tehran:m1509,municipal
+education,15,هاشم آباد,tehran:m1507,municipal
+education,15,مینابی,tehran:m1503,municipal
+education,15,رضویه,tehran:m1518,municipal
+education,15,اتابک,tehran:m1508,municipal
+education,15,شوش,tehran:m1501,municipal
+education,15,ابوذر,tehran:m1504,municipal
+education,16,نازی آباد,tehran:m1606,municipal
+education,16,یاخچی آباد,tehran:m1607,exact
+education,16,تختی,tehran:m1608,municipal
+education,16,شهرک بعثت,tehran:m1603,municipal
+education,16,خزانه,tehran:m1604,municipal
+education,16,جوادیه,tehran:m1601,municipal
+education,16,علی آباد جنوبی,tehran:m1609,municipal
+education,16,علی آبادشمالی,tehran:h09c4ce2b4c,extra_boundary_name
+education,16,باغ آذری,tehran:m1602,municipal
+education,17,ابوذرشرقی,tehran:m1706,municipal
+education,17,ابوذرغربی,tehran:m1707,municipal
+education,17,باغ خزانه,tehran:m1703,municipal
+education,17,گلچین,tehran:m1710,municipal
+education,17,بلورسازی,tehran:m1704,municipal
+education,17,سجاد,tehran:m1709,municipal
+education,17,آذری,tehran:m1701,municipal
+education,17,جلیلی,tehran:m1712,municipal
+education,17,مقدم,tehran:m1705,municipal
+education,17,یافت آباد,tehran:m1708,municipal
+education,17,امام زاده حسن,tehran:m1702,municipal
+education,17,زمزم,tehran:m1711,municipal
+education,17,زهتابی,tehran:m1714,municipal
+education,17,وصفنارد,tehran:m1713,municipal
+education,18,شمس آباد,tehran:m1808,municipal
+education,18,تولید دارو,tehran:m1805,municipal
+education,18,بهداشت,tehran:m1806,municipal
+education,18,خلیج فارس شمالی,tehran:m1801,municipal
+education,18,خلیج فارس جنوبی,tehran:h41e1fc4888,extra_boundary_name
+education,18,فردوس,tehran:m1804,exact
+education,18,هفده شهریور,tehran:m1802,municipal
+education,18,نوروزآباد,,unmatched
+education,18,امام خمینی,tehran:m1803,municipal
+education,18,صادقیه,tehran:m1815,municipal
+education,18,شاد آباد,tehran:m1809,municipal
+education,18,ولی عصر شمالی,tehran:m1813,municipal
+education,18,ولی عصر جنوبی,tehran:m1814,municipal
+education,18,شهید رجایی,tehran:m1816,municipal
+education,18,صاحب الزمان,tehran:m1807,municipal
+education,18,یافت آباد شمالی,tehran:osm4822624313,extra_boundary_name
+education,18,سعید آباد,,unmatched
+education,18,یافت آباد جنوبی,tehran:m1812,municipal
+education,19,خانی آباد جنوبی,tehran:m1906,municipal
+education,19,بهمنیار,tehran:m1905,municipal
+education,19,شکوفه جنوبی,tehran:h377ba9bf6c,extra_boundary_name
+education,19,شکوفه شمالی,tehran:m1908,municipal
+education,19,شریعتی جنوبی,tehran:ha12bfed883,extra_boundary_name
+education,19,شریعتی شمالی,tehran:m1902,municipal
+education,19,(اسفندیاری (بستان,tehran:m1903,fuzzy:0.97
+education,19,شهید کاظمی,tehran:m1912,municipal
+education,19,اسماعیل آباد,tehran:m1910,municipal
+education,19,بوستان ولایت,tehran:m1901,municipal
+education,19,خانی آباد شمالی,tehran:m1904,municipal
+education,19,دولتخواه جنوبی,tehran:m1911,contains
+education,19,دولتخواه شمالی,,unmatched
+education,19,نعمت آباد,tehran:m1909,municipal
+education,20,اقدسیه,tehran:m2011,municipal
+education,20,دولت آباد,tehran:m2003,municipal
+education,20,شهادت,tehran:m2004,municipal
+education,20,سیزده آبان,tehran:m2001,municipal
+education,20,دیلمان,tehran:m2008,municipal
+education,20,فیروزآبادی,tehran:m2012,municipal
+education,20,ظهیرآباد,tehran:m2010,contains
+education,20,جوانمرد قصاب,tehran:m2002,municipal
+education,20,حمزه آباد,tehran:m2007,municipal
+education,20,منصوریه منگل,tehran:m2006,fuzzy:0.96
+education,20,ولی آباد,tehran:m2016,municipal
+education,20,صفائیه,tehran:m2005,contains
+education,20,ابن بابویه,tehran:m2010,merged_into_compound
+education,20,تقی آباد,tehran:m2019,municipal
+education,20,سرتخت,tehran:m2013,municipal
+education,20,علائین,tehran:m2018,municipal
+education,20,استخر,tehran:m2014,municipal
+education,20,نفرآباد، هاشم آباد,tehran:h315dbafd65,extra_boundary_name
+education,21,پاسداران,tehran:m2114,municipal
+education,21,شهرک دریا,tehran:m2116,municipal
+education,21,ویلاشهر,tehran:m2103,municipal
+education,21,شهرک فرهنگیان-آزادی,tehran:m2108;tehran:m2109,curated_split
+education,21,باشگاه نفت,tehran:m2112,municipal
+education,21,دانشگاه تهران,tehran:m2106,municipal
+education,21,شهرک شهرداری,tehran:m2104,municipal
+education,21,چیتگر شمالی,tehran:h52c97be6d5,extra_boundary_name
+education,21,تهرانسر غربی,tehran:m2115,municipal
+education,21,وردآورد,tehran:m2101,municipal
+education,21,چیتگر جنوبی,tehran:m2117,municipal
+education,21,شهرک غزالی,tehran:m2102,municipal
+education,21,شهرک استقلال,tehran:m2107,municipal
+education,22,صدرا,tehran:m2210,municipal
+education,22,کوهک,,unmatched
+education,22,دریاچه شهدای خلیج فارس,tehran:m2209,contains
+education,22,زیبادشت,tehran:m2205,curated
+education,22,دهکده المپیک,tehran:m2204,municipal
+education,22,گلستان,tehran:m2206,curated
+education,22,قائم,tehran:m2207,curated
+education,22,سرو آزاد,tehran:m2208,curated
+education,22,شریف,tehran:m2201,contains
+education,22,هوانیروز,,unmatched
+education,22,شهید باقری,tehran:m2202,municipal
+education,22,آبشار,tehran:m2203,curated

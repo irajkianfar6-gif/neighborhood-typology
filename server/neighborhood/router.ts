@@ -20,6 +20,7 @@ import { analyzeByName, type AnalyzeResult } from './orchestrator';
 import { resolveNeighborhood } from './resolver';
 import { rakingTargetsFrom, surveyOptionsFor } from './channels';
 import { districtProfile, incomeBenchmark, listOfficialPacks, readOfficialPack, tehranDistrictOf } from '../official/tehranReference';
+import { assessLayers } from '../official/tehranLayers';
 import { buildNeighborhoodContext } from './context';
 import { schedulerStatus } from '../scheduler';
 import { createCustomSurveyRouter } from '../survey/customSurveyRouter';
@@ -129,6 +130,12 @@ export function createNeighborhoodRouter(): Router {
     if (!d) { fail(res, 404, 'NO_OFFICIAL_CONTEXT', 'بافت رسمی فقط برای محلات تهران موجود است'); return; }
     ok(res, { district: d, profile: districtProfile(d), incomeBenchmark: incomeBenchmark() });
   });
+  // لایه‌های محله‌ای تهران (روشنایی v3، استطاعت مسکن، اشتغال پایدار، تحصیلات) + یافته‌ها و تجویز قواعد LR-v1
+  router.get('/official/layers/:neighborhoodId', (req, res) => {
+    const a = assessLayers(req.params.neighborhoodId);
+    if (!a) { fail(res, 404, 'NO_LAYERS', 'لایهٔ محله‌ای برای این محله موجود نیست (فقط محلات تهران)'); return; }
+    ok(res, a);
+  });
   router.get('/ingestion/:batchId', (req, res) => {
     const b = getBatch(req.params.batchId);
     if (!b) { fail(res, 404, 'NOT_FOUND', 'دسته یافت نشد'); return; }
@@ -216,7 +223,10 @@ export function createNeighborhoodRouter(): Router {
       plan: buildCollectionPlan({ survey, audit, register, population: ctx.population?.value ?? null, cardIndicators: card?.indicators ?? [] }),
       indicatorNames: CORE_40_NAMES,
       populationSource: ctx.population ? { source: ctx.population.source, year: ctx.population.year, tier: ctx.population.tier } : null,
-      official: district ? { district, profile: districtProfile(district), incomeBenchmark: incomeBenchmark(), packs: packStatus() } : null,
+      official: district ? {
+        district, profile: districtProfile(district), incomeBenchmark: incomeBenchmark(), packs: packStatus(),
+        layers: assessLayers(e.neighborhoodId, { surveyItemScores: survey.itemScores, surveyN: survey.nAccepted, fieldItemMeans: audit.itemMeans, fieldPoints: audit.points }),
+      } : null,
     });
   }));
 
