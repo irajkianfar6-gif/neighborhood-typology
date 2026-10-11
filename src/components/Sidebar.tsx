@@ -22,7 +22,8 @@ import {
   Boxes,
   Search,
   CornerDownLeft,
-  Brain
+  Brain,
+  Bot
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +42,7 @@ const menuCategories = [
       { id: 'scenario-builder', label: 'سناریوساز', icon: Cpu },
       { id: 'neighborhood-typology', label: 'گونه‌شناسی محلات', icon: Layers },
       { id: 'decision-support', label: 'تصمیم‌یار جامع محله', icon: Brain },
+      { id: 'agentic-framework', label: 'فریمورک ایجنتیک (عامل‌ها)', icon: Bot },
       { id: 'kernel-core', label: 'هستهٔ محاسبات (kernel)', icon: Boxes },
       { id: 'ppe-engine', label: 'موتور اولویت‌بندی پروژه‌ها', icon: Zap },
       { id: 'portfolio', label: 'سبد سیاست و پروژه', icon: Briefcase },
