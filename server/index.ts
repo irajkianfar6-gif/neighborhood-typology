@@ -30,6 +30,7 @@ import { rateLimit } from './security/rateLimit';
 import { auditMiddleware } from './security/audit';
 import { metricsMiddleware, metricsHandler } from './ops/metrics';
 import { createNeighborhoodRouter } from './neighborhood/router';
+import { createAgenticRouter } from './agentic/router';
 import { startScheduler } from './scheduler';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -399,6 +400,9 @@ const satelliteStacService = new SatelliteStacService({ store: satelliteMetadata
 app.use('/api/typology', createTypologyRouter({ satelliteCatalog: satelliteMetadataStore.catalog }));
 // مسیر یکپارچهٔ «فقط با نام محله» (resolve → مرز → بافت → شواهد → دروازه → کارت V2)
 app.use('/api/decision-support', createNeighborhoodRouter());
+// فریمورک ایجنتیک: کاتالوگ ابزار، سیاست عامل‌ها، گراف استاندارد و سرور MCP
+app.use('/api/agentic/runs', rateLimit({ name: 'agentic-runs', windowMs: 60_000, max: Number(process.env.ARA_RATE_ANALYZE_PER_MIN || 60) }));
+app.use('/api/agentic', createAgenticRouter());
 app.use('/api/decision-support', buildDecisionSupportRouter({ satelliteCatalog: satelliteMetadataStore.catalog }));
 // دروازهٔ عمومی منابع (P0): منیفست اعلانی + کانکتور مشترک + کش دو‌لایه.
 // یک route برای همهٔ transport‌ها؛ افزودن منبع جدید فقط منیفست/کانکتور می‌خواهد.

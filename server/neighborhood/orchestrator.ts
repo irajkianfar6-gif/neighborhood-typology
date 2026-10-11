@@ -154,6 +154,40 @@ function subLocationScores(ctx: NeighborhoodContext, values: Map<string, ScoredV
   return Object.keys(out).length >= 2 ? out : undefined;
 }
 
+/** نسخهٔ کتابخانهٔ مداخلات (برای کلید بازتولید) */
+export function interventionLibraryVersion(): string {
+  try { return JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, 'kernel', 'registries', 'intervention_library_v1.json'), 'utf8')).version ?? 'unknown'; } catch { return 'none'; }
+}
+
+export interface GatheredEvidence {
+  documented: DocumentedValue[];
+  layerStatus: Record<string, string>;
+  contract: ReturnType<typeof contractValues>;
+  survey: ReturnType<typeof surveyValues>;
+  field: ReturnType<typeof fieldValues>;
+  register: ReturnType<typeof registerValues>;
+  custom: ReturnType<typeof customSurveyValues>;
+  layers: DocumentedValue[];
+}
+
+/** گام «گردآوری شواهد» از همهٔ کانال‌ها (باز، قرارداد، پیمایش، میدان، ثبت محلی، پرسشنامهٔ سفارشی، لایه‌های محله‌ای) */
+export async function gatherEvidence(entry: GazetteerEntry, ctx: NeighborhoodContext, input: { offline?: boolean; useKernel?: boolean; asOf?: string } = {}): Promise<GatheredEvidence> {
+  const { layers: cityLayers, status: layerStatus } = await loadCityLayers(entry, input.offline);
+  const [open, contract] = await Promise.all([
+    computeOpenIndicators(entry, ctx, cityLayers, { offline: input.offline, useKernel: input.useKernel }),
+    Promise.resolve(contractValues(entry.neighborhoodId, input.asOf)),
+  ]);
+  const survey = surveyValues(entry.neighborhoodId, ctx);
+  const field = fieldValues(entry.neighborhoodId);
+  const register = registerValues(entry.neighborhoodId);
+  const custom = customSurveyValues(entry.neighborhoodId, ctx);
+  // لایه‌های محله‌ای تهران (برآورد مدل‌شده؛ ردهٔ open_model — پیمایش/قرارداد بر آن مقدم است)
+  const layers = layerValues(entry.neighborhoodId);
+  // گویه‌های «کنترلی» در ادغام هرگز مقدار اصلی نمی‌شوند (merge.ts)
+  const documented: DocumentedValue[] = [...contract.values, ...open, ...survey.values, ...field.values, ...register.values, ...custom.values, ...layers];
+  return { documented, layerStatus, contract, survey, field, register, custom, layers };
+}
+
 export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult> {
   // ۱) resolve
   let entry: GazetteerEntry | undefined;
@@ -173,19 +207,7 @@ export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult>
   const ctx = await buildNeighborhoodContext(entry, { useKernel: input.useKernel, asOf: input.asOf });
 
   // ۳) شواهد موازی از همهٔ کانال‌ها
-  const { layers: cityLayers, status: layerStatus } = await loadCityLayers(entry, input.offline);
-  const [open, contract] = await Promise.all([
-    computeOpenIndicators(entry, ctx, cityLayers, { offline: input.offline, useKernel: input.useKernel }),
-    Promise.resolve(contractValues(entry.neighborhoodId, input.asOf)),
-  ]);
-  const survey = surveyValues(entry.neighborhoodId, ctx);
-  const field = fieldValues(entry.neighborhoodId);
-  const register = registerValues(entry.neighborhoodId);
-  const custom = customSurveyValues(entry.neighborhoodId, ctx);
-  // لایه‌های محله‌ای تهران (برآورد مدل‌شده؛ ردهٔ open_model — پیمایش/قرارداد بر آن مقدم است)
-  const layers = layerValues(entry.neighborhoodId);
-  // گویه‌های «کنترلی» در ادغام هرگز مقدار اصلی نمی‌شوند (merge.ts)
-  const documented: DocumentedValue[] = [...contract.values, ...open, ...survey.values, ...field.values, ...register.values, ...custom.values, ...layers];
+  const { documented, layerStatus, contract, survey, field, register, layers } = await gatherEvidence(entry, ctx, input);
 
   // ۴) ادغام + نرمال‌سازی + اعتماد
   const merged = mergeDocumentedValues(documented, entry.citySlug);
@@ -198,6 +220,7 @@ export async function analyzeByName(input: AnalyzeInput): Promise<AnalyzeResult>
     capitalWeights: 'W-v1-equal',
     reference: ref?.version ?? 'none',
     localLayers: layers.length ? `${layers[0].sourceIds[0].split(':')[1]}+LR-v1` : 'none',
+    interventionLibrary: interventionLibraryVersion(),
     boundary: `${entry.boundary.version}#${entry.boundary.hash}`,
     code: codeVersion(),
   };

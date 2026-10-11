@@ -29,6 +29,7 @@ const ProjectPrioritizationEnginePage = lazy(() => import('./components/ProjectP
 const NeighborhoodTypologyPage = lazy(() => import('./components/NeighborhoodTypologyPage'));
 const DecisionSupportPage = lazy(() => import('./components/DecisionSupportPage'));
 const KernelCorePage = lazy(() => import('./components/KernelCorePage'));
+const AgenticFrameworkPage = lazy(() => import('./components/AgenticFrameworkPage'));
 
 function PageFallback() {
   return (
@@ -384,6 +385,14 @@ export default function App() {
               <div id="tab-decision-support" className="w-full animate-fade-in">
                 <Suspense fallback={<PageFallback />}>
                   <DecisionSupportPage />
+                </Suspense>
+              </div>
+            )}
+
+            {currentTab === 'agentic-framework' && (
+              <div id="tab-agentic-framework" className="w-full animate-fade-in">
+                <Suspense fallback={<PageFallback />}>
+                  <AgenticFrameworkPage />
                 </Suspense>
               </div>
             )}
