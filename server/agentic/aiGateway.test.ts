@@ -1,6 +1,11 @@
 /** درگاه هوش مصنوعی (AIGW-v1): جایگزینی خودکار، قطع‌کنندهٔ مدار، تبدیل قالب، سلامت بدون نام مدل */
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
+
+process.env.ARA_SERVER_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'ara-aigw-'));
 import { _resetAiHealth, aiHealth, complete, providers, toMessagesResponse, type Provider } from '../ai/gateway';
 
 const P: Provider = { id: 'primary', labelFa: 'سرویس اصلی', format: 'anthropic', baseUrl: 'https://primary.test', apiKey: 'k1', model: 'model-a', version: '2023-06-01', timeoutMs: 2000 };

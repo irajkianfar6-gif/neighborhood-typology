@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { serverDataDir } from '../../paths';
+import { alert } from '../../ops/ops';
 
 export const WEB_CLIENT_VERSION = 'WEBCLIENT-v1';
 export const EFFORTS = ['lite', 'standard', 'deep', 'exhaustive', 'frontier'] as const;
@@ -51,6 +52,9 @@ function charge(kind: 'research' | 'search' | 'contents' | 'cacheHits', cost: nu
   fs.writeFileSync(usageFile(), JSON.stringify(all, null, 1));
 }
 function guard(kind: 'research' | 'search', cost: number, deps: WebClientDeps) {
+  try { guardInner(kind, cost, deps); } catch (e) { if (e instanceof WebServiceError) void alert('web_budget', 'سقف روزانهٔ پژوهش وب', e.message); throw e; }
+}
+function guardInner(kind: 'research' | 'search', cost: number, deps: WebClientDeps) {
   const c = webConfig(); const u = usageToday(deps);
   if (kind === 'research' && u.research >= c.dailyResearch) throw new WebServiceError('WEB_BUDGET', `سقف روزانهٔ پژوهش وب (${c.dailyResearch}) پر شده است`);
   if (kind === 'search' && u.search >= c.dailySearch) throw new WebServiceError('WEB_BUDGET', `سقف روزانهٔ جست‌وجوی وب (${c.dailySearch}) پر شده است`);

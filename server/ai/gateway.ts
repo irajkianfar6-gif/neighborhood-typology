@@ -6,6 +6,9 @@
  *    می‌شود؛ سپس یک درخواست آزمایشی (نیمه‌باز).
  *  - آمار سلامت بدون نام مدل/برند (فقط «اصلی»/«پشتیبان») برای رابط و پایش.
  */
+import { incCounter } from '../ops/metrics';
+import { alert, recordAiUsage } from '../ops/ops';
+
 export type ProviderFormat = 'anthropic' | 'openai';
 export interface Provider { id: 'primary' | 'fallback'; labelFa: string; format: ProviderFormat; baseUrl: string; apiKey: string; model: string; version: string; timeoutMs: number }
 export interface Message { system: string; prompt: string; maxTokens: number; temperature: number }
@@ -39,7 +42,10 @@ export function available(p: Provider, now = Date.now()): boolean {
 export function recordOk(p: Provider, ms: number) { const h = hOf(p); h.calls++; h.ok++; h.consecutiveFailures = 0; h.state = 'closed'; h.openedAt = null; h.lastOkAt = new Date().toISOString(); h.lastLatencyMs = ms; }
 export function recordFail(p: Provider, err: string, now = Date.now()) {
   const h = hOf(p); h.calls++; h.failures++; h.consecutiveFailures++; h.lastError = err.slice(0, 300);
-  if (h.state === 'half_open' || h.consecutiveFailures >= failsLimit()) { h.state = 'open'; h.openedAt = now; }
+  if (h.state === 'half_open' || h.consecutiveFailures >= failsLimit()) {
+    if (h.state !== 'open') void alert(`ai_circuit_${p.id}`, `${p.labelFa} هوش مصنوعی موقتاً کنار گذاشته شد`, `${h.consecutiveFailures} شکست پیاپی؛ آخرین خطا: ${h.lastError}`);
+    h.state = 'open'; h.openedAt = now;
+  }
 }
 export function aiHealth() {
   const list = providers();
@@ -105,10 +111,10 @@ export async function complete(body: MessagesBody, deps: { fetch?: Fetch; retrie
     for (let a = 0; a <= perProvider; a++) {
       if (a) await sleep(Math.min(8000, 800 * 2 ** (a - 1)));
       const t0 = Date.now();
-      try { const out = await attempt(p, body, f); recordOk(p, Date.now() - t0); return { ...out, provider: p }; }
+      try { const out = await attempt(p, body, f); recordOk(p, Date.now() - t0); recordAiUsage(p.id, true, out.usage); incCounter('ara_ai_calls_total', { provider: p.id, outcome: 'ok' }); return { ...out, provider: p }; }
       catch (e) {
         const ae = e instanceof AttemptError ? e : new AttemptError(String(e), true);
-        recordFail(p, ae.message); errors.push(`${p.labelFa}: ${ae.message}`);
+        recordFail(p, ae.message); recordAiUsage(p.id, false); incCounter('ara_ai_calls_total', { provider: p.id, outcome: 'error' }); errors.push(`${p.labelFa}: ${ae.message}`);
         if (!ae.transient || !available(p)) break;
       }
     }

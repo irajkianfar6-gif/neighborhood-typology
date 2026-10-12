@@ -30,7 +30,8 @@ services:
       SOURCE_CACHE_DIR: "/app/server/data/source-cache"
       ARA_PUBLIC_DATA_DIR: "/app/public-data"
       # ARA_API_TOKENS=token1:admin,token2:analyst  و  ARA_ALLOWED_ORIGINS را در .env.local تعریف کنید.
-      # ARA_STORAGE=postgres + DATABASE_URL برای پروفایل postgres
+      # ARA_STORAGE=postgres + DATABASE_URL برای پروفایل postgres (همگام‌سازی پایدار PGSYNC-v1)
+      # پشتیبان: ARA_BACKUP_HOURS=24، ARA_BACKUP_DIR=/app/backups (حجم جدا)؛ هشدار: ARA_ALERT_WEBHOOK_URL
       VALHALLA_URL: "${VALHALLA_URL:-}"
       # ARA_ANTHROPIC_API_KEY / ARA_ANTHROPIC_BASE_URL / OPENAQ_API_KEY / HEALTHSITES_API_KEY
       # از .env.local یا متغیرهای محیطی سرور تأمین می‌شوند.

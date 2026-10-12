@@ -47,8 +47,13 @@ export function metricsMiddleware() {
   };
 }
 
+const collectors: Array<() => string[]> = [];
+/** گردآورندهٔ متریک لحظه‌ای (در زمان خواندن /metrics فراخوانی می‌شود) */
+export function addCollector(fn: () => string[]): void { collectors.push(fn); }
+
 export function renderMetrics(): string {
   const lines: string[] = [];
+  for (const c of collectors) { try { lines.push(...c()); } catch { /* */ } }
   for (const [k, v] of counters) lines.push(`${k} ${v}`);
   for (const [k, v] of histSum) {
     const [name, rest] = k.includes('{') ? [k.slice(0, k.indexOf('{')), k.slice(k.indexOf('{'))] : [k, ''];
