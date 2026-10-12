@@ -127,7 +127,7 @@ export function createAgenticRouter(): Router {
   router.get('/documents/:id', (req, res) => {
     const d = loadDocument(req.params.id); if (!d) { fail(res, 404, 'NOT_FOUND', 'سند یافت نشد'); return; }
     const c = loadContent(d.docId); const city = String(req.query.city ?? 'تهران');
-    ok(res, { document: d, tables: (c?.tables ?? []).map((t) => ({ tableId: t.tableId, origin: t.origin, header: t.header, totalRows: t.rows.length, rows: t.rows.slice(0, 15).map((r) => r.map((x) => x.text)), roles: inferColumns(t, city) })) });
+    ok(res, { document: d, tables: (c?.tables ?? []).map((t) => ({ tableId: t.tableId, origin: t.origin, header: t.header, totalRows: t.rows.length, rows: t.rows.slice(0, 15).map((r) => r.map((x) => (x.ocr && !x.ocr.agreed ? `${x.text} (؟)` : x.text))), roles: inferColumns(t, city), ocr: Boolean(t.ocr), ocrUnconfirmed: t.rows.flat().filter((x) => x.ocr && !x.ocr.agreed).length })) });
   });
   router.post('/documents/:id/tables/:tableId/draft', asyncRoute(async (req, res) => {
     const b = (req.body ?? {}) as { city?: string; sourceOrg?: string; periodEnd?: string; roles?: ColumnRole[]; includeReview?: boolean; useLlm?: boolean; dryRun?: boolean };

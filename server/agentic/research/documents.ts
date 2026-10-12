@@ -15,8 +15,8 @@ import { readZip } from './zip';
 
 export const EXTRACTOR_VERSION = 'DOCX-v1';
 export type DocKind = 'csv' | 'tsv' | 'xlsx' | 'html' | 'pdf' | 'txt' | 'png' | 'jpg';
-export interface Cell { text: string; num: number | null; percent: boolean; ref: string }
-export interface ExtractedTable { tableId: string; origin: string; header: string[]; rows: Cell[][]; rtl: boolean }
+export interface Cell { text: string; num: number | null; percent: boolean; ref: string; ocr?: { conf: number; agreed: boolean; second: string | null; box: [number, number, number, number]; fragment: boolean; cand: number | null } }
+export interface ExtractedTable { tableId: string; origin: string; header: string[]; rows: Cell[][]; rtl: boolean; ocr?: boolean; needsReview?: boolean }
 export interface DocVerification { method: string; numericCells: number; agreed: number; agreement: number | null; note: string }
 export interface DocRecord {
   schema: 'ara.document.v1'; docId: string; filename: string; kind: DocKind; sha256: string; bytes: number; createdAt: string;
@@ -53,32 +53,91 @@ export function detectKind(filename: string, buf: Buffer): DocKind {
 const cell = (text: string, ref: string): Cell => { const t = text.replace(/\s+/g, ' ').trim(); const n = parseNumberFa(t); return { text: t, num: n ? n.value : null, percent: n?.percent ?? false, ref }; };
 
 // ---------------- OCR (اسناد اسکن‌شده و تصویر) ----------------
-export const OCR_VERSION = 'OCR-v1';
+// OCR-v2: پیش‌پردازش تصویر، گذر اصلی fas+eng با جعبهٔ واژه‌ها، بازسازی جدول از جای واژه‌ها،
+// و گذر دوم فقط‌رقم؛ عددی که گذر دوم تأییدش نکند خالی می‌ماند. همهٔ جدول‌های OCR نیازمند بازبینی انسانی‌اند.
+export const OCR_VERSION = 'OCR-v2';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TESSDATA = path.join(HERE, 'tessdata');
-const OCR_NOTE = 'متن با OCR خوانده شد؛ اعداد OCR نیاز به بازبینی انسانی دارند و جدول خودکار ساخته نمی‌شود';
+const OCR_NOTE = 'متن و جدول با OCR خوانده شد؛ همهٔ جدول‌های OCR نیازمند بازبینی انسانی‌اند و عددهایی که گذر دوم (فقط‌رقم) تأیید نکرد خالی گذاشته شدند';
+export interface OcrWord { x0: number; x1: number; y: number; h: number; text: string; conf: number }
+export interface OcrPage { page: number; text: string; confidence: number; words?: OcrWord[]; digitWords?: OcrWord[]; preprocessing?: string[] }
 export function ocrAvailable(): boolean {
   return fs.existsSync(path.join(TESSDATA, 'fas.traineddata.gz')) && fs.existsSync(path.join(HERE, 'ocrWorker.mjs'));
 }
 /** OCR همگام از راه فرایند جدا؛ تصاویر صفحه‌به‌صفحه */
-export function ocrImages(images: string[]): Array<{ page: number; text: string; confidence: number }> {
+export function ocrImages(images: string[]): OcrPage[] {
   if (!ocrAvailable()) throw new Error('دادهٔ زبان OCR روی سرور یافت نشد');
   const cache = path.join(os.tmpdir(), 'ara-ocr-cache'); fs.mkdirSync(cache, { recursive: true });
-  const raw = execFileSync(process.execPath, [path.join(HERE, 'ocrWorker.mjs'), TESSDATA, cache, ...images], { maxBuffer: 64 * 1024 * 1024, timeout: 60_000 + images.length * 60_000, cwd: path.resolve(HERE, '../../..') }).toString('utf8');
-  const r = JSON.parse(raw) as { ok: boolean; pages?: Array<{ page: number; text: string; confidence: number }>; error?: string };
+  const raw = execFileSync(process.execPath, [path.join(HERE, 'ocrWorker.mjs'), TESSDATA, cache, ...images], { maxBuffer: 64 * 1024 * 1024, timeout: 90_000 + images.length * 120_000, cwd: path.resolve(HERE, '../../..') }).toString('utf8');
+  const r = JSON.parse(raw) as { ok: boolean; pages?: OcrPage[]; error?: string };
   if (!r.ok || !r.pages) throw new Error(`OCR ناموفق بود: ${r.error ?? ''}`);
-  return r.pages.map((p) => ({ ...p, text: stripBidi(p.text) }));
+  const clean = (ws?: OcrWord[]) => (ws ?? []).map((w) => ({ ...w, text: stripBidi(w.text) })).filter((w) => w.text);
+  return r.pages.map((p) => ({ ...p, text: stripBidi(p.text), words: clean(p.words), digitWords: clean(p.digitWords) }));
+}
+const digitsOnly = (s: string) => latinDigits(s).replace(/[^0-9]/g, '');
+/** تأیید یک خانهٔ عددی: رشتهٔ رقم‌های آن باید در خوانش گذر فقط‌رقمِ همان ناحیه دیده شود */
+export function ocrAnnotate(c: Cell, ws: Array<{ x0: number; x1: number; y: number; h: number; conf?: number }>, digitWords: OcrWord[]): Cell {
+  const d = digitsOnly(c.text);
+  if (c.num === null || !d || !ws.length) return c;
+  const x0 = Math.min(...ws.map((w) => w.x0)), x1 = Math.max(...ws.map((w) => w.x1));
+  const y = ws.reduce((a, w) => a + w.y, 0) / ws.length, h = Math.max(...ws.map((w) => w.h));
+  const near = digitWords.filter((w) => Math.min(w.x1, x1) > Math.max(w.x0, x0) && Math.abs(w.y - y) <= Math.max(h, w.h) * 0.6).sort((a, b) => a.x0 - b.x0);
+  const second = near.length ? near.map((w) => w.text).join(' ') : null;
+  const conf = Math.min(...ws.map((w) => w.conf ?? 0));
+  // تکه‌های بسیار کوتاه‌قد معمولاً خرده‌اند نه رقم
+  const fragment = ws.every((w) => w.h < 12);
+  // هم‌خوانی دقیق: رشتهٔ رقم‌ها باید با یک واژهٔ گذر دوم یا پیوند واژه‌های همان ناحیه برابر باشد (نه فقط زیررشته)
+  const agreed = !fragment && second !== null && (near.some((w) => digitsOnly(w.text) === d) || digitsOnly(near.map((w) => w.text).join('')) === d);
+  const box: [number, number, number, number] = [Math.round(x0), Math.round(y - h / 2), Math.round(x1), Math.round(y + h / 2)];
+  const meta = { conf, agreed, second, box, fragment, cand: c.num };
+  return agreed ? { ...c, ocr: meta } : { ...c, num: null, ocr: meta };
 }
 const MAX_OCR_PAGES = 30;
-function ocrResult(pages: Array<{ page: number; text: string; confidence: number }>, filename: string, warnings: string[]) {
+/** واژهٔ گذر دوم که چند خانهٔ یک ردیف را یک‌جا خوانده: اگر رقم‌هایش دقیقاً پیوند رقم‌های همان خانه‌ها باشد، همه تأیید می‌شوند */
+function ocrRowMerge(t: ExtractedTable, digitWords: OcrWord[]): ExtractedTable {
+  for (const r of t.rows) {
+    for (const w of digitWords) {
+      const hit = r.filter((c) => c.ocr && !c.ocr.fragment && c.ocr.cand !== null && Math.min(w.x1, c.ocr.box[2]) > Math.max(w.x0, c.ocr.box[0]) && w.y >= c.ocr.box[1] - w.h && w.y <= c.ocr.box[3] + w.h);
+      if (hit.length < 2 || hit.every((c) => c.ocr!.agreed)) continue;
+      const asc = [...hit].sort((a, b) => a.ocr!.box[0] - b.ocr!.box[0]).map((c) => digitsOnly(c.text)).join('');
+      const wd = digitsOnly(w.text);
+      if (wd !== asc && wd !== [...hit].sort((a, b) => b.ocr!.box[0] - a.ocr!.box[0]).map((c) => digitsOnly(c.text)).join('')) continue;
+      for (const c of hit) { c.num = c.ocr!.cand; c.ocr!.agreed = true; c.ocr!.second = w.text; }
+    }
+  }
+  return t;
+}
+/** سازگاری ستونی: در ستونی که سرستونش درصد/نرخ است، عدد بیش از ۱۰۰ (معمولاً ممیزِ گم‌شده) پذیرفته نمی‌شود */
+function ocrColumnChecks(t: ExtractedTable): ExtractedTable {
+  t.header.forEach((h, ci) => {
+    if (!/درصد|نرخ|٪|%|سهم/.test(h)) return;
+    for (const r of t.rows) { const c = r[ci]; if (c?.ocr?.agreed && c.num !== null && c.num > 100) r[ci] = { ...c, num: null, ocr: { ...c.ocr, agreed: false } }; }
+  });
+  return t;
+}
+export function ocrTables(pages: OcrPage[]): ExtractedTable[] {
+  const words: Word[] = pages.flatMap((p) => (p.words ?? []).map((w) => ({ page: p.page, x0: w.x0, x1: w.x1, y: w.y, h: w.h, text: w.text, conf: w.conf })));
+  const byPage = new Map(pages.map((p) => [p.page, p.digitWords ?? []]));
+  return pdfTablesFromWords(words, (c, ws, page) => ocrAnnotate(c, ws, byPage.get(page) ?? []), 0.6)
+    .map((t) => ocrRowMerge(t, byPage.get(Number(/^page (\d+)/.exec(t.origin)?.[1] ?? 1)) ?? [])).map(ocrColumnChecks).map((t) => ({ ...t, tableId: `o${t.tableId}`, rows: t.rows.map((r) => r.map((c) => ({ ...c, ref: `o${c.ref}` }))), origin: `${t.origin} (OCR)`, ocr: true, needsReview: true }));
+}
+function ocrResult(pages: OcrPage[], filename: string, warnings: string[]) {
   const conf = pages.length ? Math.round(pages.reduce((a, p) => a + p.confidence, 0) / pages.length) : 0;
   warnings.push(OCR_NOTE);
   if (conf < 70) warnings.push(`اطمینان میانگین OCR ${conf}٪ است؛ کیفیت اسکن پایین است`);
+  const tables = ocrTables(pages);
+  const cells = tables.flatMap((t) => t.rows.flat()).filter((c) => c.ocr);
+  const agreed = cells.filter((c) => c.ocr!.agreed).length;
+  if (cells.length && agreed < cells.length) warnings.push(`${cells.length - agreed} از ${cells.length} عدد OCR با گذر دوم تأیید نشد و خالی ماند؛ از روی تصویر سند وارد کنید`);
   const firstLines = (pages[0]?.text ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
-  const verification: DocVerification = { method: `ocr (${OCR_VERSION}, fas+eng)`, numericCells: 0, agreed: 0, agreement: null, note: `${OCR_NOTE}؛ اطمینان میانگین ${conf}٪` };
-  return { content: { tables: [] as ExtractedTable[], pages: pages.map((p) => ({ page: p.page, text: p.text })) }, title: firstLines[0]?.replace(/\s+/g, ' ') || path.basename(filename), verification };
+  const pre = [...new Set(pages.flatMap((p) => p.preprocessing ?? []))];
+  const verification: DocVerification = {
+    method: `ocr (${OCR_VERSION}, fas+eng${pre.length ? `, ${pre.join('+')}` : ''}, digit-pass cross-check)`, numericCells: cells.length, agreed,
+    agreement: cells.length ? Math.round((agreed / cells.length) * 1000) / 1000 : null, note: `${OCR_NOTE}؛ اطمینان میانگین ${conf}٪`,
+  };
+  return { content: { tables, pages: pages.map((p) => ({ page: p.page, text: p.text })) }, title: firstLines[0]?.replace(/\s+/g, ' ') || path.basename(filename), verification };
 }
-function ocrPdf(file: string): Array<{ page: number; text: string; confidence: number }> {
+function ocrPdf(file: string): OcrPage[] {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ara-ocr-'));
   try {
     execFileSync('pdftoppm', ['-r', '300', '-gray', '-png', '-l', String(MAX_OCR_PAGES), file, path.join(dir, 'p')], { timeout: 300_000 });
@@ -178,7 +237,7 @@ const htmlTitle = (html: string) => stripTags(/<title>([\s\S]*?)<\/title>/i.exec
 
 // ---------------- PDF ----------------
 export function pdftotextAvailable(): boolean { try { execFileSync('pdftotext', ['-v'], { stdio: 'ignore' }); return true; } catch { return false; } }
-interface Word { page: number; x0: number; x1: number; y: number; h: number; text: string }
+interface Word { page: number; x0: number; x1: number; y: number; h: number; text: string; conf?: number }
 function pdfWords(file: string): Word[] {
   const tsv = execFileSync('pdftotext', ['-tsv', '-enc', 'UTF-8', file, '-'], { maxBuffer: 256 * 1024 * 1024 }).toString('utf8');
   const out: Word[] = [];
@@ -195,13 +254,13 @@ function pdfWords(file: string): Word[] {
   return out;
 }
 
-function pdfTablesFromWords(words: Word[]): ExtractedTable[] {
+function pdfTablesFromWords(words: Word[], annotate?: (c: Cell, ws: Word[], page: number) => Cell, yTol = 0.35): ExtractedTable[] {
   const tables: ExtractedTable[] = [];
   const pages = [...new Set(words.map((w) => w.page))].sort((a, b) => a - b);
   for (const page of pages) {
     const ws = words.filter((w) => w.page === page).sort((a, b) => a.y - b.y);
     const lines: Word[][] = [];
-    for (const w of ws) { const last = lines[lines.length - 1]; if (last && Math.abs(last[0].y - w.y) <= Math.max(3, w.h * 0.35)) last.push(w); else lines.push([w]); }
+    for (const w of ws) { const last = lines[lines.length - 1]; if (last && Math.abs(last[0].y - w.y) <= Math.max(3, Math.max(w.h, last[0].h) * yTol)) last.push(w); else lines.push([w]); }
     const segs = (l: Word[]) => { const s = [...l].sort((a, b) => a.x0 - b.x0); let n = 1; for (let k = 1; k < s.length; k++) if (s[k].x0 - s[k - 1].x1 > GAP(s[k])) n++; return n; };
     const GAP = (w: Word) => Math.max(6, w.h * 0.45);
     const isData = (l: Word[]) => l.some((w) => parseNumberFa(w.text) !== null) && segs(l) >= 2;
@@ -243,7 +302,7 @@ function pdfTablesFromWords(words: Word[]): ExtractedTable[] {
         }
       }
       const header = headerWords.map((ws2) => join(ws2));
-      const rows = data.map((l, ri) => ordered.map((_, ci) => cell(join(l.filter((w) => colOf(w) === ci)), `${tId}:r${ri + 1}:c${ci + 1}`)));
+      const rows = data.map((l, ri) => ordered.map((_, ci) => { const ws = l.filter((w) => colOf(w) === ci); const c = cell(join(ws), `${tId}:r${ri + 1}:c${ci + 1}`); return annotate ? annotate(c, ws, page) : c; }));
       tables.push({ tableId: tId, origin: `page ${page}`, header, rows, rtl });
       k = e + 1;
     }
