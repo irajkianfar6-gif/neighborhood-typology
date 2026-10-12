@@ -173,6 +173,7 @@ function DocumentPanel() {
           </div>
           {doc.warnings.map((w, i) => <p key={i} className="text-amber-800">{w}</p>)}
           {tables.length > 1 && <div className="flex flex-wrap gap-1">{tables.map((t) => <button key={t.tableId} onClick={() => pick(t.tableId)} className={`${btn2} ${t.tableId === tid ? 'bg-brand-600 text-white' : ''}`}>{t.tableId} ({fa(t.totalRows)} ردیف)</button>)}</div>}
+          {table?.ocr && <p className="rounded bg-amber-50 p-1.5 text-[11px] text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">این جدول از تصویر اسکن (OCR) بازسازی شده است: همهٔ خانه‌ها باید با سند اصلی مقایسه شوند؛ عددهایی که گذر دوم تأیید نکرد خالی‌اند ({fa(table.ocrUnconfirmed ?? 0)} خانه).</p>}
           {table && (
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse text-[11px]">

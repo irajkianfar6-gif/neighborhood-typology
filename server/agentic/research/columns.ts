@@ -149,6 +149,8 @@ export async function draftContractBatch(docId: string, tableId: string, o: Draf
   if (nameCol === undefined && distCol === undefined) skipped.push({ row: 0, reason: 'ستون نام محله یا منطقه شناسایی نشد' });
   if (!indCols.length) skipped.push({ row: 0, reason: 'هیچ ستون شاخصی نگاشت نشد' });
   if (!periodEnd) skipped.push({ row: 0, reason: 'دورهٔ داده (سال) در سند یافت نشد؛ periodEnd را وارد کنید' });
+  // جدول OCR بدون بازبینی انسانی به دستهٔ داده نمی‌رود
+  if (t.ocr && !o.includeReview) { skipped.push({ row: 0, reason: 'جدول با OCR بازسازی شده است؛ پیش از ساخت دسته، بازبینی انسانی (includeReview) لازم است' }); return { version: MAPPER_VERSION, docId, tableId, roles, periodEnd, matches, rows: 0, skipped, batch: null, csvPreview: '', provenanceFile: null }; }
   t.rows.forEach((r, i) => {
     const name = nameCol !== undefined ? r[nameCol]?.text ?? '' : '';
     const district = distCol !== undefined ? r[distCol]?.num ?? null : null;
@@ -160,7 +162,7 @@ export async function draftContractBatch(docId: string, tableId: string, o: Draf
     if (!periodEnd) return;
     for (const c of indCols) {
       const cellV = r[c.column];
-      if (!cellV || cellV.num === null) { skipped.push({ row: i + 1, reason: `خانهٔ «${c.header}» عددی نیست` }); continue; }
+      if (!cellV || cellV.num === null) { skipped.push({ row: i + 1, reason: cellV?.ocr && !cellV.ocr.agreed ? `عدد OCR خانهٔ «${c.header}» با گذر دوم تأیید نشد` : `خانهٔ «${c.header}» عددی نیست` }); continue; }
       let value = cellV.num;
       const lex = INDICATOR_LEXICON[c.code!];
       // نسبت ۰..۱ برای شاخص درصدی (بدون نشانهٔ درصد در سرستون) → ×۱۰۰

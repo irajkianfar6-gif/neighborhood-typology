@@ -94,7 +94,7 @@ test('field cycle, least privilege and Karaj generalization (no code change)', a
   assert.ok(fieldCycle(kid).campaigns.length === 1);
 });
 
-test('OCR: scanned page image yields Persian text, flagged for human review, no auto tables', async () => {
+test('OCR-v2: scanned page yields Persian text and a review-only table; unconfirmed digits are left empty', async () => {
   const { extractBuffer, ocrAvailable } = await import('./research/documents');
   assert.ok(ocrAvailable());
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ara-ocr-t-'));
@@ -102,16 +102,50 @@ test('OCR: scanned page image yields Persian text, flagged for human review, no 
   const img = fs.readdirSync(dir).find((f) => f.endsWith('.png'))!;
   const buf = fs.readFileSync(path.join(dir, img));
   const r = extractBuffer('scan.png', buf);
-  assert.equal(r.kind, 'png'); assert.equal(r.content.tables.length, 0);
+  assert.equal(r.kind, 'png');
+  assert.equal(r.content.tables.length, 1);
+  const t = r.content.tables[0];
+  assert.ok(t.ocr && t.needsReview); assert.ok(t.header.includes('جمعیت'));
+  // هر عددی که پذیرفته شده باید با سند واقعی یکی باشد (عدد نادرست هرگز پذیرفته نمی‌شود)
+  const truth = new Set([6, 5, 45210, 38900, 52300, 78.4, 82.1, 69.5, 61.2, 64, 55.3]);
+  const accepted = t.rows.flat().filter((c) => c.num !== null && c.ocr);
+  assert.ok(accepted.length >= 4);
+  for (const c of accepted) assert.ok(truth.has(c.num!), `OCR number ${c.text}=${c.num} accepted but not in source`);
+  assert.ok(accepted.some((c) => c.num === 52300));
+  assert.ok(r.verification.agreement !== null && r.verification.agreement <= 1);
   const text = r.content.pages[0].text.replace(/\s+/g, ' ');
   assert.match(text, /امیرآباد/); assert.match(text, /یوسف ?آباد/);
-  assert.equal(r.verification.agreement, null); assert.ok(r.warnings.some((w) => /بازبینی انسانی/.test(w)));
+  assert.match(r.verification.method, /OCR-v2/); assert.ok(r.warnings.some((w) => /بازبینی انسانی/.test(w)));
   // PDF اسکن‌شده (بدون لایهٔ متن) هم به OCR می‌رود
   const pdf = path.join(dir, 'scan.pdf');
   execFileSync('magick', [path.join(dir, img), pdf]);
   const rp = extractBuffer('scan.pdf', fs.readFileSync(pdf));
   assert.equal(rp.kind, 'pdf'); assert.match(rp.content.pages[0].text, /امیرآباد/);
   assert.ok(rp.warnings.some((w) => /OCR/.test(w)));
+});
+
+test('OCR-v2 digit cross-check: exact match, merged second-pass words, fragments and percent columns', async () => {
+  const { ocrTables } = await import('./research/documents');
+  const w = (text: string, x0: number, x1: number, y: number, h = 20, conf = 90) => ({ text, x0, x1, y, h, conf });
+  const pages = [{
+    page: 1, text: '', confidence: 90,
+    words: [w('نام', 600, 640, 10), w('جمعیت', 400, 470, 10), w('درصد', 200, 260, 10),
+      w('الف', 600, 640, 50), w('1200', 400, 460, 50), w('821', 200, 240, 50),
+      w('ب', 600, 640, 90), w('0', 455, 458, 90, 4), w('45.5', 200, 250, 90),
+      w('ج', 600, 640, 130), w('3400', 400, 460, 130), w('12', 200, 230, 130)],
+    digitWords: [w('1200', 400, 460, 50), w('821', 200, 240, 50), w('45.5', 200, 250, 90), w('3400', 395, 465, 130), w('1', 200, 210, 130)],
+  }];
+  const [t] = ocrTables(pages);
+  assert.ok(t.ocr && t.needsReview);
+  const byText = Object.fromEntries(t.rows.flat().filter((c) => c.ocr).map((c) => [c.text, c]));
+  assert.equal(byText['1200'].num, 1200); assert.ok(byText['1200'].ocr!.agreed);
+  assert.equal(byText['821'].num, null, 'percent column above 100 must be rejected (lost decimal)');
+  assert.equal(byText['0'].num, null, 'tiny fragments are never accepted');
+  assert.equal(byText['45.5'].num, 45.5);
+  assert.equal(byText['12'].num, null, 'second pass read 1, not 12');
+  // واژهٔ ادغامی گذر دوم که دو خانه را یک‌جا خوانده
+  const merged = ocrTables([{ page: 1, text: '', confidence: 90, words: [w('نام', 600, 640, 10), w('جمعیت', 400, 470, 10), w('سهم', 200, 260, 10), w('الف', 600, 640, 50), w('52,300', 400, 470, 50), w('69.5', 200, 250, 50), w('ب', 600, 640, 90), w('7', 400, 420, 90), w('8', 200, 220, 90)], digitWords: [w('69.552,300', 200, 470, 50)] }])[0];
+  assert.deepEqual(merged.rows[0].filter((c) => c.ocr).map((c) => c.num), [52300, 69.5]);
 });
 
 test('brand scrub: model and vendor names never reach the user', async () => {
