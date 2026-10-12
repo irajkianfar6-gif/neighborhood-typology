@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, FileUp, Loader2, Play, Search, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { WebResearchPanel } from './AgenticWebResearchPanel';
-import { agenticApi, type ColumnRole, type DocRecord, type DocTablePreview, type DraftResult, type MemoryHit, type ResearchRecord, type SourceCardStatus } from '../algorithm/agenticApi';
+import { agenticApi, type ColumnRole, type DocRecord, type DocTablePreview, type DraftResult, type EstimateRecord, type MemoryHit, type ResearchRecord, type SourceCardStatus } from '../algorithm/agenticApi';
 
 const fa = (n: number) => n.toLocaleString('fa-IR');
 const pct = (x: number) => `${fa(Math.round(x * 100))}٪`;
@@ -225,6 +225,47 @@ function MemoryPanel() {
   );
 }
 
+const REL_FA: Record<EstimateRecord['reliability'], string> = { medium: 'متوسط', low: 'پایین', very_low: 'بسیار پایین' };
+const METHOD_FA: Record<EstimateRecord['method'], string> = { prior_share: 'سهم دورهٔ پیشین', covariate: 'متغیر کمکی', area: 'مساحت' };
+/** DISAGG-v1: برآورد شفاف منطقه → محله، فقط برای شمارشی‌ها و فقط با تأیید کارشناس */
+function EstimatePanel() {
+  const [f, setF] = useState({ city: 'تهران', district: '6', code: 'POP', value: '', periodEnd: '2016-10', sourceOrg: 'مرکز آمار ایران' });
+  const [rec, setRec] = useState<EstimateRecord | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const run = async (dryRun: boolean) => {
+    setBusy(true); setErr(null);
+    try { setRec(await agenticApi.estimateDistrict({ ...f, district: Number(f.district), value: Number(f.value), dryRun })); } catch (e) { setErr(errMsg(e)); } finally { setBusy(false); }
+  };
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  return (
+    <section className={card}>
+      <h3 className="text-sm font-bold">برآورد درون‌منطقه‌ای (مدل‌محور)</h3>
+      <p className="mb-2 text-[11px] text-ink-500">فقط برای شمارشی‌ها (جمعیت، خانوار). عدد منطقه با وزن مستند میان محله‌ها پخش می‌شود؛ برچسب «برآورد» می‌خورد و تا تأیید کارشناس در دستهٔ داده به کار نمی‌رود.</p>
+      <div className="flex flex-wrap items-end gap-2 text-xs">
+        <input value={f.city} onChange={set('city')} className={`${input} w-20`} aria-label="شهر" />
+        <input value={f.district} onChange={set('district')} className={`${input} w-14`} aria-label="منطقه" placeholder="منطقه" />
+        <select value={f.code} onChange={set('code')} className={input} aria-label="شاخص"><option value="POP">جمعیت</option><option value="HOUSEHOLDS">خانوار</option></select>
+        <input value={f.value} onChange={set('value')} className={`${input} w-28`} placeholder="عدد منطقه" inputMode="numeric" aria-label="عدد منطقه" />
+        <input value={f.periodEnd} onChange={set('periodEnd')} className={`${input} w-24`} placeholder="YYYY-MM" aria-label="دوره" />
+        <input value={f.sourceOrg} onChange={set('sourceOrg')} className={`${input} w-32`} aria-label="منبع" />
+        <button disabled={busy || !Number(f.value)} onClick={() => void run(true)} className={btn2}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />} پیش‌نمایش</button>
+        <button disabled={busy || !rec || rec.status !== 'DRY_RUN'} onClick={() => void run(false)} className={btn}>ارسال برای تأیید کارشناس</button>
+      </div>
+      {err && <p className="mt-2 text-xs text-rose-700">{err}</p>}
+      {rec && (
+        <div className="mt-2 space-y-1 text-[11px]">
+          <p className="rounded bg-amber-50 p-1.5 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">{rec.label}</p>
+          <p>روش: <b>{METHOD_FA[rec.method]}</b> — اعتبار: <b>{REL_FA[rec.reliability]}</b> — {rec.status === 'PENDING_EXPERT' ? `دستهٔ ${rec.batchId} در انتظار تأیید کارشناس` : 'پیش‌نمایش (ذخیره نشده)'}</p>
+          {rec.tried.filter((t) => !t.ok).map((t) => <p key={t.method} className="text-ink-500">روش {METHOD_FA[t.method as EstimateRecord['method']] ?? t.method} به کار نرفت: {t.reason}</p>)}
+          <div className="max-h-48 overflow-auto"><table className="min-w-full border-collapse"><thead><tr><th className="border border-line p-1 dark:border-wall-700">محله</th><th className="border border-line p-1 dark:border-wall-700">سهم</th><th className="border border-line p-1 dark:border-wall-700">برآورد</th><th className="border border-line p-1 dark:border-wall-700">بازه</th></tr></thead>
+            <tbody>{rec.estimates.map((x) => <tr key={x.neighborhoodId}><td className="border border-line p-1 dark:border-wall-700">{x.nameFa}</td><td className="border border-line p-1 dark:border-wall-700">{pct(x.share)}</td><td className="border border-line p-1 dark:border-wall-700">{fa(x.estimate)}</td><td className="border border-line p-1 dark:border-wall-700">{fa(x.low)}–{fa(x.high)}</td></tr>)}</tbody></table></div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function ResearchTab() {
   return (
     <div className="space-y-4">
@@ -234,6 +275,7 @@ export function ResearchTab() {
         <div className="lg:col-span-2"><DocumentPanel /></div>
         <MemoryPanel />
       </div>
+      <EstimatePanel />
     </div>
   );
 }

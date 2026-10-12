@@ -35,7 +35,7 @@ export interface ContractRow {
   unit?: string; period_start?: string; period_end: string;
   group_key?: string; group_value?: string; source_org: string; dataset_id?: string; extraction_date?: string;
   /** دادهٔ منتشرشده در سطح منطقهٔ شهرداری که روی همهٔ محلات آن منطقه گسترده شده (مثل tehran:6) */
-  district?: string; geography_level?: 'neighborhood' | 'district';
+  district?: string; geography_level?: 'neighborhood' | 'district' | 'estimated';
 }
 export interface RowIssue { row: number; field?: string; code: string; message: string; severity: 'error' | 'warning' }
 export type BatchStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'INVALID';
@@ -171,6 +171,12 @@ export function validateContractCsv(text: string): { rows: ContractRow[]; issues
       group_key: groupKey || undefined, group_value: col(r, 'group_value') || undefined,
       source_org: source, dataset_id: col(r, 'dataset_id') || undefined, extraction_date: col(r, 'extraction_date') || undefined,
     };
+    // برآورد مدل‌محور (DISAGG): برچسب سطح «estimated» می‌گیرد تا هرگز با دادهٔ سرشماری محله اشتباه نشود
+    if (/^estimate:/.test(row.dataset_id ?? '')) {
+      if (districtMembers || groupKey) { err('ESTIMATE_SHAPE', 'برآورد مدل‌محور باید ردیف سطح محله و بدون گروه باشد', 'dataset_id'); return; }
+      row.geography_level = 'estimated';
+      issues.push({ row: rowNo, field: 'dataset_id', code: 'MODEL_ESTIMATE', message: 'برآورد مدل‌محور است (نه دادهٔ مشاهده‌شده)؛ پیش از تأیید، روش و وزن‌ها را بررسی کنید', severity: 'warning' });
+    }
     if (districtMembers) {
       if (groupKey) { err('DISTRICT_GROUP', 'شکاف گروهی در سطح منطقه پذیرفته نمی‌شود', 'group_key'); return; }
       // متغیرهای شمارشی (جمعیت، خانوار) را نمی‌توان روی همهٔ محلات منطقه گستراند؛ جمعیت منطقه ≠ جمعیت محله
@@ -283,7 +289,7 @@ function invalidateApproved() { approvedCache = null; }
 /** جدیدترین دوره برنده است؛ در دورهٔ برابر، دادهٔ محله‌ای بر دادهٔ منطقه‌ای و سپس تأیید جدیدتر */
 function newer(v: ApprovedValue, prev: ApprovedValue): boolean {
   if (v.period_end !== prev.period_end) return v.period_end > prev.period_end;
-  const fine = (x: ApprovedValue) => (x.geography_level === 'district' ? 0 : 1);
+  const fine = (x: ApprovedValue) => (x.geography_level === 'district' ? 0 : x.geography_level === 'estimated' ? 0.5 : 1);
   if (fine(v) !== fine(prev)) return fine(v) > fine(prev);
   return v.approvedAt > prev.approvedAt;
 }
