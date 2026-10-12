@@ -39,7 +39,7 @@ export const submitCustomResponses = (id: string, nb: string, responses: CustomS
   call<{ received: number; accepted: number; rejected: Array<{ responseId: string; reasons: string[] }> }>(`/${enc(id)}/responses/${enc(nb)}`, body('POST', { responses }));
 export const customSummary = (id: string, nb: string) => call<{ summary: CustomSurveySummary; interpretation: AiInterpretation | null }>(`/${enc(id)}/summary/${enc(nb)}`);
 export const customExportUrl = (id: string, nb: string) => apiUrl(`/api/decision-support/custom-surveys/${enc(id)}/export/${enc(nb)}`);
-export const aiStatus = () => call<{ configured: boolean; model: string; host: string }>('/ai/status');
+export const aiStatus = () => call<{ configured: boolean }>('/ai/status');
 export const aiDraftSurvey = (b: { goal: string; neighborhoodId?: string; indicators?: string[]; nItems?: number; audience?: string }) =>
   call<{ questionnaire: CustomQuestionnaire; issues: DefinitionIssue[]; model: string }>('/ai/draft', body('POST', b), AI_TIMEOUT);
 export const aiReviewSurvey = (id: string) => call<{ overall: string; issues: ReviewIssue[]; model: string; ruleIssues: DefinitionIssue[] }>(`/${enc(id)}/ai/review`, body('POST', {}), AI_TIMEOUT);

@@ -42,7 +42,7 @@ export interface RouteRule { method?: string | RegExp; path: RegExp; min: Role }
 export const DEFAULT_ROUTE_RULES: RouteRule[] = [
   { path: /^\/api\/health$/, min: 'none' },
   { path: /^\/metrics$/, min: 'none' },
-  { path: /^\/api\/anthropic/, min: 'admin' },
+  { path: /^\/api\/(anthropic|ai)(\/|$)/, min: 'admin' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/calibration/, min: 'admin' },
   { method: /^(POST|PUT|PATCH|DELETE)$/, path: /^\/api\/decision-support\/ingestion\/[^/]+\/approve$/, min: 'admin' },
   // دادهٔ میدانی (پرسشنامه، ممیزی، ثبت محلی) را تحلیلگر هم می‌تواند ثبت کند

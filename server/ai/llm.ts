@@ -1,5 +1,5 @@
 /**
- * کلاینت مدل زبانی (API سازگار با Anthropic Messages).
+ * کلاینت هوش مصنوعی (API سازگار با Anthropic Messages).
  * پیکربندی فقط از متغیرهای محیطی: ARA_ANTHROPIC_BASE_URL، ARA_ANTHROPIC_API_KEY، ARA_LLM_MODEL.
  * کلید هرگز در مخزن ثبت نمی‌شود (در فایل ‎.env‎ که در git نادیده گرفته می‌شود بگذارید).
  * خروجی مدل فقط پیشنهاد/تفسیر است و قبل از استفاده با طرح‌واره اعتبارسنجی می‌شود.
@@ -25,7 +25,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** فراخوانی مدل با تلاش دوباره برای خطاهای گذرا (کانال ناموجود، ۴۲۹، ۵xx، صفحهٔ HTML) */
 export async function llmText(opts: { system: string; prompt: string; maxTokens?: number; temperature?: number }, deps: { fetch?: Fetch; config?: LlmConfig; retries?: number } = {}): Promise<{ text: string; model: string; usage?: unknown }> {
   const cfg = deps.config ?? llmConfig();
-  if (!cfg.configured) throw new LlmError('AI_NOT_CONFIGURED', 'کلید مدل هوش مصنوعی (ARA_ANTHROPIC_API_KEY) تنظیم نشده است.');
+  if (!cfg.configured) throw new LlmError('AI_NOT_CONFIGURED', 'سرویس هوش مصنوعی پیکربندی نشده است.');
   const f = deps.fetch ?? fetch;
   const retries = deps.retries ?? 4;
   let last = '';
@@ -46,7 +46,7 @@ export async function llmText(opts: { system: string; prompt: string; maxTokens?
         last = body.error?.message ?? `وضعیت ${res.status}`;
         const transient = res.status === 429 || res.status >= 500 || /model_not_found|No available channel|overloaded|rate/i.test(`${body.error?.code} ${last}`);
         if (transient) continue;
-        throw new LlmError('AI_UPSTREAM', `سرویس مدل خطا داد: ${last}`);
+        throw new LlmError('AI_UPSTREAM', 'سرویس هوش مصنوعی خطا داد؛ کمی بعد دوباره تلاش کنید.', last);
       }
       const text = (body.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
       if (!text.trim()) { last = 'پاسخ خالی'; continue; }
@@ -56,7 +56,7 @@ export async function llmText(opts: { system: string; prompt: string; maxTokens?
       last = e instanceof Error ? e.message : String(e);
     }
   }
-  throw new LlmError('AI_UPSTREAM', `سرویس مدل پس از چند تلاش پاسخ نداد: ${last}`);
+  throw new LlmError('AI_UPSTREAM', 'سرویس هوش مصنوعی موقتاً در دسترس نیست؛ کمی بعد دوباره تلاش کنید.', last);
 }
 
 /** نخستین شیء JSON معتبر در متن مدل (با یا بدون ```json) */

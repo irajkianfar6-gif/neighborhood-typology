@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, X, Sparkles, HelpCircle } from 'lucide-react';
 import { ChatMessage } from '../types';
-import { chatWithAnthropic } from '../lib/anthropic';
+import { chatWithAI } from '../lib/aiService';
 import { getHakimGrounding, sciDigestForChat, type HakimGrounding } from '../lib/hakimGrounding';
 import { getArchive, recordEvent } from '../lib/archiveDB';
 
@@ -104,7 +104,7 @@ export default function AIChatModal({ isOpen, onClose, totalBalance, totalExpens
 
     try {
       const grounding = await getHakimGrounding();
-      replyText = await chatWithAnthropic(
+      replyText = await chatWithAI(
         history.map((m) => ({ role: m.sender, content: m.text })),
         { system: buildSystemPrompt(totalBalance, totalExpenses, grounding), maxTokens: 2048 }
       );

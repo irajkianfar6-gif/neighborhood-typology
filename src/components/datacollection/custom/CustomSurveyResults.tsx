@@ -82,7 +82,7 @@ export default function CustomSurveyResults({ q, neighborhoodId, aiReady }: { q:
           {busy === 'ai' ? <Loader2 size={13} className="animate-spin" /> : <Bot size={13} />} {ai ? 'تفسیر دوباره' : 'تفسیر نتایج و پاسخ‌های باز'}</button>}>
         {!ai ? <p className="text-[11px] text-ink-500">هوش مصنوعی آمار بالا و پاسخ‌های باز را می‌خواند، مضمون‌ها را دسته‌بندی و جمع‌بندی می‌کند. اعداد را سامانه محاسبه می‌کند و این تفسیر وارد کارت تصمیم نمی‌شود.</p> : (
           <div className="space-y-3 text-xs leading-6">
-            <Notice tone="info">{ai.disclaimer} (مدل: {ai.model} · {new Date(ai.generatedAt).toLocaleString('fa-IR')} · بر پایهٔ {fa(ai.basedOn.nAccepted)} پاسخ){stale ? ' — پاسخ‌های تازه رسیده؛ برای به‌روزرسانی «تفسیر دوباره» را بزنید.' : ''}</Notice>
+            <Notice tone="info">{ai.disclaimer} ({new Date(ai.generatedAt).toLocaleString('fa-IR')} · بر پایهٔ {fa(ai.basedOn.nAccepted)} پاسخ){stale ? ' — پاسخ‌های تازه رسیده؛ برای به‌روزرسانی «تفسیر دوباره» را بزنید.' : ''}</Notice>
             <p>{ai.summary}</p>
             {ai.keyFindings.length > 0 && <div><p className="font-black">یافته‌های کلیدی</p><ul className="list-disc pr-5">{ai.keyFindings.map((k, i) => <li key={i}>{k.text}{k.basis.length > 0 && <span className="text-[10px] text-ink-400"> [{k.basis.join('، ')}]</span>}</li>)}</ul></div>}
             {ai.themes.length > 0 && <div><p className="font-black">مضمون‌های پاسخ‌های باز (شمارش توسط سامانه)</p>

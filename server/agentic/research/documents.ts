@@ -1,6 +1,6 @@
 /**
  * A4 — استخراج قطعی جدول و عدد از اسناد (CSV/TSV، XLSX، HTML، PDF) با ارجاع سلولی.
- * مدل زبانی در این مرحله نقشی ندارد. برای PDF دو روش مستقل (جعبهٔ واژه‌ها با pdftotext -tsv و
+ * هوش مصنوعی در این مرحله نقشی ندارد. برای PDF دو روش مستقل (جعبهٔ واژه‌ها با pdftotext -tsv و
  * متن چیدمانی pdftotext -layout) اجرا و عددهای هر ردیف با هم مقایسه می‌شوند (راستی‌آزمایی دوروشی).
  */
 import { execFileSync } from 'node:child_process';
@@ -8,12 +8,13 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { serverDataDir } from '../../paths';
 import { detectPeriod, latinDigits, parseNumberFa } from './numbers';
 import { readZip } from './zip';
 
 export const EXTRACTOR_VERSION = 'DOCX-v1';
-export type DocKind = 'csv' | 'tsv' | 'xlsx' | 'html' | 'pdf' | 'txt';
+export type DocKind = 'csv' | 'tsv' | 'xlsx' | 'html' | 'pdf' | 'txt' | 'png' | 'jpg';
 export interface Cell { text: string; num: number | null; percent: boolean; ref: string }
 export interface ExtractedTable { tableId: string; origin: string; header: string[]; rows: Cell[][]; rtl: boolean }
 export interface DocVerification { method: string; numericCells: number; agreed: number; agreement: number | null; note: string }
@@ -38,6 +39,8 @@ const ARABIC_LETTER = /[\u0621-\u064A\u0671-\u06D3\u06FA-\u06FF]/;
 
 export function detectKind(filename: string, buf: Buffer): DocKind {
   if (buf.subarray(0, 5).toString('latin1') === '%PDF-') return 'pdf';
+  if (buf[0] === 0x89 && buf.subarray(1, 4).toString('latin1') === 'PNG') return 'png';
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
   if (buf[0] === 0x50 && buf[1] === 0x4b) return 'xlsx';
   const ext = path.extname(filename).toLowerCase();
   const head = buf.subarray(0, 4000).toString('utf8').toLowerCase();
@@ -48,6 +51,41 @@ export function detectKind(filename: string, buf: Buffer): DocKind {
 }
 
 const cell = (text: string, ref: string): Cell => { const t = text.replace(/\s+/g, ' ').trim(); const n = parseNumberFa(t); return { text: t, num: n ? n.value : null, percent: n?.percent ?? false, ref }; };
+
+// ---------------- OCR (اسناد اسکن‌شده و تصویر) ----------------
+export const OCR_VERSION = 'OCR-v1';
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const TESSDATA = path.join(HERE, 'tessdata');
+const OCR_NOTE = 'متن با OCR خوانده شد؛ اعداد OCR نیاز به بازبینی انسانی دارند و جدول خودکار ساخته نمی‌شود';
+export function ocrAvailable(): boolean {
+  return fs.existsSync(path.join(TESSDATA, 'fas.traineddata.gz')) && fs.existsSync(path.join(HERE, 'ocrWorker.mjs'));
+}
+/** OCR همگام از راه فرایند جدا؛ تصاویر صفحه‌به‌صفحه */
+export function ocrImages(images: string[]): Array<{ page: number; text: string; confidence: number }> {
+  if (!ocrAvailable()) throw new Error('دادهٔ زبان OCR روی سرور یافت نشد');
+  const cache = path.join(os.tmpdir(), 'ara-ocr-cache'); fs.mkdirSync(cache, { recursive: true });
+  const raw = execFileSync(process.execPath, [path.join(HERE, 'ocrWorker.mjs'), TESSDATA, cache, ...images], { maxBuffer: 64 * 1024 * 1024, timeout: 60_000 + images.length * 60_000, cwd: path.resolve(HERE, '../../..') }).toString('utf8');
+  const r = JSON.parse(raw) as { ok: boolean; pages?: Array<{ page: number; text: string; confidence: number }>; error?: string };
+  if (!r.ok || !r.pages) throw new Error(`OCR ناموفق بود: ${r.error ?? ''}`);
+  return r.pages.map((p) => ({ ...p, text: stripBidi(p.text) }));
+}
+const MAX_OCR_PAGES = 30;
+function ocrResult(pages: Array<{ page: number; text: string; confidence: number }>, filename: string, warnings: string[]) {
+  const conf = pages.length ? Math.round(pages.reduce((a, p) => a + p.confidence, 0) / pages.length) : 0;
+  warnings.push(OCR_NOTE);
+  if (conf < 70) warnings.push(`اطمینان میانگین OCR ${conf}٪ است؛ کیفیت اسکن پایین است`);
+  const firstLines = (pages[0]?.text ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const verification: DocVerification = { method: `ocr (${OCR_VERSION}, fas+eng)`, numericCells: 0, agreed: 0, agreement: null, note: `${OCR_NOTE}؛ اطمینان میانگین ${conf}٪` };
+  return { content: { tables: [] as ExtractedTable[], pages: pages.map((p) => ({ page: p.page, text: p.text })) }, title: firstLines[0]?.replace(/\s+/g, ' ') || path.basename(filename), verification };
+}
+function ocrPdf(file: string): Array<{ page: number; text: string; confidence: number }> {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ara-ocr-'));
+  try {
+    execFileSync('pdftoppm', ['-r', '300', '-gray', '-png', '-l', String(MAX_OCR_PAGES), file, path.join(dir, 'p')], { timeout: 300_000 });
+    const imgs = fs.readdirSync(dir).filter((f) => f.endsWith('.png')).sort().map((f) => path.join(dir, f));
+    return ocrImages(imgs);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
 
 // ---------------- CSV / TSV ----------------
 export function parseDelimited(text: string, delim?: string): string[][] {
@@ -269,13 +307,22 @@ export function extractBuffer(filename: string, buf: Buffer): { kind: DocKind; c
     readHtmlTables(html).forEach((t, ti) => { const r = gridToTables(t.grid, (ri, ci) => `table${ti + 1}:r${ri + 1}:c${ci + 1}`, `table ${ti + 1}`, `h${ti + 1}t`); tables.push(...r.tables); });
     return { kind, content: { tables, pages: [{ page: 1, text: stripTags(html.replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')) }] }, title: htmlTitle(html) || path.basename(filename), verification: single(countNum(tables)), warnings };
   }
+  if (kind === 'png' || kind === 'jpg') {
+    const tmpImg = path.join(os.tmpdir(), `ara-img-${crypto.randomBytes(6).toString('hex')}.${kind}`);
+    fs.writeFileSync(tmpImg, buf);
+    try { const r = ocrResult(ocrImages([tmpImg]), filename, warnings); return { kind, ...r, warnings }; } finally { fs.rmSync(tmpImg, { force: true }); }
+  }
   // PDF
   if (!pdftotextAvailable()) throw new Error('برای PDF ابزار pdftotext (Poppler) روی سرور لازم است');
   const tmp = path.join(os.tmpdir(), `ara-doc-${crypto.randomBytes(6).toString('hex')}.pdf`);
   fs.writeFileSync(tmp, buf);
   try {
-    const tables = pdfTablesFromWords(pdfWords(tmp));
     const layout = pdfLayoutPages(tmp);
+    if (layout.every((p) => !p.trim()) && ocrAvailable()) {
+      warnings.push('PDF لایهٔ متنی ندارد (اسکن‌شده)؛ متن با OCR خوانده شد');
+      return { kind, ...ocrResult(ocrPdf(tmp), filename, warnings), warnings };
+    }
+    const tables = pdfTablesFromWords(pdfWords(tmp));
     const verification = crossCheckPdf(tables, layout);
     if (!tables.length) warnings.push('جدولی در PDF یافت نشد؛ اگر سند اسکن‌شده است، OCR لازم است');
     if (layout.every((p) => !p.trim())) warnings.push('PDF متن قابل استخراج ندارد (احتمالاً تصویر اسکن‌شده)');

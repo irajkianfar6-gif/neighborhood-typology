@@ -12,7 +12,9 @@ import './loadEnv'; // باید نخستین import باشد — .env.local را
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
+import { llmConfig } from './ai/llm';
+import { brandScrubMiddleware, scrubText } from './ai/brandScrub';
 import { fileURLToPath } from 'node:url';
 import { LOADED_ENV_FILES } from './loadEnv';
 import { createTypologyRouter } from './typologyRouter';
@@ -150,6 +152,8 @@ function rateRow(prov: string, s: ProvStats) {
 const app = express();
 // CORS با فهرست مجاز (ARA_ALLOWED_ORIGINS) — دیگر «*» نیست
 app.use(corsMiddleware());
+// نام مدل‌ها و برندهای هوش مصنوعی هرگز به رابط کاربری نمی‌رسد
+app.use(brandScrubMiddleware());
 // بارگذاری سند در فریمورک ایجنتیک تا ۴۰MB است و تجزیهٔ آن با مسیریاب همان بخش انجام می‌شود
 const jsonDefault = express.json({ limit: '2mb' });
 app.use((req, res, next) => (req.path.startsWith('/api/agentic/documents') ? next() : jsonDefault(req, res, next)));
@@ -160,7 +164,7 @@ app.use(authMiddleware());
 app.use(auditMiddleware());
 app.use('/api/decision-support/analyze', rateLimit({ name: 'analyze', windowMs: 60_000, max: Number(process.env.ARA_RATE_ANALYZE_PER_MIN || 60) }));
 app.use('/api/decision-support/neighborhoods/analyze', rateLimit({ name: 'neighborhood-analyze', windowMs: 60_000, max: Number(process.env.ARA_RATE_ANALYZE_PER_MIN || 60) }));
-app.use('/api/anthropic', rateLimit({ name: 'anthropic', windowMs: 60_000, max: Number(process.env.ARA_RATE_AI_PER_MIN || 10) }));
+app.use(['/api/anthropic', '/api/ai'], rateLimit({ name: 'anthropic', windowMs: 60_000, max: Number(process.env.ARA_RATE_AI_PER_MIN || 10) }));
 app.use(metricsMiddleware());
 
 // ---------- سلامت سرویس (برای Docker healthcheck / PaaS / مانیتورینگ) ----------
@@ -179,8 +183,8 @@ app.get('/api/health', (_req, res) => {
     ui: distIndex ? 'built' : 'missing (dev mode: run `npm run dev`)',
     python: findPython(),
     integrations: {
-      anthropicProxy: Boolean(ANTHROPIC_API_KEY),
-      gemini: Boolean(process.env.GEMINI_API_KEY),
+      aiProxy: Boolean(ANTHROPIC_API_KEY),
+      imageryAi: Boolean(process.env.GEMINI_API_KEY),
       openaq: Boolean(process.env.OPENAQ_API_KEY),
       healthsites: Boolean(process.env.HEALTHSITES_API_KEY),
       kernelServiceUrl: process.env.KERNEL_SERVICE_URL || `http://127.0.0.1:${process.env.KERNEL_SERVICE_PORT || 4105}`,
@@ -189,7 +193,7 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// ---------- پراکسی یکسان‌مبدأ سرویس مدل (کلید فقط روی سرور می‌ماند) ----------
+// ---------- پراکسی یکسان‌مبدأ سرویس هوش مصنوعی (کلید فقط روی سرور می‌ماند) ----------
 // در حالت توسعه، vite.config.ts این کار را می‌کند؛ در استقرار تولیدی (dist + Express)
 // همین مسیر جایگزین آن است تا باندل فرانت‌اند هرگز کلید را نبیند.
 const ANTHROPIC_BASE_URL = (process.env.ARA_ANTHROPIC_BASE_URL || 'https://api.justwoker.icu').replace(/\/+$/, '');
@@ -197,7 +201,7 @@ const ANTHROPIC_API_KEY = process.env.ARA_ANTHROPIC_API_KEY || '';
 const ANTHROPIC_VERSION = process.env.ARA_ANTHROPIC_VERSION || '2023-06-01';
 
 const ANTHROPIC_MAX_TOKENS = Number(process.env.ARA_ANTHROPIC_MAX_TOKENS || 4000);
-/** فقط فیلدهای مجاز به سرویس مدل می‌رود؛ max_tokens سقف دارد تا پراکسی قابل سوءاستفاده نباشد */
+/** فقط فیلدهای مجاز به سرویس هوش مصنوعی می‌رود؛ max_tokens سقف دارد تا پراکسی قابل سوءاستفاده نباشد */
 function sanitizeAnthropicBody(body: unknown): Record<string, unknown> {
   const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
   const out: Record<string, unknown> = {};
@@ -205,18 +209,19 @@ function sanitizeAnthropicBody(body: unknown): Record<string, unknown> {
     if (b[key] !== undefined) out[key] = b[key];
   }
   // اگر مدل در محیط تعیین شده باشد، همهٔ درخواست‌ها با همان مدل اجرا می‌شوند (سرویس فعلی فقط یک مدل دارد)
-  if (process.env.ARA_LLM_MODEL) out.model = process.env.ARA_LLM_MODEL;
+  // انتخاب مدل فقط در سرور است؛ مرورگر نام مدل را نمی‌داند و نمی‌فرستد
+  out.model = llmConfig().model;
   const requested = Number(b.max_tokens);
   out.max_tokens = Number.isFinite(requested) && requested > 0 ? Math.min(requested, ANTHROPIC_MAX_TOKENS) : Math.min(1024, ANTHROPIC_MAX_TOKENS);
   return out;
 }
 
-app.use('/api/anthropic', async (req, res) => {
+app.use(['/api/anthropic', '/api/ai'], async (req, res) => {
   if (!ANTHROPIC_API_KEY) {
     res.status(503).json({
       error: {
         code: 'AI_NOT_CONFIGURED',
-        message: 'کلید ARA_ANTHROPIC_API_KEY تنظیم نشده است؛ دستیار هوشمند در حالت پاسخ محلی کار می‌کند.',
+        message: 'سرویس هوش مصنوعی پیکربندی نشده است؛ دستیار هوشمند در حالت پاسخ محلی کار می‌کند.',
       },
     });
     return;
@@ -225,7 +230,7 @@ app.use('/api/anthropic', async (req, res) => {
     res.status(405).json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'فقط POST/GET پشتیبانی می‌شود.' } });
     return;
   }
-  const relative = req.originalUrl.replace(/^\/api\/anthropic/, '') || '/messages';
+  const relative = req.originalUrl.replace(/^\/api\/(anthropic|ai)/, '') || '/messages';
   const target = `${ANTHROPIC_BASE_URL}/v1${relative}`;
   try {
     const upstream = await fetch(target, {
@@ -241,26 +246,28 @@ app.use('/api/anthropic', async (req, res) => {
     });
     res.status(upstream.status);
     const contentType = upstream.headers.get('content-type') || 'application/json';
-    // اگر سرویس مدل پاسخ غیر JSON بدهد (مثلاً صفحهٔ خطای HTML پشت CDN)، آن را عبور نمی‌دهیم
+    // اگر سرویس هوش مصنوعی پاسخ غیر JSON بدهد (مثلاً صفحهٔ خطای HTML پشت CDN)، آن را عبور نمی‌دهیم
     // تا کلاینت با JSON خراب مواجه نشود؛ به‌جایش خطای شفاف می‌گیرد.
     if (!contentType.includes('json') && !contentType.includes('text/event-stream')) {
       await upstream.text();
       res.status(502).json({
-        error: { code: 'AI_UPSTREAM_BAD_RESPONSE', message: `سرویس مدل پاسخ غیر JSON (وضعیت ${upstream.status}) برگرداند.` },
+        error: { code: 'AI_UPSTREAM_BAD_RESPONSE', message: `سرویس هوش مصنوعی پاسخ نامعتبر (وضعیت ${upstream.status}) برگرداند.` },
       });
       return;
     }
     res.setHeader('content-type', contentType);
     if (upstream.headers.get('cache-control')) res.setHeader('cache-control', upstream.headers.get('cache-control') as string);
     // پاسخ استریم (SSE) و پاسخ معمولی هر دو پشتیبانی می‌شوند
-    if (!upstream.body) {
-      res.end(await upstream.text());
+    // نام مدل و برند از پاسخ حذف می‌شود (رابط کاربری فقط «هوش مصنوعی» می‌بیند)
+    if (!upstream.body || !contentType.includes('text/event-stream')) {
+      res.end(scrubText(await upstream.text()));
       return;
     }
-    Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
+    Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0])
+      .pipe(new Transform({ transform(chunk, _enc, cb) { cb(null, scrubText(chunk.toString('utf8'))); } }))
+      .pipe(res);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'AI upstream failed';
-    res.status(502).json({ error: { code: 'AI_UPSTREAM_ERROR', message } });
+    res.status(502).json({ error: { code: 'AI_UPSTREAM_ERROR', message: 'سرویس هوش مصنوعی موقتاً در دسترس نیست؛ کمی بعد دوباره تلاش کنید.' } });
   }
 });
 

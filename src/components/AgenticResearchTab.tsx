@@ -67,7 +67,7 @@ function ResearchPanel() {
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs">محله<input value={name} onChange={(e) => setName(e.target.value)} className={`${input} w-40`} /></label>
         <label className="flex flex-col gap-1 text-xs">شهر<input value={city} onChange={(e) => setCity(e.target.value)} className={`${input} w-24`} /></label>
-        <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={useLlm} onChange={(e) => setUseLlm(e.target.checked)} /> پیشنهاد منبع با مدل زبانی (همه بررسی می‌شوند)</label>
+        <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={useLlm} onChange={(e) => setUseLlm(e.target.checked)} /> پیشنهاد منبع با هوش مصنوعی (همه بررسی می‌شوند)</label>
         <button disabled={running || name.trim().length < 2} onClick={() => void start()} className={btn}>{running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />} شروع پژوهش</button>
       </div>
       {err && <p className="mt-2 text-xs text-rose-700">{err}</p>}
@@ -156,7 +156,7 @@ function DocumentPanel() {
       <h3 className="mb-1 text-sm font-bold">استخراج از سند (PDF، اکسل، CSV، صفحهٔ HTML)</h3>
       <p className="mb-2 text-xs text-ink-500">جدول‌ها استخراج، ستون‌ها به شاخص نگاشت و نام‌ها با محله‌ها تطبیق داده می‌شوند. خروجی فقط «دستهٔ در انتظار بازبینی» در بخش ورود داده است و پس از تأیید شما وارد سنجه می‌شود. PDF اسکن‌شده (تصویری) هنوز پشتیبانی نمی‌شود.</p>
       <div className="flex flex-wrap items-end gap-2">
-        <label className={`${btn} cursor-pointer`}>{busy ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />} انتخاب فایل<input type="file" className="hidden" accept=".pdf,.xlsx,.csv,.tsv,.txt,.html,.htm" onChange={(e) => void upload(e.target.files?.[0])} /></label>
+        <label className={`${btn} cursor-pointer`}>{busy ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />} انتخاب فایل<input type="file" className="hidden" accept=".pdf,.xlsx,.csv,.tsv,.txt,.html,.htm,.png,.jpg,.jpeg" onChange={(e) => void upload(e.target.files?.[0])} /></label>
         <label className="flex flex-col gap-1 text-xs">شهر<input value={city} onChange={(e) => setCity(e.target.value)} className={`${input} w-24`} /></label>
         <label className="flex flex-col gap-1 text-xs">سازمان منتشرکننده<input value={org} onChange={(e) => setOrg(e.target.value)} placeholder="مثلاً مرکز آمار ایران" className={`${input} w-48`} /></label>
         <label className="flex flex-col gap-1 text-xs">پایان دوره (سال-ماه میلادی)<input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="2017-03" className={`${input} w-24`} dir="ltr" /></label>

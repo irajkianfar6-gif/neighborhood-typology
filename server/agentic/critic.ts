@@ -1,5 +1,5 @@
 /**
- * عامل نقاد (A12) — بازبینی قطعی و بدون مدل زبانی پیش از گزارش/انتشار.
+ * عامل نقاد (A12) — بازبینی قطعی و بدون هوش مصنوعی پیش از گزارش/انتشار.
  * هر بررسی وضعیت pass/warn/fail دارد؛ یک fail = توقف انتشار رسمی (فقط لایهٔ تحلیلی مجاز است).
  */
 import { independenceSummary, toEvidencePacket, validatePacket } from './evidencePacket';

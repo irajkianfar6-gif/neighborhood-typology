@@ -1,5 +1,5 @@
 /**
- * آزمون خطای تزریقی نقاد (A12) — CRT-SUITE-v1 و نقاد مشورتی مدل زبانی.
+ * آزمون خطای تزریقی نقاد (A12) — CRT-SUITE-v1 و نقاد مشورتی هوش مصنوعی.
  * روی نسخهٔ کپی یک کارت واقعی، خطاهای شناخته‌شده تزریق می‌شود و بررسی می‌شود نقاد قطعی هر کدام را می‌گیرد یا نه.
  * معیار پذیرش فاز ۴: کشف ≥ ۹۰٪. کارت اصلی هرگز تغییر نمی‌کند.
  */
@@ -63,14 +63,14 @@ export function runCriticSuite(base: CardResult, threshold = 0.9): SuiteResult {
   return { version: CRITIC_SUITE_VERSION, critic: CRITIC_VERSION, analysisId: base.card.fingerprint, total: cases.length, detected, detectionRate: rate, passed: rate >= threshold, baselineVerdict: baseline.verdict, cases };
 }
 
-// ---------------- نقاد مشورتی مدل زبانی ----------------
+// ---------------- نقاد مشورتی هوش مصنوعی ----------------
 export interface LlmReview { used: boolean; model: string | null; issues: Array<{ severity: 'high' | 'medium' | 'low'; indicator: string | null; problem: string }>; rejected: number; error: string | null }
 type Llm = (system: string, prompt: string) => Promise<{ text: string; model?: string }>;
 
 /** بازبینی مشورتی: فقط مسئله گزارش می‌کند، عدد نمی‌سازد و حق توقف ندارد؛ ادعاهای بی‌ربط یا با عدد بی‌پشتوانه رد می‌شوند */
 export async function llmReview(r: CardResult, deps: { llm?: Llm } = {}): Promise<LlmReview> {
   const llm = deps.llm ?? (llmConfig().configured ? ((s: string, p: string) => llmText({ system: s, prompt: p, maxTokens: 1500, temperature: 0 })) : undefined);
-  if (!llm) return { used: false, model: null, issues: [], rejected: 0, error: 'مدل زبانی پیکربندی نشده است' };
+  if (!llm) return { used: false, model: null, issues: [], rejected: 0, error: 'هوش مصنوعی پیکربندی نشده است' };
   const rep = renderReport(r, null, 'analytical').markdown.slice(0, 12_000);
   const codes = new Set(r.card.indicators.map((i) => i.code));
   const prompt = `گزارش تحلیلی محله:\n${rep}\n\nجملهٔ نهایی موتور: ${r.card.engine?.finalStatement ?? '—'}\n\nمسائل روش‌شناختی، تناقض متن و عدد، ادعای علّی بی‌پشتوانه یا تفسیر نادرست را فهرست کن. عدد تازه نساز.\nفقط JSON: {"issues":[{"severity":"high|medium|low","indicator":"کد شاخص یا null","problem":"…"}]}`;

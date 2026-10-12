@@ -3,7 +3,6 @@ import { Bot, MessageCircle, Send, User } from 'lucide-react';
 
 interface Message { role: 'user' | 'ai'; text: string; }
 
-const MODEL = import.meta.env.VITE_ANTHROPIC_MODEL || 'claude-opus-4-8';
 
 export default function AIDecisionAdvisor({ neighborhoodName }: { neighborhoodName?: string }) {
   const [messages, setMessages] = useState<Message[]>([{
@@ -34,11 +33,10 @@ export default function AIDecisionAdvisor({ neighborhoodName }: { neighborhoodNa
     apiMessages.push({ role: 'user', content: value });
 
     try {
-      const res = await fetch('/api/anthropic/messages', {
+      const res = await fetch('/api/ai/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: MODEL,
           max_tokens: 600,
           system: neighborhoodName
             ? `شما مشاور تصمیم‌یار محله "${neighborhoodName}" هستید. بر اساس داده‌های محله و الگوریتم تحلیل کیفیت زندگی پاسخ دهید. فقط از داده‌های ارائه‌شده استفاده کنید و عددسازی نکنید.`
@@ -77,7 +75,7 @@ export default function AIDecisionAdvisor({ neighborhoodName }: { neighborhoodNa
         <div>
           <h3 className="text-base font-black text-ink-900 dark:text-white">مشاور هوشمند</h3>
           <p className="mt-1 text-[10px] text-ink-400 dark:text-slate-500">
-            متصل به {MODEL} از طریق api.justwoker.icu
+            متصل به سرویس هوش مصنوعی
           </p>
         </div>
       </div>

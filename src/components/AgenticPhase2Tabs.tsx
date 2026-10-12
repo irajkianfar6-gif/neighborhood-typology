@@ -66,7 +66,7 @@ export function CopilotTab({ agentName, llmConfigured }: { agentName: Record<str
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
         <section className={card}>
-          <p className="mb-2 text-xs text-ink-500">پرسش خود را آزاد بنویسید. هماهنگ‌کننده (A0) با کمک مدل زبانی تصمیم می‌گیرد کدام عامل و ابزار را صدا بزند؛ همهٔ عددها از ابزارهای قطعی می‌آیند و پاسخ نهایی از نظر عدد بی‌پشتوانه بررسی می‌شود.{!llmConfigured && ' مدل زبانی تنظیم نشده است؛ دستیار با گراف قطعی استاندارد پاسخ می‌دهد.'}</p>
+          <p className="mb-2 text-xs text-ink-500">پرسش خود را آزاد بنویسید. هماهنگ‌کننده (A0) با کمک هوش مصنوعی تصمیم می‌گیرد کدام عامل و ابزار را صدا بزند؛ همهٔ عددها از ابزارهای قطعی می‌آیند و پاسخ نهایی از نظر عدد بی‌پشتوانه بررسی می‌شود.{!llmConfigured && ' هوش مصنوعی تنظیم نشده است؛ دستیار با گراف قطعی استاندارد پاسخ می‌دهد.'}</p>
           <textarea value={q} onChange={(e) => setQ(e.target.value)} rows={3} className={`${input} w-full`} />
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={offline} onChange={(e) => setOffline(e.target.checked)} /> فقط دادهٔ ذخیره‌شده</label>
@@ -79,7 +79,7 @@ export function CopilotTab({ agentName, llmConfigured }: { agentName: Record<str
           <section className={card}>
             <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
               <b>{SES_FA[ses.status]}</b>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 dark:bg-wall-700">{ses.mode === 'llm' ? `مدل: ${ses.model ?? '…'}` : 'حالت قطعی (بدون مدل)'}</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 dark:bg-wall-700">{ses.mode === 'llm' ? 'با هوش مصنوعی' : 'حالت قطعی (بدون هوش مصنوعی)'}</span>
               {ses.grounding && <span className={`rounded-full px-2 py-0.5 ${ses.grounding.ungrounded.length ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'}`}>{ses.grounding.ungrounded.length ? `${fa(ses.grounding.ungrounded.length)} عدد بی‌پشتوانه: ${ses.grounding.ungrounded.join('، ')}` : `اتکای عددی: ${fa(ses.grounding.checked)} عدد بررسی شد`}{ses.grounding.revised ? ' (پس از یک بار اصلاح)' : ''}</span>}
             </div>
             <ol className="space-y-1">

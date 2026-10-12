@@ -51,7 +51,7 @@ import {
 import { MatchCriterion, MatchCandidate, SupplyItem, DemandItem } from '../types';
 import { recordEvent } from '../lib/archiveDB';
 import { IRAN_PROVINCES, IRAN_WATERS, IRAN_VIEWBOX, getPathLabelAnchor } from '../data/iranProvincePaths';
-import { chatWithAnthropicJSON } from '../lib/anthropic';
+import { chatWithAIJSON } from '../lib/aiService';
 import { getHakimGrounding } from '../lib/hakimGrounding';
 import { buildRegionalNLQMessages, localRegionalNLQFallback, type RegionalNLQResult } from '../lib/regionalExplain';
 
@@ -542,7 +542,7 @@ export default function RegionalPlanningPage() {
     try {
       const grounding = await getHakimGrounding();
       const { system, user } = buildRegionalNLQMessages(q, criteria, candidates, grounding);
-      const data = await chatWithAnthropicJSON<RegionalNLQResult>(
+      const data = await chatWithAIJSON<RegionalNLQResult>(
         [{ role: 'user', content: user }],
         { system, maxTokens: 1400, timeoutMs: 150000 },
       );

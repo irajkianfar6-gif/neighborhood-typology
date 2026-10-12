@@ -181,7 +181,7 @@ export default function CustomSurveyEditor({ initial, neighborhoodId, neighborho
     <div className="space-y-3">
       <Card title={<span className="flex items-center gap-2">{readOnly && <Lock size={13} />}{q.title || 'پرسشنامهٔ بی‌عنوان'} <span className="text-[10px] font-normal text-ink-400">نسخهٔ {fa(q.version)} · {q.status === 'draft' ? 'پیش‌نویس' : q.status === 'published' ? 'منتشرشده' : 'بایگانی'}</span></span>}
         actions={<button type="button" className={ghostBtn} onClick={onClose}>بازگشت به فهرست</button>}>
-        {q.ai?.drafted && <Notice tone="info"><Bot size={12} className="inline" /> پیش‌نویس با هوش مصنوعی ({q.ai.drafted.model}) ساخته شده است؛ پیش از انتشار همهٔ گویه‌ها و نگاشت‌ها را بازبینی کنید.</Notice>}
+        {q.ai?.drafted && <Notice tone="info"><Bot size={12} className="inline" /> پیش‌نویس با هوش مصنوعی ساخته شده است؛ پیش از انتشار همهٔ گویه‌ها و نگاشت‌ها را بازبینی کنید.</Notice>}
         {readOnly && <Notice tone="warn">پرسشنامهٔ منتشرشده قفل است تا پاسخ‌ها قابل مقایسه بمانند. برای تغییر، نسخهٔ جدید بسازید.
           <button type="button" className="mr-2 font-black underline" onClick={() => void run('ver', async () => { const v = await newCustomVersion(q.id); setQ(v); onSaved(v); setMsg({ tone: 'ok', text: `نسخهٔ ${v.version} به‌صورت پیش‌نویس ساخته شد.` }); })}>ساخت نسخهٔ جدید</button></Notice>}
         <fieldset disabled={readOnly} className="mt-3 grid gap-3 md:grid-cols-2">

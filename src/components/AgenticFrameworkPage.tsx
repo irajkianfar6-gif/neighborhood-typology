@@ -7,9 +7,10 @@ import { Bot, CheckCircle2, CircleAlert, Clock, FileText, Loader2, Play, ShieldC
 import { BatchTab, CopilotTab } from './AgenticPhase2Tabs';
 import { ResearchTab } from './AgenticResearchTab';
 import { DashboardTab, ScenarioTab, SurveyTab } from './AgenticPhase4Tabs';
+import { FieldLearningTab } from './AgenticPhase5Tab';
 import { agenticApi, type AgenticAgent, type AgenticInfo, type AgenticRun, type AgenticRunSummary, type AgenticToolInfo, type ToolCallResponse } from '../algorithm/agenticApi';
 
-type Tab = 'copilot' | 'run' | 'batch' | 'research' | 'survey' | 'scenario' | 'dashboard' | 'agents' | 'tools';
+type Tab = 'copilot' | 'run' | 'batch' | 'research' | 'survey' | 'field' | 'scenario' | 'dashboard' | 'agents' | 'tools';
 const STATUS_FA: Record<AgenticRun['status'], { label: string; cls: string }> = {
   queued: { label: 'در صف', cls: 'bg-slate-100 text-slate-800 dark:bg-wall-700 dark:text-slate-200' },
   cancelled: { label: 'لغو شد', cls: 'bg-slate-100 text-slate-800 dark:bg-wall-700 dark:text-slate-200' },
@@ -79,7 +80,7 @@ export default function AgenticFrameworkPage() {
             <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-wall-700">{fa(info.activeAgents)} عامل فعال از {fa(info.agents - 1)}</span>
             <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-wall-700">{fa(info.tools)} ابزار استاندارد</span>
             <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-wall-700">{fa(info.stats.calls)} فراخوانی · {fa(info.stats.errors)} خطا</span>
-            <span className={`rounded-full px-2 py-1 ${info.llm?.configured ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200' : 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200'}`}>{info.llm?.configured ? `مدل زبانی: ${info.llm.model}` : 'مدل زبانی تنظیم نشده (حالت قطعی)'}</span>
+            <span className={`rounded-full px-2 py-1 ${info.llm?.configured ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200' : 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200'}`}>{info.llm?.configured ? 'هوش مصنوعی: فعال' : 'هوش مصنوعی تنظیم نشده (حالت قطعی)'}</span>
             {info.queue && <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-wall-700">صف: {fa(info.queue.running ?? 0)} در اجرا · {fa(info.queue.queued ?? 0)} منتظر</span>}
             <span className="rounded-full bg-slate-100 px-2 py-1 font-mono dark:bg-wall-700" dir="ltr">MCP: {info.mcp.endpoint}</span>
           </div>
@@ -87,7 +88,7 @@ export default function AgenticFrameworkPage() {
       </header>
 
       <nav className="flex flex-wrap gap-2">
-        {([['copilot', 'دستیار عامل‌محور'], ['run', 'اجرای خودکار'], ['batch', 'اجرای دسته‌ای شهر'], ['research', 'پژوهش خودکار'], ['survey', 'دادهٔ پیمایشی (پرسشنامه)'], ['scenario', 'شبیه‌سازی سناریو'], ['dashboard', 'داشبورد عامل‌ها'], ['agents', 'عامل‌ها و دسترسی‌ها'], ['tools', 'ابزارها (MCP)']] as Array<[Tab, string]>).map(([k, l]) => (
+        {([['copilot', 'دستیار عامل‌محور'], ['run', 'اجرای خودکار'], ['batch', 'اجرای دسته‌ای شهر'], ['research', 'پژوهش خودکار'], ['survey', 'دادهٔ پیمایشی (پرسشنامه)'], ['field', 'میدان و یادگیری'], ['scenario', 'شبیه‌سازی سناریو'], ['dashboard', 'داشبورد عامل‌ها'], ['agents', 'عامل‌ها و دسترسی‌ها'], ['tools', 'ابزارها (MCP)']] as Array<[Tab, string]>).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`rounded-xl px-3 py-1.5 text-xs font-bold ${tab === k ? 'bg-brand-600 text-white' : 'bg-surface border border-line dark:border-wall-700 dark:bg-wall-800'}`}>{l}</button>
         ))}
       </nav>
@@ -230,6 +231,7 @@ export default function AgenticFrameworkPage() {
       {tab === 'batch' && <BatchTab />}
       {tab === 'research' && <ResearchTab />}
       {tab === 'survey' && <SurveyTab llmConfigured={Boolean(info?.llm?.configured)} />}
+      {tab === 'field' && <FieldLearningTab onOpenSurvey={() => setTab('survey')} />}
       {tab === 'scenario' && <ScenarioTab llmConfigured={Boolean(info?.llm?.configured)} />}
       {tab === 'dashboard' && <DashboardTab />}
       {tab === 'tools' && <ToolsTab tools={tools} agents={agents} info={info} />}

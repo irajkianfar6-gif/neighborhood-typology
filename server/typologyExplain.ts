@@ -57,7 +57,7 @@ function deterministicFallback(report: Record<string, unknown>, language: 'fa' |
 export async function explainTypologyReport(
   report: Record<string, unknown>,
   input: ExplainInput,
-): Promise<{ text: string; ai_used: boolean; source: 'anthropic' | 'deterministic_fallback'; warning: string }> {
+): Promise<{ text: string; ai_used: boolean; source: 'ai' | 'deterministic_fallback'; warning: string }> {
   const language = input.language === 'en' ? 'en' : 'fa';
   const fallback = deterministicFallback(report, language);
   const apiKey = process.env.ARA_ANTHROPIC_API_KEY;
@@ -116,7 +116,7 @@ export async function explainTypologyReport(
     return {
       text,
       ai_used: true,
-      source: 'anthropic',
+      source: 'ai',
       warning: 'The model explained stored deterministic results; it did not calculate indicator values.',
     };
   } catch {

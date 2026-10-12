@@ -25,7 +25,7 @@ import {
 import type { CalibrationInfo, ZoneResult } from '../algorithm/types';
 import type { FullExtract } from '../algorithm/liveExtract';
 import type { PointIngest } from '../algorithm/ingest';
-import { chatWithAnthropicJSON } from '../lib/anthropic';
+import { chatWithAIJSON } from '../lib/aiService';
 import {
   buildAuditMessages,
   buildReportMessages,
@@ -90,7 +90,7 @@ export default function ZoneAIAudit({ pointKey, zone, samples, ingest, calibrati
     try {
       const grounding = await getHakimGrounding();
       const { system, user } = buildReportMessages(zone, samples, ingest, audit, grounding, calibration);
-      const data = await chatWithAnthropicJSON<ZoneReport>(
+      const data = await chatWithAIJSON<ZoneReport>(
         [{ role: 'user', content: user }],
         { system, maxTokens: 1600, timeoutMs: 150000 },
       );
@@ -171,7 +171,7 @@ export default function ZoneAIAudit({ pointKey, zone, samples, ingest, calibrati
       try {
         const grounding = await getHakimGrounding();
         const { system, user } = buildAuditMessages(zone, samples, ingest, grounding, calibration);
-        const data = await chatWithAnthropicJSON<ZoneAudit>(
+        const data = await chatWithAIJSON<ZoneAudit>(
           [{ role: 'user', content: user }],
           { system, maxTokens: 1600, timeoutMs: 150000 },
         );

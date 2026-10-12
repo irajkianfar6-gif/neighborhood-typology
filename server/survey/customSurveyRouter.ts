@@ -43,7 +43,7 @@ export function createCustomSurveyRouter(): Router {
     indicators: CORE_CODES.map((c) => ({ code: c, name: CORE_NAME[c], surveyNative: SURVEY_NATIVE.has(c) })),
     kinds: KIND_LABELS, methods: METHOD_LABELS,
   }));
-  r.get('/ai/status', (_req, res) => { const c = llmConfig(); ok(res, { configured: c.configured, model: c.model, host: new URL(c.baseUrl).host }); });
+  r.get('/ai/status', (_req, res) => { const c = llmConfig(); ok(res, { configured: c.configured }); });
 
   r.get('/', route((req, res) => {
     const nb = typeof req.query.neighborhoodId === 'string' ? req.query.neighborhoodId : '';

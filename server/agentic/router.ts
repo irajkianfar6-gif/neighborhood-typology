@@ -25,17 +25,20 @@ import { analysisFor, invalidateNeighborhood } from './state';
 import { SCENARIO_VERSION } from './scenario';
 import { CRITIC_SUITE_VERSION } from './criticSuite';
 import { DASHBOARD_VERSION } from './dashboard';
+import { decideCampaign, FIELD_VERSION } from './field/campaign';
+import { libraryItems, MONITORING_VERSION, registerMonitoring } from './field/monitoring';
+import { decideProposal, LEARNING_VERSION } from './field/learning';
 
 const asyncRoute = (fn: (req: Request, res: Response) => Promise<void>) => (req: Request, res: Response, next: NextFunction) => { fn(req, res).catch(next); };
 const ok = (res: Response, data: unknown, status = 200) => res.status(status).json({ success: true, data });
 const fail = (res: Response, status: number, code: string, message: string, details?: unknown) => res.status(status).json({ success: false, error: { code, message, details } });
-const STATUS: Record<string, number> = { UNKNOWN_TOOL: 404, UNKNOWN_AGENT: 400, FORBIDDEN: 403, INVALID_INPUT: 400, NOT_FOUND: 404, ANALYSIS_EXPIRED: 409, TIMEOUT: 504, INVALID_OUTPUT: 500, TOOL_ERROR: 500, LLM_UNAVAILABLE: 503, NO_SURVEY_GAPS: 422 };
+const STATUS: Record<string, number> = { UNKNOWN_TOOL: 404, UNKNOWN_AGENT: 400, FORBIDDEN: 403, INVALID_INPUT: 400, NOT_FOUND: 404, ANALYSIS_EXPIRED: 409, TIMEOUT: 504, INVALID_OUTPUT: 500, TOOL_ERROR: 500, LLM_UNAVAILABLE: 503, NO_SURVEY_GAPS: 422, CAMPAIGN_OPEN: 409, INVALID_STATE: 409, NOT_READY: 409 };
 
 export function frameworkInfo() {
   return {
-    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION, research: RESEARCH_VERSION, ...RESEARCH_VERSIONS, scenario: SCENARIO_VERSION, criticSuite: CRITIC_SUITE_VERSION, dashboard: DASHBOARD_VERSION },
+    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION, research: RESEARCH_VERSION, ...RESEARCH_VERSIONS, scenario: SCENARIO_VERSION, criticSuite: CRITIC_SUITE_VERSION, dashboard: DASHBOARD_VERSION, field: FIELD_VERSION, monitoring: MONITORING_VERSION, learning: LEARNING_VERSION },
     research: { searchProvider: searchProvider(), memory: memoryStats() },
-    llm: (() => { const c = llmConfig(); return { configured: c.configured, model: c.configured ? c.model : null }; })(),
+    llm: (() => { const c = llmConfig(); return { configured: c.configured }; })(),
     mcp: { endpoint: '/api/agentic/mcp', transport: 'streamable-http (JSON-RPC 2.0, POST)', protocolVersions: MCP_PROTOCOL_VERSIONS, agentHeader: 'x-ara-agent' },
     tools: listTools().length, agents: AGENTS.length, activeAgents: AGENTS.filter((a) => a.status === 'active' && a.id !== 'operator').length,
   };
@@ -176,7 +179,7 @@ export function createAgenticRouter(): Router {
   router.post('/scenario', viaTool('simulate_scenario', 'A11', (req) => ({ overrides: {}, ...body(req) })));
   router.post('/sensitivity', viaTool('sensitivity_analysis', 'A11', body));
   router.post('/critic/self-test', viaTool('critic_self_test', 'A12', body));
-  router.post('/critic/llm-review', viaTool('llm_review', 'A12', body));
+  router.post(['/critic/ai-review', '/critic/llm-review'], viaTool('ai_review', 'A12', body));
   router.get('/dashboard', viaTool('get_agent_dashboard', 'A14', (req) => (req.query.limit ? { limit: Number(req.query.limit) } : {})));
   router.get('/survey/:nb/status', viaTool('get_survey_status', 'A8', (req) => ({ neighborhoodId: req.params.nb })));
   router.post('/survey/:nb/draft-questionnaire', viaTool('draft_gap_questionnaire', 'A8', (req) => ({ ...body(req), neighborhoodId: req.params.nb })));
@@ -185,6 +188,26 @@ export function createAgenticRouter(): Router {
     if (!/^[a-z0-9_-]+:[A-Za-z0-9_.-]+$/.test(id)) { fail(res, 400, 'INVALID_INPUT', 'neighborhoodId معتبر لازم است'); return; }
     ok(res, { neighborhoodId: id, cleared: invalidateNeighborhood(id) });
   });
+
+  // ---------------- فاز ۵: میدان و یادگیری ----------------
+  const by = (req: Request) => String(body(req).by ?? req.header('x-ara-user') ?? 'operator').slice(0, 80);
+  const human = (fn: (req: Request) => Promise<unknown> | unknown) => asyncRoute(async (req, res) => {
+    try { ok(res, await fn(req)); } catch (e) { const code = (e as { code?: string }).code ?? 'ERROR'; fail(res, STATUS[code] ?? 400, code, e instanceof Error ? e.message : String(e)); }
+  });
+  router.post('/field/campaigns', viaTool('create_field_campaign', 'A8', body));
+  router.get('/field/campaigns', viaTool('list_field_campaigns', 'A8', (req) => (req.query.nb ? { neighborhoodId: String(req.query.nb) } : {})));
+  router.get('/field/campaigns/:id', viaTool('get_field_campaign', 'A8', (req) => ({ campaignId: req.params.id })));
+  router.post('/field/campaigns/:id/decision', human((req) => { const d = String(body(req).decision); if (d !== 'approved' && d !== 'rejected') throw Object.assign(new Error('decision باید approved یا rejected باشد'), { code: 'INVALID_INPUT' }); return decideCampaign(req.params.id, d, by(req), body(req).note as string | undefined); }));
+  router.post('/field/campaigns/:id/close', viaTool('close_field_campaign', 'A8', (req) => ({ campaignId: req.params.id, force: body(req).force === true })));
+  router.get('/field/cycle/:nb', viaTool('get_field_cycle', 'A14', (req) => ({ neighborhoodId: req.params.nb })));
+  router.get('/library', (_req, res) => { ok(res, libraryItems()); });
+  router.post('/monitoring', human((req) => { const b = body(req); return registerMonitoring({ neighborhoodId: String(b.neighborhoodId ?? ''), libraryId: String(b.libraryId ?? ''), startDate: b.startDate as string | undefined, note: b.note as string | undefined, offline: b.offline === true, registeredBy: by(req) }); }));
+  router.get('/monitoring', viaTool('list_monitoring', 'A14', (req) => (req.query.nb ? { neighborhoodId: String(req.query.nb) } : {})));
+  router.get('/monitoring/:id', viaTool('list_monitoring', 'A14', (req) => ({ monitoringId: req.params.id })));
+  router.post('/monitoring/:id/evaluate', viaTool('evaluate_monitoring', 'A14', (req) => ({ monitoringId: req.params.id })));
+  router.post('/learning/proposals/generate', viaTool('generate_calibration_proposals', 'A14', () => ({})));
+  router.get('/learning/proposals', viaTool('list_calibration_proposals', 'A14', (req) => (req.query.status ? { status: String(req.query.status) } : {})));
+  router.post('/learning/proposals/:id/decision', human((req) => { const d = String(body(req).decision); if (d !== 'approved' && d !== 'rejected') throw Object.assign(new Error('decision باید approved یا rejected باشد'), { code: 'INVALID_INPUT' }); const p = decideProposal(req.params.id, d, by(req), body(req).note as string | undefined); if (!p) throw Object.assign(new Error('پیشنهاد یافت نشد'), { code: 'NOT_FOUND' }); return p; }));
 
   router.post('/mcp', asyncRoute(mcpHandler));
   router.get('/mcp', (_req, res) => { res.status(405).set('Allow', 'POST').json({ error: 'این سرور MCP فقط POST (JSON-RPC) را می‌پذیرد؛ جریان SSE پشتیبانی نمی‌شود' }); });
