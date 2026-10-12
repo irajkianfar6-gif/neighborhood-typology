@@ -8,6 +8,10 @@ import { decideApproval, GRAPH_VERSION, listRuns, loadRun, runStandardGraph } fr
 import { callTool, describeTool, listTools } from './registry';
 import { TOOLS_VERSION } from './tools';
 import { listTrace, traceStats } from './trace';
+import { cancelJob, enqueueBatch, enqueueCopilot, enqueueGraph, wireJobs } from './jobs';
+import { batchCsv, listBatches, loadBatch } from './batch';
+import { COPILOT_VERSION, listSessions, loadSession } from './copilot';
+import { llmConfig } from '../ai/llm';
 
 const asyncRoute = (fn: (req: Request, res: Response) => Promise<void>) => (req: Request, res: Response, next: NextFunction) => { fn(req, res).catch(next); };
 const ok = (res: Response, data: unknown, status = 200) => res.status(status).json({ success: true, data });
@@ -16,7 +20,8 @@ const STATUS: Record<string, number> = { UNKNOWN_TOOL: 404, UNKNOWN_AGENT: 400, 
 
 export function frameworkInfo() {
   return {
-    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION },
+    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION },
+    llm: (() => { const c = llmConfig(); return { configured: c.configured, model: c.configured ? c.model : null }; })(),
     mcp: { endpoint: '/api/agentic/mcp', transport: 'streamable-http (JSON-RPC 2.0, POST)', protocolVersions: MCP_PROTOCOL_VERSIONS, agentHeader: 'x-ara-agent' },
     tools: listTools().length, agents: AGENTS.length, activeAgents: AGENTS.filter((a) => a.status === 'active' && a.id !== 'operator').length,
   };
@@ -24,9 +29,10 @@ export function frameworkInfo() {
 
 export function createAgenticRouter(): Router {
   const router = Router();
+  wireJobs();
   router.use(express.json({ limit: '2mb' }));
 
-  router.get('/info', (_req, res) => { ok(res, { ...frameworkInfo(), stats: traceStats() }); });
+  router.get('/info', (_req, res) => { ok(res, { ...frameworkInfo(), stats: traceStats(), queue: wireJobs().stats() }); });
   router.get('/tools', (_req, res) => { ok(res, listTools().map(describeTool)); });
   router.get('/agents', (_req, res) => { ok(res, AGENTS); });
   router.get('/evidence-schema', (_req, res) => { ok(res, { version: EVIDENCE_PACKET_VERSION, schema: EVIDENCE_PACKET_SCHEMA }); });
@@ -44,7 +50,9 @@ export function createAgenticRouter(): Router {
   router.post('/runs', asyncRoute(async (req, res) => {
     const b = (req.body ?? {}) as { name?: string; city?: string; neighborhoodId?: string; offline?: boolean; useKernel?: boolean; purpose?: string };
     if (!b.name && !b.neighborhoodId) { fail(res, 400, 'INVALID_INPUT', 'name یا neighborhoodId لازم است'); return; }
-    const run = await runStandardGraph({ name: b.name?.slice(0, 120), city: b.city?.slice(0, 60), neighborhoodId: b.neighborhoodId, offline: Boolean(b.offline), useKernel: b.useKernel === true, purpose: b.purpose });
+    const input = { name: b.name?.slice(0, 120), city: b.city?.slice(0, 60), neighborhoodId: b.neighborhoodId, offline: Boolean(b.offline), useKernel: b.useKernel === true, purpose: b.purpose };
+    if ((req.body as { async?: boolean }).async === true) { ok(res, enqueueGraph(input), 202); return; }
+    const run = await runStandardGraph(input);
     ok(res, run, 201);
   }));
   router.get('/runs', (req, res) => { ok(res, listRuns(Number(req.query.limit ?? 30))); });
@@ -56,6 +64,33 @@ export function createAgenticRouter(): Router {
     if (!r) { fail(res, 404, 'NOT_FOUND', 'اجرا یافت نشد'); return; }
     ok(res, r);
   });
+
+  // ---------- فاز ۲: صف کار، اجرای دسته‌ای، دستیار عامل‌محور ----------
+  router.get('/jobs', (req, res) => { ok(res, wireJobs().list({ kind: req.query.kind as never, limit: Number(req.query.limit ?? 50) })); });
+  router.get('/jobs/:id', (req, res) => { const j = wireJobs().get(req.params.id); if (!j) { fail(res, 404, 'NOT_FOUND', 'کار یافت نشد'); return; } ok(res, j); });
+  router.post('/jobs/:id/cancel', (req, res) => { const j = cancelJob(req.params.id); if (!j) { fail(res, 404, 'NOT_FOUND', 'کار یافت نشد'); return; } ok(res, j); });
+
+  router.post('/batches', (req, res) => {
+    const b = (req.body ?? {}) as { city?: string; offline?: boolean; limit?: number };
+    if (!b.city) { fail(res, 400, 'INVALID_INPUT', 'city لازم است'); return; }
+    try { ok(res, enqueueBatch(String(b.city).slice(0, 60), { offline: Boolean(b.offline), limit: b.limit ? Math.max(1, Math.floor(Number(b.limit))) : undefined }), 202); }
+    catch (e) { fail(res, 400, 'INVALID_INPUT', e instanceof Error ? e.message : String(e)); }
+  });
+  router.get('/batches', (req, res) => { ok(res, listBatches(Number(req.query.limit ?? 20))); });
+  router.get('/batches/:id', (req, res) => { const b = loadBatch(req.params.id); if (!b) { fail(res, 404, 'NOT_FOUND', 'دسته یافت نشد'); return; } ok(res, b); });
+  router.get('/batches/:id/csv', (req, res) => {
+    const b = loadBatch(req.params.id); if (!b) { fail(res, 404, 'NOT_FOUND', 'دسته یافت نشد'); return; }
+    res.set('Content-Type', 'text/csv; charset=utf-8').set('Content-Disposition', `attachment; filename="${b.batchId}.csv"`).send(batchCsv(b));
+  });
+
+  router.post('/copilot', (req, res) => {
+    const b = (req.body ?? {}) as { question?: string; offline?: boolean };
+    const question = String(b.question ?? '').trim();
+    if (question.length < 3) { fail(res, 400, 'INVALID_INPUT', 'پرسش لازم است'); return; }
+    ok(res, enqueueCopilot(question, Boolean(b.offline)), 202);
+  });
+  router.get('/copilot', (req, res) => { ok(res, listSessions(Number(req.query.limit ?? 20))); });
+  router.get('/copilot/:id', (req, res) => { const s = loadSession(req.params.id); if (!s) { fail(res, 404, 'NOT_FOUND', 'نشست یافت نشد'); return; } ok(res, s); });
 
   router.post('/mcp', asyncRoute(mcpHandler));
   router.get('/mcp', (_req, res) => { res.status(405).set('Allow', 'POST').json({ error: 'این سرور MCP فقط POST (JSON-RPC) را می‌پذیرد؛ جریان SSE پشتیبانی نمی‌شود' }); });

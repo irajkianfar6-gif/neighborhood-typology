@@ -10,6 +10,7 @@ import { serverDataDir } from '../paths';
 import { callTool, type ToolCallResult } from './registry';
 
 export const GRAPH_VERSION = 'GRAPH-v1';
+export class CancelledError extends Error { constructor() { super('اجرا لغو شد'); } }
 
 export interface RunStep { id: string; title: string; agentId: string; tool: string; status: 'done' | 'failed' | 'skipped'; startedAt: string; durationMs: number; summary: string; callId: string | null; error?: string }
 export interface RunGate { id: 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'G6'; title: string; status: 'passed' | 'warning' | 'blocked' | 'pending'; detail: string }
@@ -17,10 +18,11 @@ export interface RunApproval { id: string; kind: 'neighborhood_choice' | 'offici
 export interface AgenticRun {
   schema: 'ara.agentic-run.v1'; runId: string; graph: string; createdAt: string; finishedAt: string | null;
   input: { name?: string; city?: string; neighborhoodId?: string; offline?: boolean; useKernel?: boolean; purpose?: string };
-  status: 'running' | 'completed' | 'needs_user' | 'blocked' | 'failed';
+  status: 'queued' | 'running' | 'completed' | 'needs_user' | 'blocked' | 'failed' | 'cancelled';
+  jobId?: string | null;
   neighborhoodId: string | null; nameFa: string | null; analysisId: string | null; level: string | null;
   steps: RunStep[]; gates: RunGate[]; approvals: RunApproval[];
-  outputs: { candidates?: unknown[]; critic?: unknown; report?: string; officialReport?: string | null; interventions?: unknown; bottleneck?: unknown; reproducibilityKey?: unknown };
+  outputs: { candidates?: unknown[]; findings?: Array<{ id: string; title: string; severity: string }>; critic?: unknown; report?: string; officialReport?: string | null; interventions?: unknown; bottleneck?: unknown; reproducibilityKey?: unknown };
 }
 
 function runsDir(): string { const d = path.join(serverDataDir(), 'agentic', 'runs'); fs.mkdirSync(d, { recursive: true }); return d; }
@@ -45,14 +47,27 @@ export function decideApproval(runId: string, approvalId: string, decision: 'app
   return r;
 }
 
-export async function runStandardGraph(input: AgenticRun['input']): Promise<AgenticRun> {
+export function newRunId(): string { return `run_${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}_${crypto.randomBytes(3).toString('hex')}`; }
+
+/** رکورد اجرای «در صف» برای اجرای ناهمگام (پیش از برداشتن توسط کارگر صف) */
+export function createQueuedRun(input: AgenticRun['input'], jobId: string | null): AgenticRun {
+  const run: AgenticRun = { schema: 'ara.agentic-run.v1', runId: newRunId(), graph: GRAPH_VERSION, createdAt: new Date().toISOString(), finishedAt: null, input, status: 'queued', jobId, neighborhoodId: input.neighborhoodId ?? null, nameFa: null, analysisId: null, level: null, steps: [], gates: [], approvals: [], outputs: {} };
+  saveRun(run);
+  return run;
+}
+
+export interface GraphControl { runId?: string; jobId?: string | null; isCancelled?: () => boolean }
+
+export async function runStandardGraph(input: AgenticRun['input'], control: GraphControl = {}): Promise<AgenticRun> {
+  const prior = control.runId ? loadRun(control.runId) : null;
   const run: AgenticRun = {
-    schema: 'ara.agentic-run.v1', runId: `run_${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}_${crypto.randomBytes(3).toString('hex')}`, graph: GRAPH_VERSION,
-    createdAt: new Date().toISOString(), finishedAt: null, input, status: 'running', neighborhoodId: input.neighborhoodId ?? null, nameFa: null, analysisId: null, level: null,
+    schema: 'ara.agentic-run.v1', runId: control.runId ?? newRunId(), graph: GRAPH_VERSION, jobId: control.jobId ?? null,
+    createdAt: prior?.createdAt ?? new Date().toISOString(), finishedAt: null, input, status: 'running', neighborhoodId: input.neighborhoodId ?? null, nameFa: null, analysisId: null, level: null,
     steps: [], gates: [], approvals: [], outputs: {},
   };
   const opts = { offline: Boolean(input.offline), useKernel: input.useKernel === true };
   const step = async (id: string, title: string, agentId: string, tool: string, args: Record<string, unknown>): Promise<ToolCallResult> => {
+    if (control.isCancelled?.()) throw new CancelledError();
     const startedAt = new Date().toISOString();
     const r = await callTool(tool, args, { agentId, runId: run.runId, via: 'pipeline' });
     run.steps.push({ id, title, agentId, tool, status: r.ok ? 'done' : 'failed', startedAt, durationMs: r.durationMs, summary: r.summary, callId: r.callId, ...(r.ok ? {} : { error: `${r.error?.code}: ${r.error?.message}` }) });
@@ -108,12 +123,13 @@ export async function runStandardGraph(input: AgenticRun['input']): Promise<Agen
     const ref = { analysisId, neighborhoodId: nb, ...opts };
 
     // ۴) A9 — تشخیص (موازی)
-    const [bn] = await Promise.all([
+    const [bn, , ll] = await Promise.all([
       step('S7', 'مکان‌یابی گلوگاه', 'A9', 'locate_bottleneck', ref),
       step('S8', 'آزمون فرضیه‌های علّی', 'A9', 'test_hypotheses', ref),
       step('S9', 'لایه‌های محله‌ای و یافته‌ها', 'A9', 'assess_local_layers', { analysisId, neighborhoodId: nb }),
     ]);
     if (bn.ok) run.outputs.bottleneck = bn.output;
+    if (ll.ok && ll.output!.assessment) run.outputs.findings = ((ll.output!.assessment as { findings: Array<{ id: string; title: string; severity: string }> }).findings).map((f) => ({ id: f.id, title: f.title, severity: f.severity }));
 
     // ۵) A10 — تجویز (G6: تصویب انسانی)
     const mi = await step('S10', 'نگاشت به کتابخانهٔ مداخلات', 'A10', 'map_interventions', ref);
@@ -149,6 +165,7 @@ export async function runStandardGraph(input: AgenticRun['input']): Promise<Agen
     const blocked = run.gates.some((g) => g.id === 'G4' && g.status === 'blocked');
     return end(blocked ? 'blocked' : 'completed');
   } catch (error) {
+    if (error instanceof CancelledError) return end('cancelled');
     run.steps.push({ id: 'SX', title: 'خطای پیش‌بینی‌نشده', agentId: 'A0', tool: '-', status: 'failed', startedAt: new Date().toISOString(), durationMs: 0, summary: '', callId: null, error: error instanceof Error ? error.message : String(error) });
     return end('failed');
   }
