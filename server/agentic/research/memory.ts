@@ -9,7 +9,7 @@ import { normalizeFa } from '../../neighborhood/text';
 import { lamAlefFold } from './documents';
 
 export const MEMORY_VERSION = 'MEM-BM25-v1';
-export interface Chunk { chunkId: string; kind: 'document' | 'source_card'; refId: string; page: number; title: string; text: string }
+export interface Chunk { chunkId: string; kind: 'document' | 'source_card' | 'web_research'; refId: string; page: number; title: string; text: string }
 interface Index { version: string; chunks: Array<Chunk & { tf: Record<string, number>; len: number }>; df: Record<string, number>; avgLen: number }
 
 const STOP = new Set('و در به از که این آن با را برای تا یا هم نیز است شد شده می ها های بر هر ای یک the of and in to for a is on by with سال جدول'.split(' '));

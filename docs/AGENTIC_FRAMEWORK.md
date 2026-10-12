@@ -120,3 +120,20 @@ API تازه: `POST /scenario`، `POST /sensitivity`، `POST /critic/self-test`�
 - **API:** `POST/GET /field/campaigns`، `GET /field/campaigns/:id`، `POST /field/campaigns/:id/decision` (انسانی)، `POST /field/campaigns/:id/close`، `GET /field/cycle/:nb`، `GET /library`، `POST /monitoring` (انسانی)، `GET /monitoring[/:id]`، `POST /monitoring/:id/evaluate`، `POST /learning/proposals/generate`، `GET /learning/proposals`، `POST /learning/proposals/:id/decision` (انسانی).
 - **حذف نام مدل و برند هوش مصنوعی از رابط:** میان‌افزار `server/ai/brandScrub.ts` نام مدل‌ها/برندها، نشانی سرویس و نام متغیرهای پیکربندی را در همهٔ پاسخ‌های API (و جریان SSE) به «هوش مصنوعی» تبدیل می‌کند؛ مدل فقط سمت سرور انتخاب می‌شود (`/api/ai`)؛ `/info` و `/ai/status` فقط `configured` را برمی‌گردانند.
 - **فاز ۶ (تعمیم):** همهٔ ابزارهای فاز ۵ برای محلهٔ کرج بدون تغییر کد کار می‌کنند (آزمون). مانده: PostgreSQL/pgvector که به سرور پایگاه داده در استقرار نیاز دارد.
+
+## پژوهش عمیق وب (WEBRES-v1، WEBCLIENT-v1، TOOLS-v5، AGP-v5)
+
+هدف: یافتن عدد منتشرشده برای شاخص‌های بدون داده (جست‌وجو، خواندن صفحه، پژوهش چندمرحله‌ای با خروجی ساخت‌یافته) و ورود آن به سنجه **فقط** پس از راستی‌آزمایی قطعی و تأیید کارشناس.
+
+- `research/webClient.ts`: کلاینت سرویس پژوهش وب (جست‌وجو، محتوای صفحه، پژوهش؛ سطح‌های `lite/standard` همگام و `deep/exhaustive/frontier` پس‌زمینه با پرسش دوره‌ای)، تلاش مجدد، حافظهٔ نهان دیسکی، سقف روزانهٔ تعداد و هزینه. نام سرویس/مدل در رابط کاربری نمایش داده نمی‌شود.
+- `research/webResearch.ts`: برای هر شاخص پرسش ساخت‌یافته (تعریف عملیاتی، فرمول، واحد، محله/منطقه/شهر، اولویت منابع رسمی) با طرح‌وارهٔ خروجی `candidates[]` (مقدار، واحد، دوره، سطح مکانی، نام محدوده، نشانی منبع، نقل‌قول، رسمی بودن).
+- راستی‌آزمایی قطعی هر نامزد: (۱) نشانی منبع باید در فهرست منابع خوانده‌شده باشد؛ (۲) عدد باید در متن صفحه (`page`) یا گزیدهٔ منبع (`snippet`) یافت شود — عددی که فقط در نقل‌قول مدل آمده (`quote_only`) رد می‌شود؛ (۳) دامنهٔ مجاز (درصد ۰–۱۰۰، شمارش ≥۱)؛ (۴) تطبیق مکانی: محله (نام/گزتیر) یا منطقهٔ همان محله؛ شاخص شمارشی منطقه به محله گسترده نمی‌شود؛ شهر/استان فقط «زمینه»؛ (۵) دورهٔ داده. وضعیت: `acceptable` / `needs_review` / `rejected`.
+- شاخص‌های ادراکی (S1، S2، S3، C3) فقط با پیمایش؛ کدهای خارج از واژه‌نامهٔ قرارداد کنار گذاشته می‌شوند.
+- تأیید انسانی: `POST /api/agentic/web/research/:id/candidates/:code/:idx/decision` (فقط کاربر؛ هیچ ابزار عاملی ندارد) → دستهٔ قراردادی تک‌ردیفی `PENDING_REVIEW` + فایل خاستگاه؛ ورود به سنجه فقط پس از بازبینی دسته (فرد دوم).
+- منابع خوانده‌شده → کارت منبع با خاستگاه `research` (اعتماد اولیهٔ پایین؛ تأیید کارشناس) و نمایه در حافظهٔ پژوهشی (`web_research`). «افزودن به اسناد» صفحه را در کتابخانهٔ اسناد ثبت می‌کند.
+- ابزارها (TOOLS-v5، ۴۹ ابزار): `web_search`، `fetch_web_contents`، `web_research_indicators`، `get_web_research`. دسترسی (AGP-v5): A2 همه؛ A4 فقط `fetch_web_contents`؛ A0 فقط `get_web_research`.
+- API: `GET /web/status`، `POST /web/search`، `POST /web/contents`، `POST /web/research` (کاربر؛ اجرای پس‌زمینه)، `GET /web/research[?nb]`، `GET /web/research/:id`، تصمیم بالا. خطاها: `WEB_NOT_CONFIGURED` 503، `WEB_BUDGET` 429، `WEB_UPSTREAM` 502، `WEB_TIMEOUT` 504، `WEB_INPUT` 400، `NO_WEB_GAPS` 422.
+- پیکربندی (`.env` سرور): `YDC_API_KEY` (الزامی)، `ARA_WEBRESEARCH_MAX_EFFORT` (پیش‌فرض deep)، `ARA_WEBRESEARCH_DAILY_LIMIT` (۴۰)، `ARA_WEBSEARCH_DAILY_LIMIT` (۳۰۰)، `ARA_WEBRESEARCH_DAILY_USD` (۵)، `ARA_WEBRESEARCH_CACHE_DAYS` (۷)، `ARA_SEARCH_PROVIDER=you` (کشف منبع از همین سرویس).
+- هزینهٔ هر پژوهش: standard ≈ ۰٫۰۵، deep ≈ ۰٫۱، exhaustive ≈ ۰٫۴۵ دلار (به‌ازای هر شاخص). جست‌وجو و حافظهٔ نهان رایگان/ارزان.
+- محدودیت: بسیاری از سایت‌های رسمی ایران از بیرون خزیده نمی‌شوند؛ آمار سطح محله کمیاب است. برای این موارد فایل گزارش را دستی بارگذاری کنید (OCR/استخراج جدول).
+- آزمون: `server/agentic/webresearch.test.ts` (۶ آزمون با سرویس ساختگی). منابع خودارجاع (مخزن همین سامانه) همیشه رد می‌شوند..

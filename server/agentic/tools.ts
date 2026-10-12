@@ -28,8 +28,9 @@ import type { JsonSchema } from './schema';
 import { RESEARCH_TOOLS } from './research/researchTools';
 import { PHASE4_TOOLS } from './phase4Tools';
 import { FIELD_TOOLS } from './field/fieldTools';
+import { WEB_TOOLS } from './research/webTools';
 
-export const TOOLS_VERSION = 'TOOLS-v4';
+export const TOOLS_VERSION = 'TOOLS-v5';
 
 export type ToolCategory = 'identity' | 'data' | 'quality' | 'measurement' | 'diagnosis' | 'prescription' | 'survey' | 'governance' | 'report' | 'research';
 export interface ToolContext { agentId: string; runId: string | null }
@@ -325,4 +326,5 @@ export const TOOLS: ToolDef[] = [
   ...PHASE4_TOOLS,
   // ---------------- میدان و یادگیری (فاز ۵) ----------------
   ...FIELD_TOOLS,
+  ...WEB_TOOLS,
 ];

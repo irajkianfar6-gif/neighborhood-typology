@@ -21,6 +21,8 @@ import { matchUnits } from './research/spatialMatch';
 import { memoryStats, searchMemory } from './research/memory';
 import { decideCard, discoverSources, listCards, searchProvider, type CardStatus } from './research/discovery';
 import { gapsFromCard } from './research/research';
+import { decideCandidate, getWebResearch, listWebResearch, markInterrupted, runWebResearch, startWebResearch, WEBRESEARCH_VERSION } from './research/webResearch';
+import { usageToday, webConfig } from './research/webClient';
 import { analysisFor, invalidateNeighborhood } from './state';
 import { SCENARIO_VERSION } from './scenario';
 import { CRITIC_SUITE_VERSION } from './criticSuite';
@@ -32,11 +34,11 @@ import { decideProposal, LEARNING_VERSION } from './field/learning';
 const asyncRoute = (fn: (req: Request, res: Response) => Promise<void>) => (req: Request, res: Response, next: NextFunction) => { fn(req, res).catch(next); };
 const ok = (res: Response, data: unknown, status = 200) => res.status(status).json({ success: true, data });
 const fail = (res: Response, status: number, code: string, message: string, details?: unknown) => res.status(status).json({ success: false, error: { code, message, details } });
-const STATUS: Record<string, number> = { UNKNOWN_TOOL: 404, UNKNOWN_AGENT: 400, FORBIDDEN: 403, INVALID_INPUT: 400, NOT_FOUND: 404, ANALYSIS_EXPIRED: 409, TIMEOUT: 504, INVALID_OUTPUT: 500, TOOL_ERROR: 500, LLM_UNAVAILABLE: 503, NO_SURVEY_GAPS: 422, CAMPAIGN_OPEN: 409, INVALID_STATE: 409, NOT_READY: 409 };
+const STATUS: Record<string, number> = { UNKNOWN_TOOL: 404, UNKNOWN_AGENT: 400, FORBIDDEN: 403, INVALID_INPUT: 400, NOT_FOUND: 404, ANALYSIS_EXPIRED: 409, TIMEOUT: 504, INVALID_OUTPUT: 500, TOOL_ERROR: 500, LLM_UNAVAILABLE: 503, NO_SURVEY_GAPS: 422, CAMPAIGN_OPEN: 409, INVALID_STATE: 409, NOT_READY: 409, WEB_NOT_CONFIGURED: 503, WEB_BUDGET: 429, WEB_UPSTREAM: 502, WEB_TIMEOUT: 504, WEB_INPUT: 400, NO_WEB_GAPS: 422 };
 
 export function frameworkInfo() {
   return {
-    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION, research: RESEARCH_VERSION, ...RESEARCH_VERSIONS, scenario: SCENARIO_VERSION, criticSuite: CRITIC_SUITE_VERSION, dashboard: DASHBOARD_VERSION, field: FIELD_VERSION, monitoring: MONITORING_VERSION, learning: LEARNING_VERSION },
+    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION, research: RESEARCH_VERSION, ...RESEARCH_VERSIONS, scenario: SCENARIO_VERSION, criticSuite: CRITIC_SUITE_VERSION, dashboard: DASHBOARD_VERSION, field: FIELD_VERSION, monitoring: MONITORING_VERSION, learning: LEARNING_VERSION, webResearch: WEBRESEARCH_VERSION },
     research: { searchProvider: searchProvider(), memory: memoryStats() },
     llm: (() => { const c = llmConfig(); return { configured: c.configured }; })(),
     mcp: { endpoint: '/api/agentic/mcp', transport: 'streamable-http (JSON-RPC 2.0, POST)', protocolVersions: MCP_PROTOCOL_VERSIONS, agentHeader: 'x-ara-agent' },
@@ -194,6 +196,20 @@ export function createAgenticRouter(): Router {
   const human = (fn: (req: Request) => Promise<unknown> | unknown) => asyncRoute(async (req, res) => {
     try { ok(res, await fn(req)); } catch (e) { const code = (e as { code?: string }).code ?? 'ERROR'; fail(res, STATUS[code] ?? 400, code, e instanceof Error ? e.message : String(e)); }
   });
+  // پژوهش وب (A2): اجرای پس‌زمینه، تأیید نامزد فقط با کارشناس
+  try { markInterrupted(); } catch { /* */ }
+  router.get('/web/status', (_req, res) => { const u = usageToday(); ok(res, { configured: webConfig().configured, usage: { day: u.day, research: u.research, search: u.search, contents: u.contents, cacheHits: u.cacheHits, costUsd: u.costUsd }, limits: { maxEffort: u.limits.maxEffort, dailyResearch: u.limits.dailyResearch, dailySearch: u.limits.dailySearch, dailyBudgetUsd: u.limits.dailyBudgetUsd } }); });
+  router.post('/web/search', viaTool('web_search', 'A2', body));
+  router.post('/web/contents', viaTool('fetch_web_contents', 'A2', body));
+  router.post('/web/research', human(async (req) => {
+    const b = body(req);
+    const rec = await startWebResearch({ neighborhoodId: String(b.neighborhoodId ?? ''), codes: Array.isArray(b.codes) ? (b.codes as string[]).slice(0, 10).map(String) : undefined, effort: b.effort as never, maxIndicators: Number(b.maxIndicators ?? 5), offline: b.offline !== false, createdBy: by(req) });
+    void runWebResearch(rec.id, { verifySources: b.verifySources === true }).catch(() => undefined);
+    return rec;
+  }));
+  router.get('/web/research', (req, res) => { ok(res, listWebResearch(req.query.nb ? String(req.query.nb) : undefined)); });
+  router.get('/web/research/:id', (req, res) => { const r = getWebResearch(req.params.id); if (!r) { fail(res, 404, 'NOT_FOUND', 'پژوهش وب یافت نشد'); return; } ok(res, r); });
+  router.post('/web/research/:id/candidates/:code/:idx/decision', human((req) => { const b = body(req); const d = String(b.decision); if (d !== 'approved' && d !== 'rejected') throw Object.assign(new Error('decision باید approved یا rejected باشد'), { code: 'INVALID_INPUT' }); return decideCandidate(req.params.id, req.params.code.toUpperCase(), Number(req.params.idx), d, by(req), { note: b.note as string | undefined, periodEnd: b.periodEnd as string | undefined }); }));
   router.post('/field/campaigns', viaTool('create_field_campaign', 'A8', body));
   router.get('/field/campaigns', viaTool('list_field_campaigns', 'A8', (req) => (req.query.nb ? { neighborhoodId: String(req.query.nb) } : {})));
   router.get('/field/campaigns/:id', viaTool('get_field_campaign', 'A8', (req) => ({ campaignId: req.params.id })));
