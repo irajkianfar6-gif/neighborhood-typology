@@ -14,6 +14,8 @@ import { INDICATOR_LEXICON } from './columns';
 import { discoverSources, type DiscoverDeps, type SourceCard } from './discovery';
 import { searchMemory } from './memory';
 
+import { SURVEY_NATIVE } from '../../../src/algorithm/customSurveyModel';
+
 export const RESEARCH_VERSION = 'RESEARCH-v1';
 export const GAP_RELIABILITY = 0.6;
 
@@ -111,7 +113,7 @@ export async function runResearch(id: string, opts: { isCancelled?: () => boolea
         const docs = searchMemory(`${INDICATOR_LEXICON[g.code].words.join(' ')} ${r.neighborhood!.nameFa}`, { limit: 3, kind: 'document', mustMatchAny: INDICATOR_LEXICON[g.code].words }).map((h) => ({ refId: h.refId, title: h.title, page: h.page, snippet: h.snippet }));
         hits += docs.length;
         const best = cards.find((c) => c.status === 'approved') ?? cards.find((c) => c.status === 'verified') ?? cards.find((c) => c.status === 'unreachable' && c.domestic);
-        const nextAction = docs.length ? 'سند مرتبط در حافظه هست؛ جدول آن را استخراج و دستهٔ قراردادی بسازید' : best ? NEXT[best.status] ?? NEXT.verified : 'منبعی یافت نشد؛ پیمایش میدانی یا درخواست رسمی داده (A8)';
+        const nextAction = docs.length ? 'سند مرتبط در حافظه هست؛ جدول آن را استخراج و دستهٔ قراردادی بسازید' : best ? NEXT[best.status] ?? NEXT.verified : (SURVEY_NATIVE.has(g.code) ? 'منبعی یافت نشد؛ این شاخص ذاتاً پیمایشی است — در زبانهٔ «دادهٔ پیمایشی (پرسشنامه)» پرسشنامه بسازید یا پاسخ وارد کنید (A8)' : 'منبعی یافت نشد؛ پیمایش میدانی یا درخواست رسمی داده (A8)');
         return { code: g.code, name: g.name, reason: g.reason, candidates: cards.slice(0, 5).map((c) => ({ cardId: c.cardId, title: c.title, url: c.url, status: c.status, trust: c.trust.score, spatialLevel: c.spatialLevel, domestic: c.domestic })), documents: docs, nextAction };
       });
       return { value: null, summary: `${hits} اصابت در حافظهٔ اسناد` };

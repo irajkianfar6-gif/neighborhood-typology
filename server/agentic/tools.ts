@@ -1,5 +1,5 @@
 /**
- * کاتالوگ ابزارهای استاندارد پلتفرم (TOOLS-v2؛ فاز ۳: ابزارهای پژوهش) — پوشش ابزاری روی موتورهای قطعی موجود.
+ * کاتالوگ ابزارهای استاندارد پلتفرم (TOOLS-v3؛ فاز ۳: پژوهش، فاز ۴: سناریو، نقاد، پیمایش و داشبورد) — پوشش ابزاری روی موتورهای قطعی موجود.
  * هر ابزار: نام، توضیح، ردهٔ کارکردی، طرح‌وارهٔ ورودی/خروجی JSON، نشانه‌های رفتاری (فقط‌خواندنی، باز به جهان)،
  * سقف زمان و پیاده‌سازی. هیچ ابزاری عدد نمی‌سازد؛ همه از موتورهای ARA-NB، evidence، LR و kernel می‌آیند.
  */
@@ -26,8 +26,9 @@ import { AGENT_POLICY_VERSION } from './agents';
 import { analysisFor, contextFor, evidenceFor, requireEntry, runAnalysis, ToolInputError, type RunOptions } from './state';
 import type { JsonSchema } from './schema';
 import { RESEARCH_TOOLS } from './research/researchTools';
+import { PHASE4_TOOLS } from './phase4Tools';
 
-export const TOOLS_VERSION = 'TOOLS-v2';
+export const TOOLS_VERSION = 'TOOLS-v3';
 
 export type ToolCategory = 'identity' | 'data' | 'quality' | 'measurement' | 'diagnosis' | 'prescription' | 'survey' | 'governance' | 'report' | 'research';
 export interface ToolContext { agentId: string; runId: string | null }
@@ -319,4 +320,6 @@ export const TOOLS: ToolDef[] = [
   },
   // ---------------- پژوهش خودکار (فاز ۳) ----------------
   ...RESEARCH_TOOLS,
+  // ---------------- سناریو، نقاد، پیمایش و پایش (فاز ۴) ----------------
+  ...PHASE4_TOOLS,
 ];

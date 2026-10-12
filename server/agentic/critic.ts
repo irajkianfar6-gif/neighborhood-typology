@@ -4,8 +4,11 @@
  */
 import { independenceSummary, toEvidencePacket, validatePacket } from './evidencePacket';
 import type { CardResult } from './state';
+import { renderReport } from './report';
+import { ungroundedNumbers } from './grounding';
+import { USABLE } from '../evidence/publicationGate';
 
-export const CRITIC_VERSION = 'CR-v1';
+export const CRITIC_VERSION = 'CR-v2';
 export interface CriticCheck { id: string; title: string; status: 'pass' | 'warn' | 'fail'; detail: string }
 export interface CriticReport { version: string; verdict: 'pass' | 'pass_with_warnings' | 'fail'; checks: CriticCheck[]; independence: ReturnType<typeof independenceSummary>; officialPublicationAllowed: boolean }
 
@@ -67,6 +70,39 @@ export function verifyAnalysis(r: CardResult): CriticReport {
   // ۱۱) سطح علّی
   const causal = gate.sections.causal.level;
   add('C11', 'فرضیه‌های علّی با سطح شواهد برچسب خورده‌اند', causal === 'convergent' || causal === 'tested' ? 'pass' : 'warn', `سطح علّی: ${causal}`);
+
+  // ۱۲) بازهٔ مجاز مقادیر (امتیاز ۰..۱۰۰، اعتبار ۰..۱، عدد متناهی)
+  const outOfRange = card.indicators.filter((i) => (i.score !== null && (!Number.isFinite(i.score) || i.score < 0 || i.score > 100)) || !Number.isFinite(i.reliability) || i.reliability < 0 || i.reliability > 1 || (i.raw !== null && !Number.isFinite(i.raw))).map((i) => i.code);
+  const capOut = card.capitals.filter((c) => c.score !== null && (!Number.isFinite(c.score) || c.score < 0 || c.score > 100)).map((c) => c.capital);
+  add('C12', 'مقادیر در بازهٔ مجازند', outOfRange.length || capOut.length ? 'fail' : 'pass', outOfRange.length || capOut.length ? `خارج از بازه: ${[...outOfRange, ...capOut].join('، ')}` : 'همهٔ امتیازها ۰ تا ۱۰۰ و اعتبارها ۰ تا ۱');
+
+  // ۱۳) سازگاری سطح کارت با دروازه و شمارش پوشش
+  const scored = card.indicators.filter((i) => i.score !== null).length;
+  const usable = card.indicators.filter((i) => i.score !== null && i.reliability >= USABLE).length;
+  const levelMismatch = card.publication.level !== gate.level;
+  const countMismatch = card.coverage.scored !== scored || card.coverage.usable !== usable;
+  add('C13', 'سطح کارت و شمارش پوشش با دروازه می‌خواند', levelMismatch || countMismatch ? 'fail' : 'pass',
+    levelMismatch ? `سطح کارت ${card.publication.level} ولی دروازه ${gate.level}` : countMismatch ? `پوشش اعلام‌شده ${card.coverage.scored}/${card.coverage.usable} ولی شمارش واقعی ${scored}/${usable}` : `${scored} امتیازدار، ${usable} قابل‌استفاده`);
+
+  // ۱۴) سرمایهٔ امتیازدار فقط با شاخص‌های امتیازدار همان سرمایه
+  const byCode = new Map(card.indicators.map((i) => [i.code, i]));
+  const badCaps = card.capitals.filter((c) => c.score !== null && (!c.indicatorsUsed.length || c.indicatorsUsed.some((code) => byCode.get(code)?.score === null || byCode.get(code)?.capital !== c.capital))).map((c) => c.capital);
+  add('C14', 'امتیاز هر سرمایه از شاخص‌های سنجیدهٔ خودش آمده است', badCaps.length ? 'fail' : 'pass', badCaps.length ? `سرمایه‌های ناسازگار: ${badCaps.join('، ')}` : 'سازگار');
+
+  // ۱۵) اتکای عددی گزارش تحلیلی: هر عدد گزارش در کارت هست
+  try {
+    const rep = renderReport(r, null, 'analytical');
+    const { engine: eng, ...rest } = card;
+    const pool = [rest, eng ? { ...eng, finalStatement: '' } : null, gate.coverage];
+    const g = ungroundedNumbers(`${rep.markdown}\n${eng?.finalStatement ?? ''}`, pool);
+    add('C15', 'هر عدد گزارش در کارت پشتوانه دارد', g.ungrounded.length ? 'fail' : 'pass', g.ungrounded.length ? `عدد بی‌پشتوانه: ${g.ungrounded.slice(0, 8).join('، ')}` : `${g.checked} عدد بررسی شد`);
+  } catch (e) { add('C15', 'هر عدد گزارش در کارت پشتوانه دارد', 'warn', `گزارش ساخته نشد: ${e instanceof Error ? e.message : e}`); }
+
+  // ۱۶) گلوگاه و مداخله روی سرمایه‌های دارای داده
+  if (card.engine?.bottleneck) {
+    const bc = card.capitals.find((c) => c.capital === card.engine!.bottleneck.capital);
+    add('C16', 'گلوگاه روی سرمایهٔ سنجیده‌شده است', bc && bc.score !== null ? 'pass' : 'fail', bc && bc.score !== null ? `${bc.capital} (امتیاز ${bc.score})` : `گلوگاه ${card.engine.bottleneck.capital} بدون امتیاز سرمایه`);
+  }
 
   const fails = checks.filter((c) => c.status === 'fail').length;
   const warns = checks.filter((c) => c.status === 'warn').length;
