@@ -84,6 +84,16 @@ export type MonVerdict = 'improved' | 'worsened' | 'no_change' | 'insufficient_d
 export interface MonitoringRecord { id: string; neighborhoodId: string; nameFa: string; libraryId: string; name: string; targets: string[]; startDate: string; dueDate: string; evaluations: Array<{ at: string; due: boolean; perTarget: Array<{ code: string; before: number | null; after: number | null; delta: number | null; verdict: MonVerdict }>; overall: MonVerdict; note: string }> }
 export interface CalibrationProposal { id: string; createdAt: string; kind: string; title: string; detail: string; suggestedChange: string; status: 'proposed' | 'approved' | 'rejected'; decidedBy: string | null; note: string | null }
 
+// ---------------- پژوهش وب (A2) ----------------
+export interface WebCandidate {
+  idx: number; value: number | null; unit: string; period: string | null; spatialLevel: string; areaName: string; sourceUrl: string; sourceTitle: string; quote: string; isOfficial: boolean;
+  check: { cited: boolean; grounding: 'page' | 'snippet' | 'quote_only' | 'none'; plausible: boolean; spatial: string; contractLevel: 'neighborhood' | 'district' | null; periodEnd: string | null; reasons: string[] };
+  status: 'acceptable' | 'needs_review' | 'rejected'; decision: null | { decision: 'approved' | 'rejected'; by: string; at: string; note: string | null; batchId: string | null };
+}
+export interface WebFinding { code: string; name: string; definition: string; status: 'found' | 'not_found' | 'error'; notes: string; candidates: WebCandidate[]; sources: Array<{ url: string; title: string; snippets: string[] }>; sourceCards: string[]; effort: string; costUsd: number; cached: boolean; ms: number; error?: string }
+export interface WebResearch { id: string; createdAt: string; finishedAt: string | null; status: 'running' | 'completed' | 'failed' | 'interrupted'; neighborhoodId: string; nameFa: string; cityFa: string; district: number | null; effort: string; codes: string[]; skipped: { surveyOnly: string[]; notInContract: string[] }; findings: WebFinding[]; summary: { acceptable: number; needsReview: number; rejected: number; notFound: number; costUsd: number }; error: string | null }
+export interface WebStatus { configured: boolean; usage: { day: string; research: number; search: number; contents: number; cacheHits: number; costUsd: number }; limits: { maxEffort: string; dailyResearch: number; dailySearch: number; dailyBudgetUsd: number } }
+
 export const agenticApi = {
   info: () => call<AgenticInfo>('/api/agentic/info'),
   tools: () => call<AgenticToolInfo[]>('/api/agentic/tools'),
@@ -130,5 +140,11 @@ export const agenticApi = {
   generateProposals: () => call<{ created: CalibrationProposal[]; total: number }>('/api/agentic/learning/proposals/generate', { method: 'POST' }),
   proposals: () => call<{ items: CalibrationProposal[] }>('/api/agentic/learning/proposals'),
   decideProposal: (id: string, decision: 'approved' | 'rejected', note?: string) => call<CalibrationProposal>(`/api/agentic/learning/proposals/${encodeURIComponent(id)}/decision`, { method: 'POST', body: JSON.stringify({ decision, note }) }),
+  webStatus: () => call<WebStatus>('/api/agentic/web/status'),
+  startWebResearch: (body: { neighborhoodId: string; codes?: string[]; effort?: string; maxIndicators?: number; offline?: boolean }) => call<WebResearch>('/api/agentic/web/research', { method: 'POST', body: JSON.stringify(body) }),
+  webResearch: (id: string) => call<WebResearch>(`/api/agentic/web/research/${encodeURIComponent(id)}`),
+  webResearchList: (nb?: string) => call<WebResearch[]>(`/api/agentic/web/research${nb ? `?nb=${encodeURIComponent(nb)}` : ''}`),
+  decideWebCandidate: (id: string, code: string, idx: number, decision: 'approved' | 'rejected', extra: { note?: string; periodEnd?: string } = {}) => call<{ decision: WebCandidate['decision'] }>(`/api/agentic/web/research/${encodeURIComponent(id)}/candidates/${encodeURIComponent(code)}/${idx}/decision`, { method: 'POST', body: JSON.stringify({ decision, ...extra }) }),
+  fetchWebPages: (urls: string[], ingest = true) => call<{ pages: Array<{ url: string; title: string | null; chars: number; excerpt: string; docId: string | null; tables: number }>; missing: string[] }>('/api/agentic/web/contents', { method: 'POST', body: JSON.stringify({ urls, ingest }) }),
   invalidateCache: (neighborhoodId: string) => call<{ cleared: number }>('/api/agentic/cache/invalidate', { method: 'POST', body: JSON.stringify({ neighborhoodId }) }),
 };

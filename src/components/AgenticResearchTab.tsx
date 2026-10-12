@@ -4,6 +4,7 @@
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, FileUp, Loader2, Play, Search, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { WebResearchPanel } from './AgenticWebResearchPanel';
 import { agenticApi, type ColumnRole, type DocRecord, type DocTablePreview, type DraftResult, type MemoryHit, type ResearchRecord, type SourceCardStatus } from '../algorithm/agenticApi';
 
 const fa = (n: number) => n.toLocaleString('fa-IR');
@@ -227,6 +228,7 @@ export function ResearchTab() {
   return (
     <div className="space-y-4">
       <ResearchPanel />
+      <WebResearchPanel />
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2"><DocumentPanel /></div>
         <MemoryPanel />

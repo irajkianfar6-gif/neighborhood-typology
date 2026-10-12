@@ -12,6 +12,7 @@ import { listManifests } from '../../sources/manifests';
 import { extractJson, llmConfig, llmText } from '../../ai/llm';
 import { CATALOG_VERSION, SOURCE_CATALOG, type CatalogSource } from './sourceCatalog';
 import { INDICATOR_LEXICON } from './columns';
+import { youSearch } from './webClient';
 import { indexItem } from './memory';
 
 export const DISCOVERY_VERSION = 'DISC-v1';
@@ -20,7 +21,7 @@ export type CardStatus = 'proposed' | 'verified' | 'unreachable' | 'blocked_by_r
 export interface SourceCard {
   schema: 'ara.source-card.v1'; cardId: string; url: string; domain: string; title: string; publisher: string | null; description: string;
   indicators: string[]; role: CatalogSource['role'] | 'unknown'; spatialLevel: string; resolution: string | null; license: string | null; commercial: boolean | null;
-  access: string; cadence: string | null; domestic: boolean; origin: 'catalog' | 'search' | 'llm'; originDetail: string;
+  access: string; cadence: string | null; domestic: boolean; origin: 'catalog' | 'search' | 'llm' | 'research'; originDetail: string;
   verification: { checkedAt: string | null; reachable: boolean | null; httpStatus: number | null; finalUrl: string | null; contentType: string | null; robotsAllowed: boolean | null; pageTitle: string | null; error: string | null };
   trust: { score: number; components: Record<string, number> };
   status: CardStatus; review: { by: string; at: string; decision: 'approved' | 'rejected'; note?: string } | null;
@@ -100,7 +101,7 @@ export async function verifyUrl(url: string, fetchFn: FetchFn = fetch as unknown
 /** امتیاز اعتماد قطعی و شفاف (۰..۱) */
 export function trustOf(c: Pick<SourceCard, 'origin' | 'verification' | 'license' | 'url' | 'domain' | 'spatialLevel' | 'role' | 'domestic'>): SourceCard['trust'] {
   const comp: Record<string, number> = {};
-  comp.origin = c.origin === 'catalog' ? 0.35 : c.origin === 'search' ? 0.2 : 0.1;
+  comp.origin = c.origin === 'catalog' ? 0.35 : c.origin === 'search' || c.origin === 'research' ? 0.2 : 0.1;
   comp.reachable = c.verification.reachable ? 0.2 : c.domestic && c.verification.reachable === false ? 0.05 : 0;
   comp.license = c.license && !/نامعلوم|unknown/i.test(c.license) ? 0.1 : 0;
   comp.https = c.url.startsWith('https://') ? 0.05 : 0;
@@ -113,7 +114,7 @@ export function trustOf(c: Pick<SourceCard, 'origin' | 'verification' | 'license
 
 function statusOf(v: SourceCard['verification']): CardStatus { return v.robotsAllowed === false ? 'blocked_by_robots' : v.reachable ? 'verified' : v.checkedAt ? 'unreachable' : 'proposed'; }
 
-function upsert(seed: Omit<SourceCard, 'schema' | 'cardId' | 'domain' | 'trust' | 'status' | 'review' | 'createdAt' | 'updatedAt' | 'verification'> & { verification?: SourceCard['verification'] }): SourceCard {
+export function upsertCard(seed: Omit<SourceCard, 'schema' | 'cardId' | 'domain' | 'trust' | 'status' | 'review' | 'createdAt' | 'updatedAt' | 'verification'> & { verification?: SourceCard['verification'] }): SourceCard {
   const all = loadAll(); const id = cardIdFor(seed.url); const prev = all[id]; const now = new Date().toISOString();
   const verification = seed.verification ?? prev?.verification ?? { checkedAt: null, reachable: null, httpStatus: null, finalUrl: null, contentType: null, robotsAllowed: null, pageTitle: null, error: null };
   const base = { ...seed, domain: domainOf(seed.url), verification };
@@ -139,11 +140,13 @@ export function searchProvider(): { name: string; configured: boolean } {
   if (p === 'brave') return { name: 'brave', configured: Boolean(process.env.ARA_BRAVE_API_KEY) };
   if (p === 'tavily') return { name: 'tavily', configured: Boolean(process.env.ARA_TAVILY_API_KEY) };
   if (p === 'searxng') return { name: 'searxng', configured: Boolean(process.env.ARA_SEARXNG_URL) };
+  if (p === 'you' || (!p && process.env.YDC_API_KEY)) return { name: 'you', configured: Boolean(process.env.YDC_API_KEY) };
   return { name: 'none', configured: false };
 }
 export async function webSearch(q: string, fetchFn: FetchFn = fetch as unknown as FetchFn): Promise<Array<{ url: string; title: string; snippet: string }>> {
   const p = searchProvider(); if (!p.configured) return [];
   const sig = AbortSignal.timeout(15_000);
+  if (p.name === 'you') return (await youSearch(q, { count: 8 })).map((x) => ({ url: x.url, title: x.title, snippet: x.snippet }));
   if (p.name === 'brave') {
     const r = await fetchFn(`https://api.search.brave.com/res/v1/web/search?count=8&q=${encodeURIComponent(q)}`, { headers: { Accept: 'application/json', 'X-Subscription-Token': String(process.env.ARA_BRAVE_API_KEY) }, signal: sig });
     const j = JSON.parse(await r.text()) as { web?: { results?: Array<{ url: string; title: string; description?: string }> } };
@@ -170,7 +173,7 @@ export async function discoverSources(input: DiscoverInput, deps: DiscoverDeps =
   const codes = [...new Set(input.indicators.map((c) => c.toUpperCase()).filter((c) => INDICATOR_LEXICON[c]))];
   const reg = registeredDomains(); const skippedRegistered: string[] = [];
   const verify = input.verify !== false; const fetchFn = deps.fetch ?? (fetch as unknown as FetchFn);
-  const seeds: Array<Parameters<typeof upsert>[0]> = [];
+  const seeds: Array<Parameters<typeof upsertCard>[0]> = [];
   // ۱) کاتالوگ
   for (const s of SOURCE_CATALOG) {
     const hit = s.indicators.filter((c) => codes.includes(c));
@@ -218,7 +221,7 @@ export async function discoverSources(input: DiscoverInput, deps: DiscoverDeps =
     for (const s of uniq) { const d = domainOf(s.url); byDomain.set(d, [...(byDomain.get(d) ?? []), s]); }
     await Promise.all([...byDomain.values()].map(async (list) => { for (const s of list) s.verification = await verifyUrl(s.url, fetchFn); }));
   }
-  const cards = uniq.map((s) => upsert(s));
+  const cards = uniq.map((s) => upsertCard(s));
   const byIndicator: Record<string, string[]> = {};
   for (const c of codes) byIndicator[c] = cards.filter((k) => k.indicators.includes(c) && !['unreachable', 'blocked_by_robots', 'rejected'].includes(k.status) || (k.indicators.includes(c) && k.domestic && k.status === 'unreachable')).map((k) => k.cardId);
   const rejected = cards.filter((c) => c.origin === 'llm' && c.status === 'unreachable').length;
