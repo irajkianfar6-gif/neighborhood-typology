@@ -12,6 +12,16 @@ import { cancelJob, enqueueBatch, enqueueCopilot, enqueueGraph, wireJobs } from 
 import { batchCsv, listBatches, loadBatch } from './batch';
 import { COPILOT_VERSION, listSessions, loadSession } from './copilot';
 import { llmConfig } from '../ai/llm';
+import { enqueueResearch } from './jobs';
+import { listResearch, loadResearch, RESEARCH_VERSION } from './research/research';
+import { ingestAndIndex, RESEARCH_VERSIONS } from './research/researchTools';
+import { listDocuments, loadContent, loadDocument } from './research/documents';
+import { draftContractBatch, inferColumns, type ColumnRole } from './research/columns';
+import { matchUnits } from './research/spatialMatch';
+import { memoryStats, searchMemory } from './research/memory';
+import { decideCard, discoverSources, listCards, searchProvider, type CardStatus } from './research/discovery';
+import { gapsFromCard } from './research/research';
+import { analysisFor } from './state';
 
 const asyncRoute = (fn: (req: Request, res: Response) => Promise<void>) => (req: Request, res: Response, next: NextFunction) => { fn(req, res).catch(next); };
 const ok = (res: Response, data: unknown, status = 200) => res.status(status).json({ success: true, data });
@@ -20,7 +30,8 @@ const STATUS: Record<string, number> = { UNKNOWN_TOOL: 404, UNKNOWN_AGENT: 400, 
 
 export function frameworkInfo() {
   return {
-    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION },
+    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION, research: RESEARCH_VERSION, ...RESEARCH_VERSIONS },
+    research: { searchProvider: searchProvider(), memory: memoryStats() },
     llm: (() => { const c = llmConfig(); return { configured: c.configured, model: c.configured ? c.model : null }; })(),
     mcp: { endpoint: '/api/agentic/mcp', transport: 'streamable-http (JSON-RPC 2.0, POST)', protocolVersions: MCP_PROTOCOL_VERSIONS, agentHeader: 'x-ara-agent' },
     tools: listTools().length, agents: AGENTS.length, activeAgents: AGENTS.filter((a) => a.status === 'active' && a.id !== 'operator').length,
@@ -30,6 +41,7 @@ export function frameworkInfo() {
 export function createAgenticRouter(): Router {
   const router = Router();
   wireJobs();
+  router.use('/documents', express.json({ limit: '40mb' }));
   router.use(express.json({ limit: '2mb' }));
 
   router.get('/info', (_req, res) => { ok(res, { ...frameworkInfo(), stats: traceStats(), queue: wireJobs().stats() }); });
@@ -91,6 +103,65 @@ export function createAgenticRouter(): Router {
   });
   router.get('/copilot', (req, res) => { ok(res, listSessions(Number(req.query.limit ?? 20))); });
   router.get('/copilot/:id', (req, res) => { const s = loadSession(req.params.id); if (!s) { fail(res, 404, 'NOT_FOUND', 'نشست یافت نشد'); return; } ok(res, s); });
+
+  // ---------- فاز ۳: پژوهش خودکار ----------
+  router.post('/documents', (req, res) => {
+    const b = (req.body ?? {}) as { filename?: string; contentBase64?: string; sourceUrl?: string; sourceCardId?: string };
+    if (!b.filename || !b.contentBase64) { fail(res, 400, 'INVALID_INPUT', 'filename و contentBase64 لازم است'); return; }
+    try { ok(res, ingestAndIndex({ filename: String(b.filename), content: Buffer.from(String(b.contentBase64), 'base64'), sourceUrl: b.sourceUrl ?? null, sourceCardId: b.sourceCardId ?? null, uploadedBy: String(req.header('x-ara-agent') ?? 'operator') }), 201); }
+    catch (e) { fail(res, 400, 'INVALID_INPUT', e instanceof Error ? e.message : String(e)); }
+  });
+  router.get('/documents', (req, res) => { ok(res, listDocuments(Number(req.query.limit ?? 30))); });
+  router.get('/documents/:id', (req, res) => {
+    const d = loadDocument(req.params.id); if (!d) { fail(res, 404, 'NOT_FOUND', 'سند یافت نشد'); return; }
+    const c = loadContent(d.docId); const city = String(req.query.city ?? 'تهران');
+    ok(res, { document: d, tables: (c?.tables ?? []).map((t) => ({ tableId: t.tableId, origin: t.origin, header: t.header, totalRows: t.rows.length, rows: t.rows.slice(0, 15).map((r) => r.map((x) => x.text)), roles: inferColumns(t, city) })) });
+  });
+  router.post('/documents/:id/tables/:tableId/draft', asyncRoute(async (req, res) => {
+    const b = (req.body ?? {}) as { city?: string; sourceOrg?: string; periodEnd?: string; roles?: ColumnRole[]; includeReview?: boolean; useLlm?: boolean; dryRun?: boolean };
+    if (!b.city || !b.sourceOrg) { fail(res, 400, 'INVALID_INPUT', 'city و sourceOrg لازم است'); return; }
+    if (b.periodEnd && !/^\d{4}-\d{2}$/.test(b.periodEnd)) { fail(res, 400, 'INVALID_INPUT', 'periodEnd باید YYYY-MM باشد'); return; }
+    try {
+      const roles = Array.isArray(b.roles) ? b.roles.map((r) => ({ ...r, header: r.header ?? '', confidence: 1, method: 'manual' as const, reason: 'تعیین کارشناس' })) : undefined;
+      ok(res, await draftContractBatch(req.params.id, req.params.tableId, { city: String(b.city), sourceOrg: String(b.sourceOrg).slice(0, 120), periodEnd: b.periodEnd, roles, includeReview: b.includeReview === true, useLlm: b.useLlm === true, dryRun: b.dryRun !== false, uploadedBy: String(req.header('x-ara-agent') ?? 'operator') }), b.dryRun === false ? 201 : 200);
+    } catch (e) { fail(res, 400, 'INVALID_INPUT', e instanceof Error ? e.message : String(e)); }
+  }));
+  router.post('/spatial-match', (req, res) => {
+    const b = (req.body ?? {}) as { city?: string; units?: unknown[] };
+    if (!b.city || !Array.isArray(b.units) || !b.units.length || b.units.length > 2000) { fail(res, 400, 'INVALID_INPUT', 'city و units (۱ تا ۲۰۰۰) لازم است'); return; }
+    ok(res, matchUnits(b.units as never, String(b.city)));
+  });
+  router.get('/memory/search', (req, res) => {
+    const q = String(req.query.q ?? '').trim(); if (q.length < 2) { fail(res, 400, 'INVALID_INPUT', 'q لازم است'); return; }
+    ok(res, { stats: memoryStats(), hits: searchMemory(q, { limit: Number(req.query.limit ?? 10), kind: req.query.kind as never }) });
+  });
+  router.post('/sources/discover', asyncRoute(async (req, res) => {
+    const b = (req.body ?? {}) as { neighborhoodId?: string; indicators?: string[]; city?: string; neighborhoodName?: string; verify?: boolean; useSearch?: boolean; useLlm?: boolean; offline?: boolean };
+    let indicators = Array.isArray(b.indicators) ? b.indicators.map(String).slice(0, 42) : [];
+    let gaps: unknown[] = [];
+    if (!indicators.length && b.neighborhoodId) {
+      try { const r = await analysisFor({ neighborhoodId: b.neighborhoodId, offline: b.offline !== false }); const g = gapsFromCard(r); gaps = g; indicators = g.map((x) => x.code); }
+      catch (e) { fail(res, 400, 'INVALID_INPUT', e instanceof Error ? e.message : String(e)); return; }
+    }
+    if (!indicators.length) { fail(res, 400, 'INVALID_INPUT', 'indicators یا neighborhoodId لازم است'); return; }
+    const d = await discoverSources({ indicators, city: b.city, neighborhoodName: b.neighborhoodName, verify: b.verify !== false, useSearch: b.useSearch === true, useLlm: b.useLlm === true });
+    ok(res, { ...d, gaps });
+  }));
+  router.get('/sources', (req, res) => { ok(res, listCards({ status: req.query.status as CardStatus | undefined, indicator: req.query.indicator ? String(req.query.indicator) : undefined })); });
+  router.post('/sources/:id/decision', (req, res) => {
+    const b = (req.body ?? {}) as { decision?: string; note?: string };
+    if (b.decision !== 'approved' && b.decision !== 'rejected') { fail(res, 400, 'INVALID_INPUT', 'decision باید approved یا rejected باشد'); return; }
+    const c = decideCard(req.params.id, b.decision, String(req.header('x-ara-agent') ?? 'operator'), b.note ? String(b.note).slice(0, 500) : undefined);
+    if (!c) { fail(res, 404, 'NOT_FOUND', 'کارت منبع یافت نشد'); return; }
+    ok(res, c);
+  });
+  router.post('/research', (req, res) => {
+    const b = (req.body ?? {}) as { neighborhoodId?: string; name?: string; city?: string; offline?: boolean; useLlm?: boolean; useSearch?: boolean; verify?: boolean };
+    if (!b.neighborhoodId && !b.name) { fail(res, 400, 'INVALID_INPUT', 'name یا neighborhoodId لازم است'); return; }
+    ok(res, enqueueResearch({ neighborhoodId: b.neighborhoodId, name: b.name?.slice(0, 120), city: b.city?.slice(0, 60), offline: Boolean(b.offline), useLlm: b.useLlm === true, useSearch: b.useSearch === true, verify: typeof b.verify === 'boolean' ? b.verify : undefined }), 202);
+  });
+  router.get('/research', (req, res) => { ok(res, listResearch(Number(req.query.limit ?? 20))); });
+  router.get('/research/:id', (req, res) => { const r = loadResearch(req.params.id); if (!r) { fail(res, 404, 'NOT_FOUND', 'پژوهش یافت نشد'); return; } ok(res, r); });
 
   router.post('/mcp', asyncRoute(mcpHandler));
   router.get('/mcp', (_req, res) => { res.status(405).set('Allow', 'POST').json({ error: 'این سرور MCP فقط POST (JSON-RPC) را می‌پذیرد؛ جریان SSE پشتیبانی نمی‌شود' }); });

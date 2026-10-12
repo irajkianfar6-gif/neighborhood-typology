@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { serverDataDir } from '../paths';
 
-export type JobKind = 'graph' | 'batch' | 'copilot';
+export type JobKind = 'graph' | 'batch' | 'copilot' | 'research';
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
 export interface Job {
   jobId: string; kind: JobKind; status: JobStatus; createdAt: string; startedAt: string | null; finishedAt: string | null;
