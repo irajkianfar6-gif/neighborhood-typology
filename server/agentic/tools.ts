@@ -1,5 +1,5 @@
 /**
- * کاتالوگ ابزارهای استاندارد پلتفرم (TOOLS-v1) — پوشش ابزاری روی موتورهای قطعی موجود.
+ * کاتالوگ ابزارهای استاندارد پلتفرم (TOOLS-v2؛ فاز ۳: ابزارهای پژوهش) — پوشش ابزاری روی موتورهای قطعی موجود.
  * هر ابزار: نام، توضیح، ردهٔ کارکردی، طرح‌وارهٔ ورودی/خروجی JSON، نشانه‌های رفتاری (فقط‌خواندنی، باز به جهان)،
  * سقف زمان و پیاده‌سازی. هیچ ابزاری عدد نمی‌سازد؛ همه از موتورهای ARA-NB، evidence، LR و kernel می‌آیند.
  */
@@ -25,10 +25,11 @@ import { renderReport } from './report';
 import { AGENT_POLICY_VERSION } from './agents';
 import { analysisFor, contextFor, evidenceFor, requireEntry, runAnalysis, ToolInputError, type RunOptions } from './state';
 import type { JsonSchema } from './schema';
+import { RESEARCH_TOOLS } from './research/researchTools';
 
-export const TOOLS_VERSION = 'TOOLS-v1';
+export const TOOLS_VERSION = 'TOOLS-v2';
 
-export type ToolCategory = 'identity' | 'data' | 'quality' | 'measurement' | 'diagnosis' | 'prescription' | 'survey' | 'governance' | 'report';
+export type ToolCategory = 'identity' | 'data' | 'quality' | 'measurement' | 'diagnosis' | 'prescription' | 'survey' | 'governance' | 'report' | 'research';
 export interface ToolContext { agentId: string; runId: string | null }
 export interface ToolDef {
   name: string; title: string; description: string; category: ToolCategory;
@@ -316,4 +317,6 @@ export const TOOLS: ToolDef[] = [
     },
     summarize: (o) => (o.allowed ? `گزارش ${o.layer} (${String(o.markdown).length} نویسه)` : `گزارش ${o.layer} مجاز نیست: ${o.reason}`),
   },
+  // ---------------- پژوهش خودکار (فاز ۳) ----------------
+  ...RESEARCH_TOOLS,
 ];

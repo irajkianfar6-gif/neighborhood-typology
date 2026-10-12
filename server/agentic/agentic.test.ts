@@ -121,7 +121,7 @@ test('MCP server: initialize, tools/list (filtered by agent), tools/call and not
     const all = await (await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' })).json();
     assert.ok(all.result.tools.length >= 20);
     const a13 = await (await rpc({ jsonrpc: '2.0', id: 3, method: 'tools/list' }, 'A13')).json();
-    assert.deepEqual(a13.result.tools.map((t: { name: string }) => t.name), ['render_report']);
+    assert.deepEqual(a13.result.tools.map((t: { name: string }) => t.name), ['render_report', 'search_documents']);
     const call = await (await rpc({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'resolve_neighborhood', arguments: { name: 'یوسف آباد', city: 'تهران' } } })).json();
     assert.equal(call.result.isError, false);
     assert.equal(call.result.structuredContent.best.neighborhoodId, 'tehran:m605');

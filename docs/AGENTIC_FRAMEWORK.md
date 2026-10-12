@@ -69,3 +69,24 @@ G5 انتشار رسمی (کارت قابل انتشار + نقاد + تأیید
 API تازه: `POST /runs` با `async:true` ← `{jobId, runId}`؛ `GET /jobs`، `GET /jobs/:id`، `POST /jobs/:id/cancel`؛ `POST /batches {city, offline, limit?}`، `GET /batches`، `GET /batches/:id`، `GET /batches/:id/csv`؛ `POST /copilot {question, offline}`، `GET /copilot`، `GET /copilot/:id`. `GET /info` اکنون وضعیت مدل زبانی (بدون کلید) و آمار صف را هم برمی‌گرداند.
 
 آزمون پذیرش (محیط sandbox، فقط دادهٔ ذخیره‌شده): اجرای دسته‌ای ۳۹۱ محلهٔ تهران در حدود ۶ ثانیه بدون خطا کامل شد (همهٔ کارت‌ها INSUFFICIENT به دلیل نبود دادهٔ زنده در sandbox). دستیار با مدل واقعی برای «وضعیت محله یوسف آباد تهران…» پنج گام (A1 → A7 → A9 → A6 → A0) اجرا کرد و ۸ عدد پاسخ همگی مستند بودند.
+
+## فاز ۳ — پژوهش خودکار (RESEARCH-v1، TOOLS-v2، AGP-v2)
+
+عامل‌های **A2 کاشف منابع**، **A4 استخراج از اسناد** و **A5 تطبیق فضایی** فعال شدند (۱۴ از ۱۵ عامل فعال؛ A11 مانده). کد در `server/agentic/research/`.
+
+| جزء | فایل | کار |
+|---|---|---|
+| شکاف داده | `research.ts` | شاخص بی‌امتیاز یا با اعتبار کمتر از ۰٫۶ در کارت تحلیل |
+| کشف منبع (DISC-v1) | `discovery.ts`, `sourceCatalog.ts` | کاتالوگ نسخه‌دار ۲۰ منبع + جست‌وجوی وب اختیاری (`ARA_SEARCH_PROVIDER=brave|tavily|searxng`) + پیشنهاد مدل زبانی؛ هر نشانی با robots.txt، فاصلهٔ مؤدبانه (`ARA_CRAWL_GAP_MS`)، منع میزبان داخلی و درخواست واقعی بررسی می‌شود. کارت منبع `ara.source-card.v1` با امتیاز اعتماد قطعی و تصمیم کارشناس (approved/rejected). دامنه‌های ثبت‌شده در مانیفست‌ها دوباره پیشنهاد نمی‌شوند. |
+| استخراج سند (DOCX-v1) | `documents.ts`, `numbers.ts`, `zip.ts` | CSV/TSV، XLSX، جدول HTML، PDF متنی (`pdftotext -tsv` با چیدمان راست‌به‌چپ + بررسی دوم با `-layout`)؛ رقم فارسی، ٬ و ٫ و ٪؛ ارجاع سلولی؛ تشخیص سال (شمسی/میلادی). PDF اسکن‌شده (OCR) هنوز پشتیبانی نمی‌شود. |
+| نگاشت ستون (COLMAP-v1) | `columns.ts` | واژه‌نامهٔ ۴۲ شاخص؛ ساخت CSV قراردادی و ثبت دستهٔ **PENDING_REVIEW** با فایل منشأ سلولی؛ بدون تأیید کارشناس وارد سنجه نمی‌شود. |
+| تطبیق فضایی (SPM-v1) | `spatialMatch.ts` | دقیق، نام دیگر، نقطه در چندضلعی، واحد ترکیبی، از والد، تقریبی، فقط منطقه، مبهم، ناموفق؛ موارد مشکوک `needsReview`. |
+| حافظه (MEM-BM25-v1) | `memory.ts` | جست‌وجوی واژگانی روی اسناد و کارت‌های منبع (هنوز برداری نیست). |
+
+ابزارهای تازه: `find_data_gaps`, `discover_sources`, `verify_source`, `list_source_cards`, `get_document`, `map_document_columns`, `draft_contract_batch`, `match_spatial_units`, `search_documents` (۲۹ ابزار).
+
+API: `POST/GET /documents`، `GET /documents/:id`، `POST /documents/:id/tables/:tableId/draft`، `POST /spatial-match`، `GET /memory/search?q=`، `POST /sources/discover`، `GET /sources`، `POST /sources/:id/decision`، `POST/GET /research`، `GET /research/:id` (کار ناهمگام `research` در صف).
+
+رابط: زبانهٔ «پژوهش خودکار» در صفحهٔ فریمورک ایجنتیک.
+
+پذیرش (۱۴۰۵/۰۷/۲۰، یوسف‌آباد tehran:m605): ۳۹ شکاف، ۱۷ منبع نامزد، **۹ منبع جدید راستی‌آزمایی‌شده** (معیار ≥۵)، ۷ منبع داخلی از سرور خارج ایران در دسترس نبود؛ دقت استخراج جدول نمونه در CSV/XLSX/HTML/PDF برابر ۱۰۰٪ و توافق دو روش PDF ۱۲/۱۲. آزمون‌ها: `server/agentic/phase3.test.ts`.

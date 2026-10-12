@@ -4,6 +4,7 @@ import { getJobQueue, type JobQueue } from './jobQueue';
 import { createQueuedRun, loadRun, runStandardGraph, saveRun, type AgenticRun } from './pipeline';
 import { createBatch, loadBatch, runBatch, saveBatch } from './batch';
 import { createSession, loadSession, runCopilot, saveSession } from './copilot';
+import { createResearch, loadResearch, runResearch, saveResearch, type ResearchRecord } from './research/research';
 
 let wired = false;
 export function wireJobs(q: JobQueue = getJobQueue()): JobQueue {
@@ -24,6 +25,11 @@ export function wireJobs(q: JobQueue = getJobQueue()): JobQueue {
     const s = await runCopilot(job.ref.sessionId, { isCancelled: ctl.isCancelled });
     if (s.status === 'failed') throw new Error(s.error ?? 'دستیار ناموفق بود');
     return { sessionId: s.sessionId };
+  });
+  q.register('research', async (job, ctl) => {
+    const r = await runResearch(job.ref.researchId, { isCancelled: ctl.isCancelled });
+    if (r.status === 'failed') throw new Error(r.error ?? 'پژوهش ناموفق بود');
+    return { researchId: r.researchId };
   });
   q.recover();
   return q;
@@ -56,6 +62,15 @@ export function enqueueCopilot(question: string, offline: boolean): { jobId: str
   return { jobId, sessionId: s.sessionId };
 }
 
+/** پژوهش خودکار (فاز ۳): شکاف داده → کشف منبع → حافظهٔ اسناد */
+export function enqueueResearch(input: ResearchRecord['input']): { jobId: string; researchId: string } {
+  const q = wireJobs();
+  const jobId = newJobId();
+  const r = createResearch(input, jobId);
+  q.enqueue('research', input as Record<string, unknown>, { jobId, ref: { researchId: r.researchId }, label: `پژوهش ${input.name ?? input.neighborhoodId ?? ''}`.trim(), maxAttempts: 1 });
+  return { jobId, researchId: r.researchId };
+}
+
 /** لغو کار و هم‌گام‌سازی وضعیت رکورد وابسته وقتی هنوز در صف بوده */
 export function cancelJob(jobId: string) {
   const q = wireJobs();
@@ -63,6 +78,7 @@ export function cancelJob(jobId: string) {
   if (j && j.status === 'cancelled') {
     if (j.ref.runId) { const r = loadRun(j.ref.runId); if (r && r.status === 'queued') { r.status = 'cancelled'; saveRun(r); } }
     if (j.ref.batchId) { const b = loadBatch(j.ref.batchId); if (b && b.status === 'queued') { b.status = 'cancelled'; saveBatch(b); } }
+    if (j.ref.researchId) { const r = loadResearch(j.ref.researchId); if (r && r.status === 'queued') { r.status = 'cancelled'; saveResearch(r); } }
     if (j.ref.sessionId) { const s = loadSession(j.ref.sessionId); if (s && s.status === 'queued') { s.status = 'cancelled'; saveSession(s); } }
   }
   return j;
