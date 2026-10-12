@@ -152,7 +152,7 @@ test('llm client retries transient upstream errors and extracts JSON', async () 
   assert.deepEqual(extractJson(r.text), { a: '}{', b: [1, 2] });
   await assert.rejects(llmText({ system: 's', prompt: 'p' }, { config: { ...config, configured: false } }), (e: unknown) => e instanceof LlmError && e.code === 'AI_NOT_CONFIGURED');
   const auth = (async () => new Response(JSON.stringify({ error: { message: 'invalid key' } }), { status: 401 })) as typeof fetch;
-  await assert.rejects(llmText({ system: 's', prompt: 'p' }, { fetch: auth, config, retries: 3 }), /invalid key/);
+  await assert.rejects(llmText({ system: 's', prompt: 'p' }, { fetch: auth, config, retries: 3 }), (e: unknown) => e instanceof LlmError && e.code === 'AI_UPSTREAM' && /invalid key/.test(JSON.stringify(e.detail)) && !/invalid key/.test(e.message));
   let n = 0;
   const repair = (async () => new Response(JSON.stringify({ content: [{ type: 'text', text: n++ === 0 ? 'no json here' : '{"ok":true}' }] }), { status: 200 })) as typeof fetch;
   const j = await llmJson({ system: 's', prompt: 'p', validate: (x) => x as { ok: boolean } }, { fetch: repair, config, retries: 0 });

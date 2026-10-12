@@ -1,5 +1,5 @@
 /**
- * کاتالوگ ابزارهای استاندارد پلتفرم (TOOLS-v3؛ فاز ۳: پژوهش، فاز ۴: سناریو، نقاد، پیمایش و داشبورد) — پوشش ابزاری روی موتورهای قطعی موجود.
+ * کاتالوگ ابزارهای استاندارد پلتفرم (TOOLS-v4؛ فاز ۳: پژوهش، فاز ۴: سناریو، نقاد، پیمایش و داشبورد، فاز ۵: میدان و یادگیری) — پوشش ابزاری روی موتورهای قطعی موجود.
  * هر ابزار: نام، توضیح، ردهٔ کارکردی، طرح‌وارهٔ ورودی/خروجی JSON، نشانه‌های رفتاری (فقط‌خواندنی، باز به جهان)،
  * سقف زمان و پیاده‌سازی. هیچ ابزاری عدد نمی‌سازد؛ همه از موتورهای ARA-NB، evidence، LR و kernel می‌آیند.
  */
@@ -27,8 +27,9 @@ import { analysisFor, contextFor, evidenceFor, requireEntry, runAnalysis, ToolIn
 import type { JsonSchema } from './schema';
 import { RESEARCH_TOOLS } from './research/researchTools';
 import { PHASE4_TOOLS } from './phase4Tools';
+import { FIELD_TOOLS } from './field/fieldTools';
 
-export const TOOLS_VERSION = 'TOOLS-v3';
+export const TOOLS_VERSION = 'TOOLS-v4';
 
 export type ToolCategory = 'identity' | 'data' | 'quality' | 'measurement' | 'diagnosis' | 'prescription' | 'survey' | 'governance' | 'report' | 'research';
 export interface ToolContext { agentId: string; runId: string | null }
@@ -322,4 +323,6 @@ export const TOOLS: ToolDef[] = [
   ...RESEARCH_TOOLS,
   // ---------------- سناریو، نقاد، پیمایش و پایش (فاز ۴) ----------------
   ...PHASE4_TOOLS,
+  // ---------------- میدان و یادگیری (فاز ۵) ----------------
+  ...FIELD_TOOLS,
 ];

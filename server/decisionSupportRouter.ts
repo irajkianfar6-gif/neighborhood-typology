@@ -766,7 +766,7 @@ export function buildDecisionSupportRouter(options: {
       language: lang,
     });
     if (aiResult.ai_used && question) {
-      res.json({ success: true, data: { text: aiResult.text, ai_used: true, source: 'anthropic' } });
+      res.json({ success: true, data: { text: aiResult.text, ai_used: true, source: 'ai' } });
       return;
     }
     // توضیح قطعی از اجزای کارت — بدون عددسازی

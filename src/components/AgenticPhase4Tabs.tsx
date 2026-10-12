@@ -89,7 +89,7 @@ export function SurveyTab({ llmConfigured }: { llmConfigured: boolean }) {
           <div className="mt-2">شکاف‌هایی که با پرسشنامه پر می‌شوند: {status.surveyFillableGaps.length ? status.surveyFillableGaps.map((c) => <span key={c} className="mx-0.5 rounded bg-amber-100 px-1.5 py-0.5 font-mono text-amber-900">{c}</span>) : '—'}</div>
           {status.otherGaps.length > 0 && <div className="mt-1 text-muted">شکاف‌های غیرپیمایشی (از «پژوهش خودکار»): {status.otherGaps.join('، ')}</div>}
           {status.surveyFillableGaps.length > 0 && (
-            <button className={`${btn2} mt-2`} disabled={busy || !llmConfigured} title={llmConfigured ? '' : 'مدل زبانی پیکربندی نشده است'} onClick={() => void draftQ()}><Sparkles className="h-3.5 w-3.5" /> پیش‌نویس پرسشنامهٔ شکاف‌ها با هوش مصنوعی</button>
+            <button className={`${btn2} mt-2`} disabled={busy || !llmConfigured} title={llmConfigured ? '' : 'هوش مصنوعی پیکربندی نشده است'} onClick={() => void draftQ()}><Sparkles className="h-3.5 w-3.5" /> پیش‌نویس پرسشنامهٔ شکاف‌ها با هوش مصنوعی</button>
           )}
           {draft && <div className="mt-2 rounded-lg bg-emerald-50 p-2 text-emerald-900">{draft}</div>}
         </div>
@@ -171,7 +171,7 @@ export function ScenarioTab({ llmConfigured }: { llmConfigured: boolean }) {
               <button className={btn} disabled={Boolean(busy)} onClick={() => void run('sim', async () => setRes(await agenticApi.scenario({ neighborhoodId: nb, overrides, offline })))}><Play className="h-3.5 w-3.5" /> اجرای سناریو</button>
               <button className={btn2} disabled={Boolean(busy)} onClick={() => void run('sens', async () => setSens(await agenticApi.sensitivity({ neighborhoodId: nb, scores: overrides, offline })))}>{busy === 'sens' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />} تحلیل حساسیت (±۲۰٪)</button>
               <button className={btn2} disabled={Boolean(busy)} onClick={() => void run('suite', async () => setSuite(await agenticApi.criticSelfTest({ neighborhoodId: nb, offline })))}><ShieldCheck className="h-3.5 w-3.5" /> آزمون تزریق خطا به نقاد</button>
-              <button className={btn2} disabled={Boolean(busy) || !llmConfigured} onClick={() => void run('rev', async () => setRev(await agenticApi.llmReview({ neighborhoodId: nb, offline })))}>{busy === 'rev' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} نقد مشورتی مدل زبانی</button>
+              <button className={btn2} disabled={Boolean(busy) || !llmConfigured} onClick={() => void run('rev', async () => setRev(await agenticApi.aiReview({ neighborhoodId: nb, offline })))}>{busy === 'rev' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} نقد مشورتی هوش مصنوعی</button>
             </div>
           </div>
           <div className={card}>
@@ -202,7 +202,7 @@ export function ScenarioTab({ llmConfigured }: { llmConfigured: boolean }) {
       )}
       {rev && (
         <div className={`${card} text-xs`}>
-          <div className="mb-1 font-bold">نقد مشورتی مدل زبانی {rev.model ? `(${rev.model})` : ''} — فقط مشورتی؛ {fa(rev.rejected)} ادعای بی‌پشتوانه رد شد</div>
+          <div className="mb-1 font-bold">نقد مشورتی هوش مصنوعی — فقط مشورتی؛ {fa(rev.rejected)} ادعای بی‌پشتوانه رد شد</div>
           {rev.error && <p className="text-rose-700">{rev.error}</p>}
           <ul className="list-inside list-disc">{rev.issues.map((x, i) => <li key={i}><b>{x.severity === 'high' ? 'مهم' : x.severity === 'medium' ? 'متوسط' : 'جزئی'}</b>{x.indicator ? ` (${x.indicator})` : ''}: {x.problem}</li>)}</ul>
           {rev.used && !rev.error && rev.issues.length === 0 && <p>ایرادی گزارش نشد.</p>}

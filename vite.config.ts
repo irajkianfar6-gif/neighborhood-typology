@@ -8,8 +8,6 @@ export default defineConfig(({mode}) => {
   // کلید فقط در سمت سرور (پراکسی توسعه) مصرف می‌شود و هرگز وارد باندل فرانت‌اند نمی‌شود.
   // نام متغیرها با پیشوند ARA_ تا با متغیرهای سراسری ANTHROPIC_* (مثل ابزارهای Claude Code) تداخل نکنند.
   const env = loadEnv(mode, process.cwd(), '');
-  const anthropicKey = env.ARA_ANTHROPIC_API_KEY || '';
-  const anthropicTarget = env.ARA_ANTHROPIC_BASE_URL || 'https://api.justwoker.icu';
   const apiProxyTarget = env.ARA_API_PROXY_TARGET || 'http://localhost:4001';
 
   return {
@@ -74,19 +72,10 @@ export default defineConfig(({mode}) => {
           target: apiProxyTarget,
           changeOrigin: true,
         },
-        // مسیر یکسان-مبدأ به سرویس مدل: حل CORS + نگه‌داشتن کلید در سمت سرور
-        '/api/anthropic': {
-          target: anthropicTarget,
+        // سرویس هوش مصنوعی از مسیر سرور (کلید و انتخاب مدل فقط در سرور؛ نام مدل از پاسخ حذف می‌شود)
+        '/api/ai': {
+          target: apiProxyTarget,
           changeOrigin: true,
-          ...(anthropicKey
-            ? {
-                headers: {
-                  'x-api-key': anthropicKey,
-                  'anthropic-version': '2023-06-01',
-                },
-              }
-            : {}),
-          rewrite: (p) => p.replace(/^\/api\/anthropic/, '/v1'),
         },
       },
     },

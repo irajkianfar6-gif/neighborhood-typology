@@ -17,7 +17,7 @@ const STATUS: Record<CustomQuestionnaire['status'], { l: string; c: string }> = 
 export default function CustomSurveyStudio({ neighborhoodId, neighborhoodName, onChanged }: { neighborhoodId: string; neighborhoodName: string; onChanged?: () => void }) {
   const [view, setView] = useState<View>({ kind: 'list' });
   const [rows, setRows] = useState<QuestionnaireRow[]>([]);
-  const [ai, setAi] = useState<{ configured: boolean; model: string; host: string } | null>(null);
+  const [ai, setAi] = useState<{ configured: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [draft, setDraft] = useState({ goal: '', audience: '', nItems: 12, indicators: [] as string[], open: false });
@@ -41,7 +41,7 @@ export default function CustomSurveyStudio({ neighborhoodId, neighborhoodName, o
         <button type="button" className={ghostBtn} disabled={!!busy} onClick={() => void run('new', async () => { const r = await createCustomSurvey({ ...blankQuestionnaire(neighborhoodId), title: 'پرسشنامهٔ جدید' }); setView({ kind: 'edit', q: r.questionnaire }); })}><FilePlus2 size={13} /> پرسشنامهٔ خالی</button>
         <button type="button" className={primaryBtn} disabled={!aiReady} onClick={() => setDraft({ ...draft, open: !draft.open })} title={aiReady ? '' : 'کلید هوش مصنوعی روی سرور تنظیم نشده است'}><Sparkles size={13} /> ساخت با هوش مصنوعی</button></div>}>
         <p className="text-[11px] leading-6 text-ink-500">پرسش‌ها، نوع پاسخ، شرط نمایش و اتصال هر گویه به شاخص را خودتان تعیین می‌کنید. نتایج با روش قطعی (میانگین وزنی، بازهٔ اطمینان، آلفای کرونباخ) محاسبه می‌شود و شاخص‌های هستهٔ با نمونهٔ کافی پس از «بازمحاسبه» وارد کارت تصمیم می‌شوند. هوش مصنوعی فقط پیش‌نویس، بازبینی و تفسیر متنی انجام می‌دهد.</p>
-        <p className="mt-1 text-[10px] text-ink-400">هوش مصنوعی: {ai ? (ai.configured ? `فعال — ${ai.model} از ${ai.host}` : 'پیکربندی نشده (ARA_ANTHROPIC_API_KEY)') : 'نامشخص'}</p>
+        <p className="mt-1 text-[10px] text-ink-400">هوش مصنوعی: {ai ? (ai.configured ? 'فعال' : 'پیکربندی نشده') : 'نامشخص'}</p>
         {draft.open && (
           <div className="mt-3 grid gap-3 rounded-2xl border border-violet-200 bg-violet-50/50 p-3 md:grid-cols-2 dark:border-violet-900 dark:bg-violet-900/10">
             <div className="md:col-span-2"><span className="mb-1 block text-[10px] font-black text-ink-500">هدف پرسشنامه را بنویسید</span>

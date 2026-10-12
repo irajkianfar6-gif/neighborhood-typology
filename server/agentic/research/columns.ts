@@ -1,6 +1,6 @@
 /**
  * A4 — نگاشت ستون‌های جدول به کدهای شاخص و ساخت پیش‌نویس دستهٔ قراردادی.
- * نگاشت قطعی با واژگان شاخص‌ها؛ مدل زبانی (اختیاری) فقط برای ستون‌های بی‌نگاشت «پیشنهاد» می‌دهد و هرگز عدد نمی‌دهد.
+ * نگاشت قطعی با واژگان شاخص‌ها؛ هوش مصنوعی (اختیاری) فقط برای ستون‌های بی‌نگاشت «پیشنهاد» می‌دهد و هرگز عدد نمی‌دهد.
  * خروجی همیشه دستهٔ PENDING_REVIEW در چرخهٔ ورود دادهٔ قراردادی است؛ بدون تأیید انسانی وارد سنجه نمی‌شود.
  */
 import fs from 'node:fs';
@@ -101,7 +101,7 @@ export function inferColumns(t: ExtractedTable, city: string): ColumnRole[] {
 }
 
 type LlmLike = (s: string, p: string) => Promise<{ text: string }>;
-/** پیشنهاد مدل زبانی برای ستون‌های عددی بی‌نگاشت (فقط نگاشت؛ بازبینی لازم) */
+/** پیشنهاد هوش مصنوعی برای ستون‌های عددی بی‌نگاشت (فقط نگاشت؛ بازبینی لازم) */
 export async function llmSuggestColumns(t: ExtractedTable, roles: ColumnRole[], llm?: LlmLike): Promise<ColumnRole[]> {
   const call: LlmLike | null = llm ?? (llmConfig().configured ? (s, p) => llmText({ system: s, prompt: p, maxTokens: 800, temperature: 0 }) : null);
   if (!call) return roles;

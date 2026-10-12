@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { ZoneResult } from '../algorithm/types';
 import type { IndicatorSample } from '../algorithm/liveExtract';
-import { chatWithAnthropicJSON } from '../lib/anthropic';
+import { chatWithAIJSON } from '../lib/aiService';
 import {
   buildCompareMessages,
   localCompareFallback,
@@ -70,7 +70,7 @@ export default function ZoneAICompare({ nameA, a, nameB, b, divergence, onClose 
       try {
         const grounding = await getHakimGrounding();
         const { system, user } = buildCompareMessages(nameA, a, nameB, b, divergence, grounding);
-        const data = await chatWithAnthropicJSON<ZoneCompare>(
+        const data = await chatWithAIJSON<ZoneCompare>(
           [{ role: 'user', content: user }],
           { system, maxTokens: 1600, timeoutMs: 180000 },
         );

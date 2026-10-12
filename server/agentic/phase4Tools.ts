@@ -1,5 +1,5 @@
 /**
- * ابزارهای فاز ۴ — A11 شبیه‌سازی سناریو و حساسیت، A12 آزمون تزریق خطا و نقاد مشورتی مدل زبانی،
+ * ابزارهای فاز ۴ — A11 شبیه‌سازی سناریو و حساسیت، A12 آزمون تزریق خطا و نقاد مشورتی هوش مصنوعی،
  * A8 وضعیت دادهٔ پیمایشی و پیش‌نویس پرسشنامهٔ شکاف‌ها، A14 داشبورد عامل‌ها.
  * سناریو و حساسیت فقط کاوشی‌اند (publishable=false) و هرگز کارت یا سنجه را تغییر نمی‌دهند.
  */
@@ -78,12 +78,12 @@ export const PHASE4_TOOLS: ToolDef[] = [
     summarize: (o) => `کشف ${o.detected}/${o.total} (${Math.round(Number(o.detectionRate) * 100)}٪)`,
   },
   {
-    name: 'llm_review', title: 'نقاد مشورتی مدل زبانی', category: 'governance', readOnly: true, idempotent: false, openWorld: true, timeoutMs: 180_000,
-    description: 'بازبینی روش‌شناختی گزارش با مدل زبانی؛ فقط مشورتی، حق توقف ندارد؛ ایراد با کد شاخص ناموجود یا عدد بی‌پشتوانه رد می‌شود.',
+    name: 'ai_review', title: 'نقاد مشورتی هوش مصنوعی', category: 'governance', readOnly: true, idempotent: false, openWorld: true, timeoutMs: 180_000,
+    description: 'بازبینی روش‌شناختی گزارش با هوش مصنوعی؛ فقط مشورتی، حق توقف ندارد؛ ایراد با کد شاخص ناموجود یا عدد بی‌پشتوانه رد می‌شود.',
     inputSchema: { type: 'object', additionalProperties: false, properties: AN_PROPS },
     outputSchema: OBJ(['used', 'issues']),
     handler: async (i) => llmReview(await an(i)) as unknown as Record<string, unknown>,
-    summarize: (o) => (o.used ? `${(o.issues as unknown[]).length} ایراد، ${o.rejected} رد شد` : 'مدل زبانی در دسترس نیست'),
+    summarize: (o) => (o.used ? `${(o.issues as unknown[]).length} ایراد، ${o.rejected} رد شد` : 'هوش مصنوعی در دسترس نیست'),
   },
   {
     name: 'get_survey_status', title: 'وضعیت دادهٔ پیمایشی', category: 'survey', readOnly: true, idempotent: true, openWorld: true, timeoutMs: 120_000,
@@ -95,12 +95,12 @@ export const PHASE4_TOOLS: ToolDef[] = [
   },
   {
     name: 'draft_gap_questionnaire', title: 'پیش‌نویس پرسشنامهٔ شکاف‌ها', category: 'survey', readOnly: false, idempotent: false, openWorld: true, timeoutMs: 180_000,
-    description: 'برای شاخص‌های شکاف که ذاتاً پیمایشی‌اند، با مدل زبانی یک پرسشنامهٔ «پیش‌نویس» می‌سازد. انتشار و اجرای میدانی با کارشناس است.',
+    description: 'برای شاخص‌های شکاف که ذاتاً پیمایشی‌اند، با هوش مصنوعی یک پرسشنامهٔ «پیش‌نویس» می‌سازد. انتشار و اجرای میدانی با کارشناس است.',
     inputSchema: { type: 'object', additionalProperties: false, required: ['neighborhoodId'], properties: { neighborhoodId: NB_ID, nItems: { type: 'integer', minimum: 3, maximum: 40, default: 12 }, goal: { type: 'string', maxLength: 2000 } } },
     outputSchema: OBJ(['questionnaireId', 'status', 'indicators']),
     handler: async (i) => {
       const e = requireEntry(String(i.neighborhoodId));
-      if (!llmConfig().configured) throw new ToolInputError('LLM_UNAVAILABLE', 'مدل زبانی پیکربندی نشده؛ پرسشنامه را دستی در زبانهٔ «دادهٔ پیمایشی» بسازید');
+      if (!llmConfig().configured) throw new ToolInputError('LLM_UNAVAILABLE', 'هوش مصنوعی پیکربندی نشده؛ پرسشنامه را دستی در زبانهٔ «دادهٔ پیمایشی» بسازید');
       const r = await analysisFor({ neighborhoodId: e.neighborhoodId, offline: true });
       const gaps = gapsFromCard(r).filter((g) => SURVEY_NATIVE.has(g.code));
       if (!gaps.length) throw new ToolInputError('NO_SURVEY_GAPS', 'شکاف پیمایشی‌ای برای این محله نیست');

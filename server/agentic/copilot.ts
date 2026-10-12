@@ -1,5 +1,5 @@
 /**
- * دستیار عامل‌محور (A0 مبتنی بر مدل زبانی) — حلقهٔ «فکر → واگذاری به عامل تخصصی → مشاهده» با پروتکل JSON.
+ * دستیار عامل‌محور (A0 مبتنی بر هوش مصنوعی) — حلقهٔ «فکر → واگذاری به عامل تخصصی → مشاهده» با پروتکل JSON.
  * قواعد ایمنی:
  *  - مدل هیچ ابزاری را مستقیم اجرا نمی‌کند؛ هر کنش {agent, tool, input} از اجراکنندهٔ ابزار با سیاست حداقل دسترسی می‌گذرد.
  *  - خروجی ابزارها «داده» است، نه دستور (دفاع در برابر تزریق پرامپت).
@@ -136,7 +136,7 @@ export async function runCopilot(sessionId: string, deps: { llm?: LlmFn; isCance
     s.steps = run.steps.map((st, i) => ({ i: i + 1, thought: st.title, agent: st.agentId, tool: st.tool, input: null, ok: st.status === 'done', summary: st.summary, callId: st.callId, ...(st.error ? { error: st.error } : {}) }));
     if (run.status === 'needs_user') { s.answer = `نام محله مبهم است. یکی را انتخاب کنید: ${(run.outputs.candidates as Array<{ nameFa: string; cityFa: string; neighborhoodId: string }> ?? []).map((c) => `${c.nameFa} (${c.cityFa}، ${c.neighborhoodId})`).join('؛ ')}`; return finish('answered'); }
     if (!run.outputs.report) { s.error = 'گراف استاندارد گزارشی تولید نکرد'; return finish(run.status === 'cancelled' ? 'cancelled' : 'failed'); }
-    s.answer = `کلید مدل زبانی تنظیم نشده است؛ پاسخ با گراف قطعی استاندارد تولید شد.\n\n${run.outputs.report}`;
+    s.answer = `کلید هوش مصنوعی تنظیم نشده است؛ پاسخ با گراف قطعی استاندارد تولید شد.\n\n${run.outputs.report}`;
     s.grounding = { checked: 0, ungrounded: [], revised: false };
     return finish('answered');
   }

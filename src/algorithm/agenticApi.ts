@@ -9,7 +9,7 @@ export interface AgenticToolInfo {
 export interface AgenticAgent { id: string; nameFa: string; mission: string; status: 'active' | 'planned'; autonomy: string; tools: string[]; humanApproval: string[]; phase: number }
 export interface AgenticInfo {
   versions: Record<string, string>; mcp: { endpoint: string; transport: string; protocolVersions: string[]; agentHeader: string };
-  tools: number; agents: number; activeAgents: number; llm?: { configured: boolean; model: string | null }; queue?: Record<string, number>; stats: { calls: number; errors: number; byTool: Record<string, { calls: number; errors: number; avgMs: number }> };
+  tools: number; agents: number; activeAgents: number; llm?: { configured: boolean }; queue?: Record<string, number>; stats: { calls: number; errors: number; byTool: Record<string, { calls: number; errors: number; avgMs: number }> };
 }
 export interface AgenticRunStep { id: string; title: string; agentId: string; tool: string; status: 'done' | 'failed' | 'skipped'; durationMs: number; summary: string; error?: string }
 export interface AgenticRunGate { id: string; title: string; status: 'passed' | 'warning' | 'blocked' | 'pending'; detail: string }
@@ -61,6 +61,29 @@ async function call<T>(path: string, init?: RequestInit, timeoutMs = 300_000): P
   return payload.data as T;
 }
 
+// ---------------- فاز ۵: میدان، پایش و یادگیری ----------------
+export interface FieldSnapshot { at: string; analysisId: string; level: string; coverage: { scored: number; reliable: number; usable: number; total: number }; capitals: Record<string, number | null>; bottleneck: string | null; diagnosticType: string | null; surveyN: number; auditPoints: number }
+export interface FieldOutcome { newlyScored: string[]; reliabilityGained: string[]; lost: string[]; levelBefore: string; levelAfter: string; coverageDelta: Record<string, number>; capitalDelta: Record<string, number | null>; bottleneckChanged: boolean | null; surveyVsPrior: Array<{ code: string; before: number; after: number; beforeTier: string; afterTier: string; diff: number }> }
+export interface FieldCampaign {
+  id: string; createdAt: string; createdBy: string; neighborhoodId: string; nameFa: string; status: 'draft' | 'fielding' | 'closed' | 'cancelled';
+  approval: { status: 'pending' | 'approved' | 'rejected'; by: string | null; at: string | null; note: string | null }; startedAt: string | null; closedAt: string | null;
+  plan: { targetN: number; quotas: Record<string, Record<string, number>>; quotaNote: string; auditPoints: number; questionnaires: Array<{ id: string; title: string; status: string }>; targetCodes: string[]; otherGaps: string[]; days: number };
+  baseline: FieldSnapshot; after: FieldSnapshot | null; outcome: FieldOutcome | null;
+}
+export interface FieldProgress {
+  status: FieldCampaign['status']; daysElapsed: number; daysPlanned: number;
+  perceptual: { received: number; accepted: number; target: number; progress: number; rejectionRate: number; rejectedByReason: Record<string, number>; marginOfError: number | null; adequacy: string };
+  quotas: Record<string, Record<string, { target: number; got: number; fill: number }>>;
+  collectors: Array<{ collectorId: string; received: number; accepted: number; rejectionRate: number; flagged: boolean }>;
+  custom: Array<{ questionnaireId: string; title: string; received: number; accepted: number }>;
+  audits: { points: number; target: number; kappa: number | null }; warnings: string[]; readyToClose: boolean;
+}
+export interface FieldCycle { neighborhoodId: string; nameFa: string; stages: Array<{ key: string; title: string; done: boolean }>; complete: boolean; next: string; campaigns: Array<{ id: string; status: string; createdAt: string }>; monitoring: Array<{ id: string; name: string; dueDate: string }>; proposals: Array<{ id: string; kind: string; title: string; status: string }> }
+export interface LibraryItem { id: string; name: string; capital: string; transition: string; targets: string[]; months: number; owner: string }
+export type MonVerdict = 'improved' | 'worsened' | 'no_change' | 'insufficient_data';
+export interface MonitoringRecord { id: string; neighborhoodId: string; nameFa: string; libraryId: string; name: string; targets: string[]; startDate: string; dueDate: string; evaluations: Array<{ at: string; due: boolean; perTarget: Array<{ code: string; before: number | null; after: number | null; delta: number | null; verdict: MonVerdict }>; overall: MonVerdict; note: string }> }
+export interface CalibrationProposal { id: string; createdAt: string; kind: string; title: string; detail: string; suggestedChange: string; status: 'proposed' | 'approved' | 'rejected'; decidedBy: string | null; note: string | null }
+
 export const agenticApi = {
   info: () => call<AgenticInfo>('/api/agentic/info'),
   tools: () => call<AgenticToolInfo[]>('/api/agentic/tools'),
@@ -91,9 +114,21 @@ export const agenticApi = {
   scenario: (body: { neighborhoodId: string; overrides: Record<string, number>; offline?: boolean }) => call<ScenarioResult>('/api/agentic/scenario', { method: 'POST', body: JSON.stringify(body) }),
   sensitivity: (body: { neighborhoodId: string; scores?: Record<string, number>; perturbation?: number; offline?: boolean }) => call<SensitivityResult>('/api/agentic/sensitivity', { method: 'POST', body: JSON.stringify(body) }),
   criticSelfTest: (body: { neighborhoodId: string; offline?: boolean }) => call<CriticSuiteResult>('/api/agentic/critic/self-test', { method: 'POST', body: JSON.stringify(body) }),
-  llmReview: (body: { neighborhoodId: string; offline?: boolean }) => call<LlmReviewResult>('/api/agentic/critic/llm-review', { method: 'POST', body: JSON.stringify(body) }),
+  aiReview: (body: { neighborhoodId: string; offline?: boolean }) => call<LlmReviewResult>('/api/agentic/critic/ai-review', { method: 'POST', body: JSON.stringify(body) }),
   dashboard: () => call<AgentDashboard>('/api/agentic/dashboard'),
   surveyStatus: (nb: string) => call<SurveyStatus>(`/api/agentic/survey/${encodeURIComponent(nb)}/status`),
   draftGapQuestionnaire: (nb: string, nItems = 12) => call<{ questionnaireId: string; title: string; items: number; indicators: string[]; next: string }>(`/api/agentic/survey/${encodeURIComponent(nb)}/draft-questionnaire`, { method: 'POST', body: JSON.stringify({ nItems }) }),
+  createCampaign: (body: { neighborhoodId: string; offline?: boolean; days?: number }) => call<FieldCampaign>('/api/agentic/field/campaigns', { method: 'POST', body: JSON.stringify(body) }),
+  campaign: (id: string) => call<{ campaign: FieldCampaign; progress: FieldProgress }>(`/api/agentic/field/campaigns/${encodeURIComponent(id)}`),
+  decideCampaign: (id: string, decision: 'approved' | 'rejected', note?: string) => call<FieldCampaign>(`/api/agentic/field/campaigns/${encodeURIComponent(id)}/decision`, { method: 'POST', body: JSON.stringify({ decision, note }) }),
+  closeCampaign: (id: string, force = false) => call<FieldCampaign>(`/api/agentic/field/campaigns/${encodeURIComponent(id)}/close`, { method: 'POST', body: JSON.stringify({ force }) }),
+  fieldCycle: (nb: string) => call<FieldCycle>(`/api/agentic/field/cycle/${encodeURIComponent(nb)}`),
+  library: () => call<LibraryItem[]>('/api/agentic/library'),
+  registerMonitoring: (body: { neighborhoodId: string; libraryId: string; startDate?: string; note?: string; offline?: boolean }) => call<MonitoringRecord>('/api/agentic/monitoring', { method: 'POST', body: JSON.stringify(body) }),
+  monitoring: (nb?: string) => call<{ items: MonitoringRecord[] }>(`/api/agentic/monitoring${nb ? `?nb=${encodeURIComponent(nb)}` : ''}`),
+  evaluateMonitoring: (id: string) => call<MonitoringRecord>(`/api/agentic/monitoring/${encodeURIComponent(id)}/evaluate`, { method: 'POST' }),
+  generateProposals: () => call<{ created: CalibrationProposal[]; total: number }>('/api/agentic/learning/proposals/generate', { method: 'POST' }),
+  proposals: () => call<{ items: CalibrationProposal[] }>('/api/agentic/learning/proposals'),
+  decideProposal: (id: string, decision: 'approved' | 'rejected', note?: string) => call<CalibrationProposal>(`/api/agentic/learning/proposals/${encodeURIComponent(id)}/decision`, { method: 'POST', body: JSON.stringify({ decision, note }) }),
   invalidateCache: (neighborhoodId: string) => call<{ cleared: number }>('/api/agentic/cache/invalidate', { method: 'POST', body: JSON.stringify({ neighborhoodId }) }),
 };

@@ -1,6 +1,6 @@
 /**
  * A2 — کاشف منابع: برای شاخص‌های بی‌داده، منبع نامزد پیدا و «کارت منبع» می‌سازد.
- * سه سرچشمه: کاتالوگ بذر، موتور جست‌وجو (اختیاری با کلید) و پیشنهاد مدل زبانی (اختیاری).
+ * سه سرچشمه: کاتالوگ بذر، موتور جست‌وجو (اختیاری با کلید) و پیشنهاد هوش مصنوعی (اختیاری).
  * هر نامزد با درخواست واقعی (با رعایت robots.txt و نرخ مؤدبانه) راستی‌آزمایی می‌شود؛ نشانی ساختگی رد می‌شود.
  * A2 فقط پیشنهاد می‌دهد: افزودن منبع دائمی همیشه تأیید انسانی می‌خواهد.
  */
@@ -193,7 +193,7 @@ export async function discoverSources(input: DiscoverInput, deps: DiscoverDeps =
       } catch { /* جست‌وجو اختیاری است */ }
     }
   }
-  // ۳) پیشنهاد مدل زبانی (اختیاری؛ همیشه راستی‌آزمایی می‌شود)
+  // ۳) پیشنهاد هوش مصنوعی (اختیاری؛ همیشه راستی‌آزمایی می‌شود)
   let llmUsed = false, proposed = 0;
   const llm = deps.llm ?? (input.useLlm && llmConfig().configured ? (s: string, p: string) => llmText({ system: s, prompt: p, maxTokens: 1500, temperature: 0.2 }) : undefined);
   if (input.useLlm && llm) {
@@ -207,7 +207,7 @@ export async function discoverSources(input: DiscoverInput, deps: DiscoverDeps =
         const inds = (s.indicators ?? []).map((x) => String(x).toUpperCase()).filter((x) => codes.includes(x));
         if (!inds.length || reg.has(domainOf(s.url))) continue;
         proposed++;
-        seeds.push({ url: s.url, title: String(s.title ?? s.url).slice(0, 200), publisher: s.publisher ? String(s.publisher).slice(0, 120) : null, description: String(s.why ?? '').slice(0, 400), indicators: inds, role: 'unknown', spatialLevel: String(s.spatialLevel ?? 'unknown'), resolution: null, license: null, commercial: null, access: 'portal', cadence: null, domestic: /\.ir$/.test(domainOf(s.url)), origin: 'llm', originDetail: 'پیشنهاد مدل زبانی (راستی‌آزمایی‌شده)', foundFor: inds });
+        seeds.push({ url: s.url, title: String(s.title ?? s.url).slice(0, 200), publisher: s.publisher ? String(s.publisher).slice(0, 120) : null, description: String(s.why ?? '').slice(0, 400), indicators: inds, role: 'unknown', spatialLevel: String(s.spatialLevel ?? 'unknown'), resolution: null, license: null, commercial: null, access: 'portal', cadence: null, domestic: /\.ir$/.test(domainOf(s.url)), origin: 'llm', originDetail: 'پیشنهاد هوش مصنوعی (راستی‌آزمایی‌شده)', foundFor: inds });
       }
     } catch { /* اختیاری */ }
   }

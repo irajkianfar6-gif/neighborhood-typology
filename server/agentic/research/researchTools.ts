@@ -44,7 +44,7 @@ export const RESEARCH_TOOLS: ToolDef[] = [
   },
   {
     name: 'discover_sources', title: 'کشف و راستی‌آزمایی منبع', category: 'research', readOnly: false, idempotent: true, openWorld: true, timeoutMs: 180_000,
-    description: 'برای شاخص‌های بی‌داده منبع عمومی پیدا می‌کند (کاتالوگ نسخه‌دار، جست‌وجوی وب در صورت پیکربندی، پیشنهاد مدل زبانی) و هر نشانی را با robots.txt و درخواست واقعی راستی‌آزمایی می‌کند. خروجی کارت منبع «پیشنهادی» است؛ افزودن دائمی تأیید انسانی می‌خواهد.',
+    description: 'برای شاخص‌های بی‌داده منبع عمومی پیدا می‌کند (کاتالوگ نسخه‌دار، جست‌وجوی وب در صورت پیکربندی، پیشنهاد هوش مصنوعی) و هر نشانی را با robots.txt و درخواست واقعی راستی‌آزمایی می‌کند. خروجی کارت منبع «پیشنهادی» است؛ افزودن دائمی تأیید انسانی می‌خواهد.',
     inputSchema: { type: 'object', additionalProperties: false, required: ['indicators'], properties: { indicators: CODES, city: { type: 'string', maxLength: 60 }, neighborhoodName: { type: 'string', maxLength: 120 }, verify: { type: 'boolean', default: true }, useSearch: { type: 'boolean', default: false }, useLlm: { type: 'boolean', default: false } } },
     outputSchema: OBJ(['cards', 'byIndicator', 'uncovered']),
     handler: async (i) => {

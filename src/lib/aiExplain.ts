@@ -321,7 +321,7 @@ export function localCompareFallback(
   };
 }
 
-// ─── گزارش کارشناسی محلی (وقتی سرویس مدل در دسترس نیست) ──────
+// ─── گزارش کارشناسی محلی (وقتی سرویس هوش مصنوعی در دسترس نیست) ──────
 export function localReportFallback(zone: ZoneResult): ZoneReport {
   const low = (['P', 'B', 'N'] as const).filter((l) => zone.layerScores[l].score < 2.5);
   const layerText = low.length
@@ -377,7 +377,7 @@ export function localExplainFallback(subject: string): string | null {
   return null;
 }
 
-// ─── بازبینی محلی قطعی (وقتی سرویس مدل در دسترس نیست) ──────
+// ─── بازبینی محلی قطعی (وقتی سرویس هوش مصنوعی در دسترس نیست) ──────
 export function localAuditFallback(zone: ZoneResult, samples: FullExtract | null): ZoneAudit {
   const gaps = zone.qcFlags.slice();
   if (zone.layerScores.P.lowConfidence) gaps.push('پوشش وزنی لایهٔ کالبدی زیر ۶۰٪');

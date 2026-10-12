@@ -7,7 +7,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Sparkles, X, HelpCircle, RefreshCw, Bot } from 'lucide-react';
-import { chatWithAnthropic } from '../lib/anthropic';
+import { chatWithAI } from '../lib/aiService';
 import { buildExplainMessages, localExplainFallback } from '../lib/aiExplain';
 import { getHakimGrounding } from '../lib/hakimGrounding';
 import { computePlacement, bestVerticalRoom, MIN_VERTICAL_ROOM } from '../lib/popupPlacement';
@@ -147,7 +147,7 @@ export default function AIHoverExplainer() {
       try {
         const grounding = await getHakimGrounding();
         const { system, user } = buildExplainMessages(subject, context, grounding);
-        const text = await chatWithAnthropic(
+        const text = await chatWithAI(
           [{ role: 'user', content: user }],
           { system, maxTokens: 900 },
         );
@@ -158,7 +158,7 @@ export default function AIHoverExplainer() {
           setIsLocal(true);
           setAnswer(local);
         } else {
-          setError(e instanceof Error ? e.message : 'خطای نامشخص در اتصال به سرویس مدل');
+          setError(e instanceof Error ? e.message : 'خطای نامشخص در اتصال به سرویس هوش مصنوعی');
         }
       } finally {
         setLoading(false);
