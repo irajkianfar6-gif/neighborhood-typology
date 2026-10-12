@@ -21,16 +21,19 @@ import { matchUnits } from './research/spatialMatch';
 import { memoryStats, searchMemory } from './research/memory';
 import { decideCard, discoverSources, listCards, searchProvider, type CardStatus } from './research/discovery';
 import { gapsFromCard } from './research/research';
-import { analysisFor } from './state';
+import { analysisFor, invalidateNeighborhood } from './state';
+import { SCENARIO_VERSION } from './scenario';
+import { CRITIC_SUITE_VERSION } from './criticSuite';
+import { DASHBOARD_VERSION } from './dashboard';
 
 const asyncRoute = (fn: (req: Request, res: Response) => Promise<void>) => (req: Request, res: Response, next: NextFunction) => { fn(req, res).catch(next); };
 const ok = (res: Response, data: unknown, status = 200) => res.status(status).json({ success: true, data });
 const fail = (res: Response, status: number, code: string, message: string, details?: unknown) => res.status(status).json({ success: false, error: { code, message, details } });
-const STATUS: Record<string, number> = { UNKNOWN_TOOL: 404, UNKNOWN_AGENT: 400, FORBIDDEN: 403, INVALID_INPUT: 400, NOT_FOUND: 404, ANALYSIS_EXPIRED: 409, TIMEOUT: 504, INVALID_OUTPUT: 500, TOOL_ERROR: 500 };
+const STATUS: Record<string, number> = { UNKNOWN_TOOL: 404, UNKNOWN_AGENT: 400, FORBIDDEN: 403, INVALID_INPUT: 400, NOT_FOUND: 404, ANALYSIS_EXPIRED: 409, TIMEOUT: 504, INVALID_OUTPUT: 500, TOOL_ERROR: 500, LLM_UNAVAILABLE: 503, NO_SURVEY_GAPS: 422 };
 
 export function frameworkInfo() {
   return {
-    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION, research: RESEARCH_VERSION, ...RESEARCH_VERSIONS },
+    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION, research: RESEARCH_VERSION, ...RESEARCH_VERSIONS, scenario: SCENARIO_VERSION, criticSuite: CRITIC_SUITE_VERSION, dashboard: DASHBOARD_VERSION },
     research: { searchProvider: searchProvider(), memory: memoryStats() },
     llm: (() => { const c = llmConfig(); return { configured: c.configured, model: c.configured ? c.model : null }; })(),
     mcp: { endpoint: '/api/agentic/mcp', transport: 'streamable-http (JSON-RPC 2.0, POST)', protocolVersions: MCP_PROTOCOL_VERSIONS, agentHeader: 'x-ara-agent' },
@@ -162,6 +165,26 @@ export function createAgenticRouter(): Router {
   });
   router.get('/research', (req, res) => { ok(res, listResearch(Number(req.query.limit ?? 20))); });
   router.get('/research/:id', (req, res) => { const r = loadResearch(req.params.id); if (!r) { fail(res, 404, 'NOT_FOUND', 'پژوهش یافت نشد'); return; } ok(res, r); });
+
+  // ---------------- فاز ۴: سناریو، نقاد، پیمایش، داشبورد (همه از مسیر ابزار و با ردگیری) ----------------
+  const viaTool = (tool: string, agentId: string, input: (req: Request) => Record<string, unknown>) => asyncRoute(async (req, res) => {
+    const r = await callTool(tool, input(req), { agentId, via: 'rest' });
+    if (!r.ok) { res.status(STATUS[r.error!.code] ?? 500).json({ success: false, error: r.error }); return; }
+    ok(res, r.output);
+  });
+  const body = (req: Request) => (req.body ?? {}) as Record<string, unknown>;
+  router.post('/scenario', viaTool('simulate_scenario', 'A11', (req) => ({ overrides: {}, ...body(req) })));
+  router.post('/sensitivity', viaTool('sensitivity_analysis', 'A11', body));
+  router.post('/critic/self-test', viaTool('critic_self_test', 'A12', body));
+  router.post('/critic/llm-review', viaTool('llm_review', 'A12', body));
+  router.get('/dashboard', viaTool('get_agent_dashboard', 'A14', (req) => (req.query.limit ? { limit: Number(req.query.limit) } : {})));
+  router.get('/survey/:nb/status', viaTool('get_survey_status', 'A8', (req) => ({ neighborhoodId: req.params.nb })));
+  router.post('/survey/:nb/draft-questionnaire', viaTool('draft_gap_questionnaire', 'A8', (req) => ({ ...body(req), neighborhoodId: req.params.nb })));
+  router.post('/cache/invalidate', (req, res) => {
+    const id = String(body(req).neighborhoodId ?? '');
+    if (!/^[a-z0-9_-]+:[A-Za-z0-9_.-]+$/.test(id)) { fail(res, 400, 'INVALID_INPUT', 'neighborhoodId معتبر لازم است'); return; }
+    ok(res, { neighborhoodId: id, cleared: invalidateNeighborhood(id) });
+  });
 
   router.post('/mcp', asyncRoute(mcpHandler));
   router.get('/mcp', (_req, res) => { res.status(405).set('Allow', 'POST').json({ error: 'این سرور MCP فقط POST (JSON-RPC) را می‌پذیرد؛ جریان SSE پشتیبانی نمی‌شود' }); });

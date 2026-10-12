@@ -94,3 +94,13 @@ export async function analysisFor(input: { analysisId?: string; neighborhoodId?:
 }
 
 export function _resetAgenticState(): void { ctxCache.clear(); evCache.clear(); anCache.clear(); anById.clear(); }
+
+/** باطل‌کردن حافظهٔ کاری یک محله (مثلاً پس از ورود دادهٔ پیمایشی تازه) — تعداد مدخل‌های حذف‌شده */
+export function invalidateNeighborhood(neighborhoodId: string): number {
+  let n = 0;
+  for (const m of [ctxCache, evCache, anCache] as Array<Map<string, unknown>>) {
+    for (const k of [...m.keys()]) if (k.split('|')[0] === neighborhoodId) { m.delete(k); n++; }
+  }
+  for (const [id, k] of [...anById]) if (k.split('|')[0] === neighborhoodId) anById.delete(id);
+  return n;
+}

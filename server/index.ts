@@ -150,7 +150,9 @@ function rateRow(prov: string, s: ProvStats) {
 const app = express();
 // CORS با فهرست مجاز (ARA_ALLOWED_ORIGINS) — دیگر «*» نیست
 app.use(corsMiddleware());
-app.use(express.json({ limit: '2mb' }));
+// بارگذاری سند در فریمورک ایجنتیک تا ۴۰MB است و تجزیهٔ آن با مسیریاب همان بخش انجام می‌شود
+const jsonDefault = express.json({ limit: '2mb' });
+app.use((req, res, next) => (req.path.startsWith('/api/agentic/documents') ? next() : jsonDefault(req, res, next)));
 // پشت nginx/Cloudflare باید قبل از rate limit تنظیم شود تا req.ip واقعی باشد
 app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
 // احراز هویت و نقش (ARA_API_TOKENS) + لاگ ممیزی نوشتنی‌ها + محدودیت نرخ

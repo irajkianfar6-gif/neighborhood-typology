@@ -6,9 +6,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bot, CheckCircle2, CircleAlert, Clock, FileText, Loader2, Play, ShieldCheck, Wrench, XCircle } from 'lucide-react';
 import { BatchTab, CopilotTab } from './AgenticPhase2Tabs';
 import { ResearchTab } from './AgenticResearchTab';
+import { DashboardTab, ScenarioTab, SurveyTab } from './AgenticPhase4Tabs';
 import { agenticApi, type AgenticAgent, type AgenticInfo, type AgenticRun, type AgenticRunSummary, type AgenticToolInfo, type ToolCallResponse } from '../algorithm/agenticApi';
 
-type Tab = 'copilot' | 'run' | 'batch' | 'research' | 'agents' | 'tools';
+type Tab = 'copilot' | 'run' | 'batch' | 'research' | 'survey' | 'scenario' | 'dashboard' | 'agents' | 'tools';
 const STATUS_FA: Record<AgenticRun['status'], { label: string; cls: string }> = {
   queued: { label: 'در صف', cls: 'bg-slate-100 text-slate-800 dark:bg-wall-700 dark:text-slate-200' },
   cancelled: { label: 'لغو شد', cls: 'bg-slate-100 text-slate-800 dark:bg-wall-700 dark:text-slate-200' },
@@ -86,7 +87,7 @@ export default function AgenticFrameworkPage() {
       </header>
 
       <nav className="flex flex-wrap gap-2">
-        {([['copilot', 'دستیار عامل‌محور'], ['run', 'اجرای خودکار'], ['batch', 'اجرای دسته‌ای شهر'], ['research', 'پژوهش خودکار'], ['agents', 'عامل‌ها و دسترسی‌ها'], ['tools', 'ابزارها (MCP)']] as Array<[Tab, string]>).map(([k, l]) => (
+        {([['copilot', 'دستیار عامل‌محور'], ['run', 'اجرای خودکار'], ['batch', 'اجرای دسته‌ای شهر'], ['research', 'پژوهش خودکار'], ['survey', 'دادهٔ پیمایشی (پرسشنامه)'], ['scenario', 'شبیه‌سازی سناریو'], ['dashboard', 'داشبورد عامل‌ها'], ['agents', 'عامل‌ها و دسترسی‌ها'], ['tools', 'ابزارها (MCP)']] as Array<[Tab, string]>).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`rounded-xl px-3 py-1.5 text-xs font-bold ${tab === k ? 'bg-brand-600 text-white' : 'bg-surface border border-line dark:border-wall-700 dark:bg-wall-800'}`}>{l}</button>
         ))}
       </nav>
@@ -228,6 +229,9 @@ export default function AgenticFrameworkPage() {
       {tab === 'copilot' && <CopilotTab agentName={agentName} llmConfigured={Boolean(info?.llm?.configured)} />}
       {tab === 'batch' && <BatchTab />}
       {tab === 'research' && <ResearchTab />}
+      {tab === 'survey' && <SurveyTab llmConfigured={Boolean(info?.llm?.configured)} />}
+      {tab === 'scenario' && <ScenarioTab llmConfigured={Boolean(info?.llm?.configured)} />}
+      {tab === 'dashboard' && <DashboardTab />}
       {tab === 'tools' && <ToolsTab tools={tools} agents={agents} info={info} />}
     </div>
   );
