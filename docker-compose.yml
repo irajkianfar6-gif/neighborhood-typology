@@ -61,7 +61,8 @@ services:
 
   # ---------- اختیاری: پایگاه داده (docker compose --profile postgres up) ----------
   postgis:
-    image: postgis/postgis:16-3.4
+    build: ./deploy/postgres   # PostGIS 16 + pgvector
+    image: ara-postgis-pgvector:16
     profiles: ["postgres"]
     restart: unless-stopped
     environment:

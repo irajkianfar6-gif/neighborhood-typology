@@ -18,7 +18,8 @@ import { ingestAndIndex, RESEARCH_VERSIONS } from './research/researchTools';
 import { listDocuments, loadContent, loadDocument } from './research/documents';
 import { draftContractBatch, inferColumns, type ColumnRole } from './research/columns';
 import { matchUnits } from './research/spatialMatch';
-import { memoryStats, searchMemory } from './research/memory';
+import { memoryStats, searchMemoryAsync } from './research/memory';
+import { PGSYNC_VERSION, pgCollectionSummary, pgSyncStatus, scan as pgScan } from '../db/pgSync';
 import { decideCard, discoverSources, listCards, searchProvider, type CardStatus } from './research/discovery';
 import { gapsFromCard } from './research/research';
 import { decideCandidate, getWebResearch, listWebResearch, markInterrupted, runWebResearch, startWebResearch, WEBRESEARCH_VERSION } from './research/webResearch';
@@ -38,7 +39,7 @@ const STATUS: Record<string, number> = { UNKNOWN_TOOL: 404, UNKNOWN_AGENT: 400, 
 
 export function frameworkInfo() {
   return {
-    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION, research: RESEARCH_VERSION, ...RESEARCH_VERSIONS, scenario: SCENARIO_VERSION, criticSuite: CRITIC_SUITE_VERSION, dashboard: DASHBOARD_VERSION, field: FIELD_VERSION, monitoring: MONITORING_VERSION, learning: LEARNING_VERSION, webResearch: WEBRESEARCH_VERSION },
+    versions: { tools: TOOLS_VERSION, agentPolicy: AGENT_POLICY_VERSION, evidenceContract: EVIDENCE_PACKET_VERSION, critic: CRITIC_VERSION, graph: GRAPH_VERSION, copilot: COPILOT_VERSION, research: RESEARCH_VERSION, ...RESEARCH_VERSIONS, scenario: SCENARIO_VERSION, criticSuite: CRITIC_SUITE_VERSION, dashboard: DASHBOARD_VERSION, field: FIELD_VERSION, monitoring: MONITORING_VERSION, learning: LEARNING_VERSION, webResearch: WEBRESEARCH_VERSION, storage: PGSYNC_VERSION },
     research: { searchProvider: searchProvider(), memory: memoryStats() },
     llm: (() => { const c = llmConfig(); return { configured: c.configured }; })(),
     mcp: { endpoint: '/api/agentic/mcp', transport: 'streamable-http (JSON-RPC 2.0, POST)', protocolVersions: MCP_PROTOCOL_VERSIONS, agentHeader: 'x-ara-agent' },
@@ -139,9 +140,12 @@ export function createAgenticRouter(): Router {
     if (!b.city || !Array.isArray(b.units) || !b.units.length || b.units.length > 2000) { fail(res, 400, 'INVALID_INPUT', 'city و units (۱ تا ۲۰۰۰) لازم است'); return; }
     ok(res, matchUnits(b.units as never, String(b.city)));
   });
+  // وضعیت ذخیره‌سازی پایدار (PostgreSQL) و خلاصهٔ مجموعه‌ها
+  router.get('/system/storage', asyncRoute(async (_req, res) => { ok(res, { sync: pgSyncStatus(), memory: memoryStats(), collections: await pgCollectionSummary() }); }));
+  router.post('/system/storage/sync', asyncRoute(async (_req, res) => { const n = await pgScan(); ok(res, { changed: n, sync: pgSyncStatus() }); }));
   router.get('/memory/search', (req, res) => {
     const q = String(req.query.q ?? '').trim(); if (q.length < 2) { fail(res, 400, 'INVALID_INPUT', 'q لازم است'); return; }
-    ok(res, { stats: memoryStats(), hits: searchMemory(q, { limit: Number(req.query.limit ?? 10), kind: req.query.kind as never }) });
+    void searchMemoryAsync(q, { limit: Number(req.query.limit ?? 10), kind: req.query.kind as never }).then((r) => ok(res, { stats: memoryStats(), engine: r.engine, hits: r.hits }));
   });
   router.post('/sources/discover', asyncRoute(async (req, res) => {
     const b = (req.body ?? {}) as { neighborhoodId?: string; indicators?: string[]; city?: string; neighborhoodName?: string; verify?: boolean; useSearch?: boolean; useLlm?: boolean; offline?: boolean };

@@ -34,6 +34,8 @@ import { metricsMiddleware, metricsHandler } from './ops/metrics';
 import { createNeighborhoodRouter } from './neighborhood/router';
 import { createAgenticRouter } from './agentic/router';
 import { startScheduler } from './scheduler';
+import { startPgSync, stopPgSync } from './db/pgSync';
+import { syncChunksToPg } from './agentic/research/memory';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -149,6 +151,11 @@ function rateRow(prov: string, s: ProvStats) {
 }
 
 // ---------- app ----------
+// ذخیره‌سازی پایدار: بازیابی از PostgreSQL پیش از ساخت مسیرها (بدون پیکربندی بی‌اثر است)
+await startPgSync();
+void syncChunksToPg().catch(() => undefined);
+for (const sig of ['SIGTERM', 'SIGINT'] as const) process.once(sig, () => { void stopPgSync().finally(() => process.exit(0)); });
+
 const app = express();
 // CORS با فهرست مجاز (ARA_ALLOWED_ORIGINS) — دیگر «*» نیست
 app.use(corsMiddleware());
