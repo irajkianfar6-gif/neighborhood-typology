@@ -156,3 +156,12 @@ API تازه: `POST /scenario`، `POST /sensitivity`، `POST /critic/self-test`�
 - **پراکسی رابط:** فقط `POST /messages`؛ مدل فقط در سرور؛ پاسخ با `model: "ai"` و پالایش نام برند. درخواست جریانی با رویدادهای استاندارد Messages پاسخ داده می‌شود.
 - **سلامت:** `GET /api/agentic/system/ai` (وضعیت هر سرویس با برچسب «اصلی/پشتیبان»، بدون نام مدل/نشانی) و `POST /api/agentic/system/ai/probe` (آزمون اتصال)؛ نمایش و دکمهٔ «آزمون اتصال» در زبانهٔ ابزارها.
 - **آزمون:** `server/agentic/aiGateway.test.ts` (جایگزینی، مدار، تبدیل قالب، پنهان‌سازی نام مدل).
+
+## عملیات: هزینه، هشدار، خطا و پشتیبان‌گیری (OPS-v1، BACKUP-v1)
+
+- **هزینه (`server/ops/ops.ts`):** دفتر روزانهٔ مصرف هوش مصنوعی به تفکیک سرویس (فراخوانی، موفق/ناموفق، توکن) و مصرف پژوهش وب؛ `GET /api/agentic/system/costs?days=30`. برآورد دلاری هوش مصنوعی فقط با `ARA_AI_PRICE_IN_PER_MTOK` و `ARA_AI_PRICE_OUT_PER_MTOK`.
+- **خطا و هشدار:** خطاهای ۵xx ثبت می‌شوند (`GET /system/errors`). هشدار به `ARA_ALERT_WEBHOOK_URL` (JSON با فیلد `text`) با جلوگیری از تکرار (`ARA_ALERT_DEBOUNCE_MIN`، ۳۰) برای: کنار گذاشته شدن سرویس هوش مصنوعی، خطای همگام‌سازی PostgreSQL، پر شدن سقف پژوهش وب، انفجار خطای ۵xx (`ARA_ALERT_5XX_BURST`، ۱۰ در ۱۰ دقیقه)، شکست پشتیبان‌گیری.
+- **متریک Prometheus (`/metrics`):** `ara_ai_calls_total`، `ara_ai_circuit_open`، `ara_pgsync_*`، `ara_web_cost_usd_today`، `ara_ai_calls_today`، `ara_http_5xx_last_hour`.
+- **پشتیبان (`server/ops/backup.ts`):** بایگانی tar.gz پوشهٔ داده (بدون حافظهٔ نهان و SQLite زنده) با مانیفست هش هر فایل؛ `ARA_BACKUP_DIR` (پیش‌فرض `‎<data>-backups`)، `ARA_BACKUP_HOURS` (۰ = خاموش)، `ARA_BACKUP_KEEP` (۱۴). API: `GET/POST /system/backups`، `POST /system/backups/:name/verify`.
+- **بازگردانی:** فقط خط فرمان، پس از توقف سرور: `node scripts/restore-backup.mjs <archive> --target <data-dir>` (آزمایشی) سپس `--apply`.
+- **رابط:** زبانهٔ «عملیات و هزینه». **آزمون:** `server/agentic/ops.test.ts`.

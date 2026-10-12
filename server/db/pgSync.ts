@@ -16,6 +16,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { serverDataDir } from '../paths';
+import { alert } from '../ops/ops';
 
 export const PGSYNC_VERSION = 'PGSYNC-v1';
 export interface PgLike { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }>; end?: () => Promise<void> }
@@ -42,6 +43,8 @@ const S: SyncState = { db: null, root: '', seen: new Map(), pending: new Set(), 
 
 const rel = (abs: string) => path.relative(S.root, abs).split(path.sep).join('/');
 const excluded = (r: string) => !r || r.startsWith('..') || EXCLUDE.some((re) => re.test(r));
+/** مسیر نسبی (با /) از همگام‌سازی و پشتیبان‌گیری کنار گذاشته می‌شود؟ */
+export const isExcludedPath = excluded;
 const sha = (b: Buffer) => crypto.createHash('sha256').update(b).digest('hex');
 const collectionOf = (r: string) => { const p = r.split('/'); return p.length > 2 ? `${p[0]}/${p[1]}` : p[0]; };
 
@@ -174,7 +177,7 @@ export async function flush(): Promise<void> {
     const batch = [...S.pending]; S.pending.clear();
     for (const r of batch) {
       try { const k = await upsertFile(S.db!, r); if (k === 'written') S.stats.written++; else if (k === 'deleted') S.stats.deleted++; }
-      catch (e) { S.pending.add(r); S.stats.failures++; S.stats.lastError = String((e as Error)?.message ?? e).slice(0, 300); }
+      catch (e) { S.pending.add(r); S.stats.failures++; S.stats.lastError = String((e as Error)?.message ?? e).slice(0, 300); void alert('pgsync_failure', 'همگام‌سازی PostgreSQL با خطا روبه‌روست', `${S.pending.size} فایل در صف؛ ${S.stats.lastError}`); }
     }
     S.stats.lastFlushAt = new Date().toISOString();
   })();

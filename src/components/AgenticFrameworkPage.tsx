@@ -8,9 +8,10 @@ import { BatchTab, CopilotTab } from './AgenticPhase2Tabs';
 import { ResearchTab } from './AgenticResearchTab';
 import { DashboardTab, ScenarioTab, SurveyTab } from './AgenticPhase4Tabs';
 import { FieldLearningTab } from './AgenticPhase5Tab';
+import { OpsTab } from './AgenticOpsTab';
 import { agenticApi, type AgenticAgent, type AgenticInfo, type AgenticRun, type AgenticRunSummary, type AgenticToolInfo, type StorageStatus, type AiHealth, type ToolCallResponse } from '../algorithm/agenticApi';
 
-type Tab = 'copilot' | 'run' | 'batch' | 'research' | 'survey' | 'field' | 'scenario' | 'dashboard' | 'agents' | 'tools';
+type Tab = 'copilot' | 'run' | 'batch' | 'research' | 'survey' | 'field' | 'scenario' | 'dashboard' | 'ops' | 'agents' | 'tools';
 const STATUS_FA: Record<AgenticRun['status'], { label: string; cls: string }> = {
   queued: { label: 'در صف', cls: 'bg-slate-100 text-slate-800 dark:bg-wall-700 dark:text-slate-200' },
   cancelled: { label: 'لغو شد', cls: 'bg-slate-100 text-slate-800 dark:bg-wall-700 dark:text-slate-200' },
@@ -90,7 +91,7 @@ export default function AgenticFrameworkPage() {
       </header>
 
       <nav className="flex flex-wrap gap-2">
-        {([['copilot', 'دستیار عامل‌محور'], ['run', 'اجرای خودکار'], ['batch', 'اجرای دسته‌ای شهر'], ['research', 'پژوهش خودکار'], ['survey', 'دادهٔ پیمایشی (پرسشنامه)'], ['field', 'میدان و یادگیری'], ['scenario', 'شبیه‌سازی سناریو'], ['dashboard', 'داشبورد عامل‌ها'], ['agents', 'عامل‌ها و دسترسی‌ها'], ['tools', 'ابزارها (MCP)']] as Array<[Tab, string]>).map(([k, l]) => (
+        {([['copilot', 'دستیار عامل‌محور'], ['run', 'اجرای خودکار'], ['batch', 'اجرای دسته‌ای شهر'], ['research', 'پژوهش خودکار'], ['survey', 'دادهٔ پیمایشی (پرسشنامه)'], ['field', 'میدان و یادگیری'], ['scenario', 'شبیه‌سازی سناریو'], ['dashboard', 'داشبورد عامل‌ها'], ['ops', 'عملیات و هزینه'], ['agents', 'عامل‌ها و دسترسی‌ها'], ['tools', 'ابزارها (MCP)']] as Array<[Tab, string]>).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`rounded-xl px-3 py-1.5 text-xs font-bold ${tab === k ? 'bg-brand-600 text-white' : 'bg-surface border border-line dark:border-wall-700 dark:bg-wall-800'}`}>{l}</button>
         ))}
       </nav>
@@ -236,6 +237,7 @@ export default function AgenticFrameworkPage() {
       {tab === 'field' && <FieldLearningTab onOpenSurvey={() => setTab('survey')} />}
       {tab === 'scenario' && <ScenarioTab llmConfigured={Boolean(info?.llm?.configured)} />}
       {tab === 'dashboard' && <DashboardTab />}
+      {tab === 'ops' && <OpsTab />}
       {tab === 'tools' && <ToolsTab tools={tools} agents={agents} info={info} storage={storage} />}
     </div>
   );

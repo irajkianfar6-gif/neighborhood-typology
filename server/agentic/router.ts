@@ -13,6 +13,8 @@ import { batchCsv, listBatches, loadBatch } from './batch';
 import { COPILOT_VERSION, listSessions, loadSession } from './copilot';
 import { llmConfig } from '../ai/llm';
 import { aiHealth, complete as aiComplete, providers as aiProviders } from '../ai/gateway';
+import { costReport, listAlerts, listErrors } from '../ops/ops';
+import { backupScheduleStatus, createBackup, listBackups, verifyBackup } from '../ops/backup';
 import { enqueueResearch } from './jobs';
 import { listResearch, loadResearch, RESEARCH_VERSION } from './research/research';
 import { ingestAndIndex, RESEARCH_VERSIONS } from './research/researchTools';
@@ -152,6 +154,16 @@ export function createAgenticRouter(): Router {
     }
     ok(res, { results, health: aiHealth() });
   }));
+  // عملیات: هزینه، خطا، هشدار، پشتیبان (ایجاد/راستی‌آزمایی؛ بازگردانی فقط با اسکریپت خط فرمان)
+  router.get('/system/costs', (req, res) => { ok(res, { ...costReport(Number(req.query.days ?? 30)), web: webConfig() }); });
+  router.get('/system/errors', (req, res) => { ok(res, { errors: listErrors(Math.min(200, Number(req.query.limit ?? 50))), alerts: listAlerts(30), webhook: Boolean(process.env.ARA_ALERT_WEBHOOK_URL) }); });
+  router.get('/system/backups', (_req, res) => { ok(res, { schedule: backupScheduleStatus(), backups: listBackups() }); });
+  router.post('/system/backups', (req, res) => {
+    try { const { entries: _e, ...m } = createBackup(); ok(res, m); } catch (e) { fail(res, 500, 'BACKUP_FAILED', (e as Error).message); }
+  });
+  router.post('/system/backups/:name/verify', (req, res) => {
+    try { ok(res, verifyBackup(String(req.params.name))); } catch (e) { const st = (e as { status?: number }).status ?? 500; fail(res, st, st === 404 ? 'NOT_FOUND' : 'INVALID_INPUT', (e as Error).message); }
+  });
   // وضعیت ذخیره‌سازی پایدار (PostgreSQL) و خلاصهٔ مجموعه‌ها
   router.get('/system/storage', asyncRoute(async (_req, res) => { ok(res, { sync: pgSyncStatus(), memory: memoryStats(), collections: await pgCollectionSummary() }); }));
   router.post('/system/storage/sync', asyncRoute(async (_req, res) => { const n = await pgScan(); ok(res, { changed: n, sync: pgSyncStatus() }); }));

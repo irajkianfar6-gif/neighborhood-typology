@@ -33,7 +33,11 @@ import { metricsMiddleware, metricsHandler } from './ops/metrics';
 import { createNeighborhoodRouter } from './neighborhood/router';
 import { createAgenticRouter } from './agentic/router';
 import { startScheduler } from './scheduler';
-import { startPgSync, stopPgSync } from './db/pgSync';
+import { pgSyncStatus, startPgSync, stopPgSync } from './db/pgSync';
+import { aiHealth } from './ai/gateway';
+import { addCollector } from './ops/metrics';
+import { costReport, errorsLastHour, recordError } from './ops/ops';
+import { startBackupSchedule } from './ops/backup';
 import { syncChunksToPg } from './agentic/research/memory';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -153,6 +157,17 @@ function rateRow(prov: string, s: ProvStats) {
 // ذخیره‌سازی پایدار: بازیابی از PostgreSQL پیش از ساخت مسیرها (بدون پیکربندی بی‌اثر است)
 await startPgSync();
 void syncChunksToPg().catch(() => undefined);
+startBackupSchedule();
+// متریک‌های عملیاتی لحظه‌ای برای Prometheus (/metrics)
+addCollector(() => {
+  const ps = pgSyncStatus(); const c = costReport(1).rows[0];
+  return [
+    ...aiHealth().providers.map((p) => `ara_ai_circuit_open{provider="${p.id}"} ${p.state === 'open' ? 1 : 0}`),
+    `ara_pgsync_active ${ps.active ? 1 : 0}`, `ara_pgsync_pending_files ${ps.pending}`, `ara_pgsync_failures_total ${ps.failures}`,
+    `ara_web_cost_usd_today ${c?.web.costUsd ?? 0}`, `ara_web_research_today ${c?.web.research ?? 0}`, `ara_ai_calls_today ${c?.ai.calls ?? 0}`,
+    `ara_http_5xx_last_hour ${errorsLastHour()}`,
+  ];
+});
 for (const sig of ['SIGTERM', 'SIGINT'] as const) process.once(sig, () => { void stopPgSync().finally(() => process.exit(0)); });
 
 const app = express();
@@ -433,7 +448,10 @@ app.use((err: unknown, req: express.Request, res: express.Response, _next: expre
     res.status(400).json({ success: false, error: { code: 'INVALID_JSON', message: 'بدنهٔ درخواست JSON معتبر نیست.' } });
     return;
   }
-  if (status >= 500) console.error('[error]', req.method, req.originalUrl, rawMessage);
+  if (status >= 500) {
+    console.error('[error]', req.method, req.originalUrl, rawMessage);
+    recordError({ method: req.method, route: req.path.slice(0, 120), status, code: 'INTERNAL_ERROR', message: rawMessage });
+  }
   if (!isApi) {
     res.status(status).type('text/plain').send(status >= 500 ? 'Internal Server Error' : rawMessage);
     return;
