@@ -10,6 +10,17 @@ export interface TraceEntry {
 
 const RING: TraceEntry[] = [];
 const RING_MAX = 1000;
+let loaded = false;
+
+/** بازیابی آخرین رخدادها از فایل پس از راه‌اندازی دوبارهٔ سرور */
+function ensureLoaded(): void {
+  if (loaded) return;
+  loaded = true;
+  try {
+    const lines = fs.readFileSync(traceFile(), 'utf8').trim().split('\n').slice(-RING_MAX);
+    for (const l of lines) { try { RING.push(JSON.parse(l)); } catch { /* سطر خراب */ } }
+  } catch { /* فایل هنوز نیست */ }
+}
 
 function traceFile(): string {
   const dir = path.join(serverDataDir(), 'agentic');
@@ -18,17 +29,20 @@ function traceFile(): string {
 }
 
 export function recordTrace(e: TraceEntry): void {
+  ensureLoaded();
   RING.push(e);
   if (RING.length > RING_MAX) RING.splice(0, RING.length - RING_MAX);
   try { fs.appendFileSync(traceFile(), `${JSON.stringify(e)}\n`); } catch { /* ثبت فایل اختیاری است */ }
 }
 
 export function listTrace(filter: { runId?: string; agentId?: string; tool?: string; limit?: number } = {}): TraceEntry[] {
+  ensureLoaded();
   const limit = Math.max(1, Math.min(500, filter.limit ?? 100));
   return RING.filter((e) => (!filter.runId || e.runId === filter.runId) && (!filter.agentId || e.agentId === filter.agentId) && (!filter.tool || e.tool === filter.tool)).slice(-limit).reverse();
 }
 
 export function traceStats(): { calls: number; errors: number; byTool: Record<string, { calls: number; errors: number; avgMs: number }> } {
+  ensureLoaded();
   const byTool: Record<string, { calls: number; errors: number; avgMs: number }> = {};
   for (const e of RING) {
     const t = (byTool[e.tool] ??= { calls: 0, errors: 0, avgMs: 0 });
@@ -38,4 +52,4 @@ export function traceStats(): { calls: number; errors: number; byTool: Record<st
   return { calls: RING.length, errors: RING.filter((e) => !e.ok).length, byTool };
 }
 
-export function _resetTrace(): void { RING.length = 0; }
+export function _resetTrace(): void { RING.length = 0; loaded = true; }

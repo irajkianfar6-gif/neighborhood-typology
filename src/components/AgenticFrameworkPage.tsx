@@ -4,10 +4,13 @@
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bot, CheckCircle2, CircleAlert, Clock, FileText, Loader2, Play, ShieldCheck, Wrench, XCircle } from 'lucide-react';
+import { BatchTab, CopilotTab } from './AgenticPhase2Tabs';
 import { agenticApi, type AgenticAgent, type AgenticInfo, type AgenticRun, type AgenticRunSummary, type AgenticToolInfo, type ToolCallResponse } from '../algorithm/agenticApi';
 
-type Tab = 'run' | 'agents' | 'tools';
+type Tab = 'copilot' | 'run' | 'batch' | 'agents' | 'tools';
 const STATUS_FA: Record<AgenticRun['status'], { label: string; cls: string }> = {
+  queued: { label: 'در صف', cls: 'bg-slate-100 text-slate-800 dark:bg-wall-700 dark:text-slate-200' },
+  cancelled: { label: 'لغو شد', cls: 'bg-slate-100 text-slate-800 dark:bg-wall-700 dark:text-slate-200' },
   running: { label: 'در حال اجرا', cls: 'bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-200' },
   completed: { label: 'کامل شد', cls: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200' },
   needs_user: { label: 'منتظر انتخاب شما', cls: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200' },
@@ -29,7 +32,7 @@ function StepIcon({ s }: { s: string }) {
 }
 
 export default function AgenticFrameworkPage() {
-  const [tab, setTab] = useState<Tab>('run');
+  const [tab, setTab] = useState<Tab>('copilot');
   const [info, setInfo] = useState<AgenticInfo | null>(null);
   const [agents, setAgents] = useState<AgenticAgent[]>([]);
   const [tools, setTools] = useState<AgenticToolInfo[]>([]);
@@ -74,13 +77,15 @@ export default function AgenticFrameworkPage() {
             <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-wall-700">{fa(info.activeAgents)} عامل فعال از {fa(info.agents - 1)}</span>
             <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-wall-700">{fa(info.tools)} ابزار استاندارد</span>
             <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-wall-700">{fa(info.stats.calls)} فراخوانی · {fa(info.stats.errors)} خطا</span>
+            <span className={`rounded-full px-2 py-1 ${info.llm?.configured ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200' : 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200'}`}>{info.llm?.configured ? `مدل زبانی: ${info.llm.model}` : 'مدل زبانی تنظیم نشده (حالت قطعی)'}</span>
+            {info.queue && <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-wall-700">صف: {fa(info.queue.running ?? 0)} در اجرا · {fa(info.queue.queued ?? 0)} منتظر</span>}
             <span className="rounded-full bg-slate-100 px-2 py-1 font-mono dark:bg-wall-700" dir="ltr">MCP: {info.mcp.endpoint}</span>
           </div>
         )}
       </header>
 
-      <nav className="flex gap-2">
-        {([['run', 'اجرای خودکار'], ['agents', 'عامل‌ها و دسترسی‌ها'], ['tools', 'ابزارها (MCP)']] as Array<[Tab, string]>).map(([k, l]) => (
+      <nav className="flex flex-wrap gap-2">
+        {([['copilot', 'دستیار عامل‌محور'], ['run', 'اجرای خودکار'], ['batch', 'اجرای دسته‌ای شهر'], ['agents', 'عامل‌ها و دسترسی‌ها'], ['tools', 'ابزارها (MCP)']] as Array<[Tab, string]>).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`rounded-xl px-3 py-1.5 text-xs font-bold ${tab === k ? 'bg-brand-600 text-white' : 'bg-surface border border-line dark:border-wall-700 dark:bg-wall-800'}`}>{l}</button>
         ))}
       </nav>
@@ -219,6 +224,8 @@ export default function AgenticFrameworkPage() {
         </section>
       )}
 
+      {tab === 'copilot' && <CopilotTab agentName={agentName} llmConfigured={Boolean(info?.llm?.configured)} />}
+      {tab === 'batch' && <BatchTab />}
       {tab === 'tools' && <ToolsTab tools={tools} agents={agents} info={info} />}
     </div>
   );
