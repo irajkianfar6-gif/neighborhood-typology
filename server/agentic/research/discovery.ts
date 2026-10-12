@@ -11,6 +11,7 @@ import { serverDataDir } from '../../paths';
 import { listManifests } from '../../sources/manifests';
 import { extractJson, llmConfig, llmText } from '../../ai/llm';
 import { CATALOG_VERSION, SOURCE_CATALOG, type CatalogSource } from './sourceCatalog';
+import { cityProfile } from '../cities';
 import { INDICATOR_LEXICON } from './columns';
 import { youSearch } from './webClient';
 import { indexItem } from './memory';
@@ -174,10 +175,18 @@ export async function discoverSources(input: DiscoverInput, deps: DiscoverDeps =
   const reg = registeredDomains(); const skippedRegistered: string[] = [];
   const verify = input.verify !== false; const fetchFn = deps.fetch ?? (fetch as unknown as FetchFn);
   const seeds: Array<Parameters<typeof upsertCard>[0]> = [];
-  // ۱) کاتالوگ
+  // ۱) کاتالوگ (منابع ویژهٔ تهران فقط برای تهران) + منابع بومی نمایهٔ شهر (CITY-v1)
+  const prof = cityProfile(input.city ?? 'تهران');
+  const isTehran = (prof?.slug ?? 'tehran') === 'tehran';
+  for (const s of prof?.sources ?? []) {
+    const hit = (s.indicators ?? []).filter((c) => codes.includes(c));
+    if (!hit.length || reg.has(domainOf(s.url))) continue;
+    seeds.push({ url: s.url, title: s.title, publisher: s.publisher, description: `منبع بومی ${prof!.cityFa} (نمایهٔ شهر)`, indicators: s.indicators, role: 'direct', spatialLevel: (s.spatialLevel as CatalogSource['spatialLevel']) ?? 'district', resolution: null, license: 'نامشخص', commercial: null, access: 'portal', cadence: 'نامشخص', domestic: true, origin: 'catalog', originDetail: `CITY-v1:${prof!.slug}`, foundFor: hit });
+  }
   for (const s of SOURCE_CATALOG) {
     const hit = s.indicators.filter((c) => codes.includes(c));
     if (!hit.length) continue;
+    if (/^tehran-/.test(s.id) && !isTehran) continue;
     if (reg.has(domainOf(s.url))) { skippedRegistered.push(s.id); continue; }
     seeds.push({ url: s.url, title: s.title, publisher: s.publisher, description: s.description, indicators: s.indicators, role: s.role, spatialLevel: s.spatialLevel, resolution: s.resolution ?? null, license: s.license, commercial: s.commercial, access: s.access, cadence: s.cadence, domestic: Boolean(s.domestic), origin: 'catalog', originDetail: `${CATALOG_VERSION}:${s.id}`, foundFor: hit });
   }

@@ -57,6 +57,10 @@ export function jaroWinkler(a: string, b: string): number {
 const CITY_SLUGS: Record<string, string> = {
   'تهران': 'tehran', 'کرج': 'karaj', 'مشهد': 'mashhad', 'اصفهان': 'isfahan', 'شیراز': 'shiraz',
   'تبریز': 'tabriz', 'قم': 'qom', 'اهواز': 'ahvaz', 'کرمانشاه': 'kermanshah', 'رشت': 'rasht',
+  'یزد': 'yazd', 'کرمان': 'kerman', 'اراک': 'arak', 'همدان': 'hamedan', 'زنجان': 'zanjan', 'اردبیل': 'ardabil', 'ارومیه': 'urmia',
+  'ساری': 'sari', 'گرگان': 'gorgan', 'قزوین': 'qazvin', 'بندرعباس': 'bandarabbas', 'زاهدان': 'zahedan', 'خرم آباد': 'khorramabad',
+  'سنندج': 'sanandaj', 'بوشهر': 'bushehr', 'سمنان': 'semnan', 'بجنورد': 'bojnurd', 'بیرجند': 'birjand', 'شهرکرد': 'shahrekord',
+  'یاسوج': 'yasuj', 'ایلام': 'ilam', 'کاشان': 'kashan', 'قدس': 'qods', 'اسلامشهر': 'eslamshahr',
 };
 export function citySlug(cityFa: string): string {
   const n = normalizeFa(cityFa);

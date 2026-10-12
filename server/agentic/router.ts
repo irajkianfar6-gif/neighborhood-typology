@@ -1,4 +1,5 @@
 /** API فریمورک ایجنتیک — زیر /api/agentic نصب می‌شود (REST + MCP) */
+import { allCityReadiness, cityProfile, cityReadiness } from './cities';
 import { type DisaggInput, estimateFromDistrict, listEstimates, worldpopWeights } from './research/disaggregate';
 import express, { type NextFunction, type Request, type Response, Router } from 'express';
 import { AGENT_POLICY_VERSION, AGENTS } from './agents';
@@ -125,6 +126,9 @@ export function createAgenticRouter(): Router {
     catch (e) { fail(res, 400, 'INVALID_INPUT', e instanceof Error ? e.message : String(e)); }
   });
   router.get('/documents', (req, res) => { ok(res, listDocuments(Number(req.query.limit ?? 30))); });
+  // ---------- CITY-v1: آمادگی شهرها ----------
+  router.get('/cities', (_req, res) => { ok(res, allCityReadiness()); });
+  router.get('/cities/:city', (req, res) => { ok(res, { readiness: cityReadiness(req.params.city), profile: cityProfile(req.params.city) }); });
   // ---------- DISAGG-v1: برآورد شفاف منطقه → محله (فقط شمارشی‌ها؛ با تأیید کارشناس) ----------
   router.get('/estimates', (req, res) => { ok(res, listEstimates(Number(req.query.limit ?? 30))); });
   router.post('/estimates/district', asyncRoute(async (req, res) => {

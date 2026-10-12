@@ -37,6 +37,11 @@ export interface GapBrief { code: string; name: string; reason: 'no_score' | 'lo
 export interface ResearchRecord { researchId: string; jobId: string | null; createdAt: string; finishedAt: string | null; status: 'queued' | 'running' | 'done' | 'needs_user_choice' | 'failed' | 'cancelled'; neighborhood: { id: string; nameFa: string; city: string } | null; candidates?: Array<{ id: string; nameFa: string }>; analysisId: string | null; level: string | null; steps: Array<{ name: string; agent: string; status: string; summary: string; ms: number }>; briefs: GapBrief[]; summary: { gaps: number; covered: number; uncovered: number; verifiedSources: number; candidateSources: number } | null; error: string | null }
 export interface DocRecord { docId: string; filename: string; kind: string; bytes: number; createdAt: string; title: string; period: { year: number; calendar: string; periodEnd: string } | null; extractor: string; tables: Array<{ tableId: string; origin: string; columns: number; rows: number; header: string[] }>; pages: number; verification: { method: string; numericCells: number; agreed: number; agreement: number | null; note: string }; warnings: string[] }
 export interface ColumnRole { column: number; header: string; role: 'name' | 'district' | 'indicator' | 'ignore'; code?: string; percent?: boolean; confidence: number; method: string; reason: string }
+export interface CityReadiness {
+  cityFa: string; slug: string; level: 'ready' | 'partial' | 'gazetteer_only' | 'not_onboarded'; neighborhoods: number;
+  boundaries: { official: number; osm_admin: number; derived: number; proxyShare: number }; districtCoverage: number; districts: number;
+  withApprovedData: number; officialDomains: number; localSources: number; nextSteps: string[];
+}
 export interface EstimateRecord {
   estimateId: string; version: string; createdAt: string; city: string; district: number; code: string; districtValue: number; periodEnd: string; sourceOrg: string;
   method: 'prior_share' | 'covariate' | 'area'; weightSource: string; reliability: 'medium' | 'low' | 'very_low'; band: number; coverage: number;
@@ -123,6 +128,7 @@ export const agenticApi = {
   costs: (days = 30) => call<CostReport>(`/api/agentic/system/costs?days=${days}`),
   opsErrors: () => call<{ errors: Array<{ at: string; method: string; route: string; status: number; message: string }>; alerts: Array<{ at: string; key: string; title: string; detail: string; delivered: boolean | null; error?: string }>; webhook: boolean }>('/api/agentic/system/errors'),
   backups: () => call<{ schedule: { everyHours: number; keep: number; dir: string }; backups: BackupInfo[] }>('/api/agentic/system/backups'),
+  cities: () => call<CityReadiness[]>('/api/agentic/cities'),
   estimates: () => call<EstimateRecord[]>('/api/agentic/estimates'),
   estimateDistrict: (body: { city: string; district: number; code: string; value: number; periodEnd: string; sourceOrg: string; method?: string; dryRun: boolean }) => call<EstimateRecord>('/api/agentic/estimates/district', { method: 'POST', body: JSON.stringify(body) }),
   createBackup: () => call<BackupInfo>('/api/agentic/system/backups', { method: 'POST', body: '{}' }),
