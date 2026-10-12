@@ -1,7 +1,7 @@
 /** زبانهٔ «عملیات و هزینه»: هزینهٔ روزانه، سلامت هوش مصنوعی و ذخیره‌سازی، خطا و هشدار، پشتیبان‌گیری */
 import { useEffect, useState } from 'react';
 import { Archive, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
-import { agenticApi, type AiHealth, type BackupInfo, type CostReport, type StorageStatus } from '../algorithm/agenticApi';
+import { agenticApi, type AiHealth, type BackupInfo, type CityReadiness, type CostReport, type StorageStatus } from '../algorithm/agenticApi';
 
 const card = 'rounded-2xl border border-line bg-surface p-4 dark:border-wall-700 dark:bg-wall-800';
 const btn2 = 'flex items-center gap-1 rounded-xl border border-line px-3 py-1.5 text-xs font-bold disabled:opacity-50 dark:border-wall-700';
@@ -10,6 +10,30 @@ const usd = (n: number | null) => (n === null ? '—' : `${fa(n, 3)} دلار`);
 const mb = (b: number) => `${fa(b / 1e6, 1)} مگابایت`;
 const when = (s: string) => new Date(s).toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' });
 const STATE: Record<string, string> = { closed: 'سالم', half_open: 'در حال آزمون', open: 'موقتاً کنار گذاشته شده' };
+
+const LEVEL: Record<CityReadiness['level'], { t: string; c: string }> = {
+  ready: { t: 'آماده', c: 'bg-emerald-100 text-emerald-900' }, partial: { t: 'نیمه‌آماده', c: 'bg-amber-100 text-amber-900' },
+  gazetteer_only: { t: 'فقط فهرست محلات', c: 'bg-slate-100 text-slate-800' }, not_onboarded: { t: 'وارد نشده', c: 'bg-rose-100 text-rose-900' },
+};
+/** CITY-v1: آمادگی هر شهر برای تحلیل (بر پایهٔ گزتیر و دادهٔ تأییدشده) */
+function CitiesCard() {
+  const [cs, setCs] = useState<CityReadiness[] | null>(null);
+  useEffect(() => { void agenticApi.cities().then(setCs).catch(() => setCs([])); }, []);
+  return (
+    <div className={card}>
+      <h3 className="mb-1 text-sm font-black">شهرها</h3>
+      <p className="mb-2 text-[11px] text-slate-500">شهر تازه با scripts/onboard-city.ts و نمایهٔ data/cities افزوده می‌شود.</p>
+      {!cs ? <Loader2 className="h-4 w-4 animate-spin" /> : !cs.length ? <p className="text-xs text-slate-500">شهری ثبت نشده است.</p> : (
+        <ul className="space-y-2 text-xs">{cs.map((c) => (
+          <li key={c.slug}>
+            <div className="flex flex-wrap items-center gap-2"><b>{c.cityFa}</b><span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${LEVEL[c.level].c}`}>{LEVEL[c.level].t}</span>
+              <span className="text-slate-500">{fa(c.neighborhoods)} محله · مرز رسمی {fa(c.boundaries.official)} · OSM {fa(c.boundaries.osm_admin)} · تقریبی {fa(c.boundaries.derived)} · {fa(c.districts)} منطقه · دادهٔ تأییدشده برای {fa(c.withApprovedData)} محله</span></div>
+            {c.nextSteps.length > 0 && <ul className="mt-0.5 list-disc pr-5 text-[11px] text-slate-500">{c.nextSteps.map((n) => <li key={n}>{n}</li>)}</ul>}
+          </li>))}</ul>
+      )}
+    </div>
+  );
+}
 
 export function OpsTab() {
   const [days, setDays] = useState(30);
@@ -33,6 +57,7 @@ export function OpsTab() {
 
   return (
     <div className="space-y-4">
+      <CitiesCard />
       <div className={card}>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-black">هزینه و مصرف</h3>

@@ -20,6 +20,7 @@ import { indexItem } from './memory';
 import { detectPeriod, latinDigits, parseNumberFa } from './numbers';
 import { gapsFromCard } from './research';
 import { SOURCE_CATALOG } from './sourceCatalog';
+import { allOfficialDomains } from '../cities';
 import { districtNumber, matchUnit } from './spatialMatch';
 import { clampEffort, webConfig, youContents, youResearch, type Effort, type ResearchSource, type WebClientDeps } from './webClient';
 
@@ -70,6 +71,7 @@ function boostDomains(): string[] {
   const s = new Set(OFFICIAL_DOMAINS);
   for (const c of SOURCE_CATALOG) { try { s.add(new URL(c.url).hostname.replace(/^www\./, '')); } catch { /* */ } }
   for (const d of registeredDomains()) s.add(d);
+  for (const d of allOfficialDomains()) s.add(d);
   return [...s].slice(0, 200);
 }
 

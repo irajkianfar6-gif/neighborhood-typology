@@ -6,6 +6,7 @@
  *  - پاسخ نهایی بررسی «اتکای عددی» می‌شود: هر عدد پاسخ باید در خروجی ابزارها (یا پرسش) وجود داشته باشد.
  *  - سقف گام و زمان؛ بدون کلید مدل، به گراف قطعی استاندارد برمی‌گردد.
  */
+import { knownCityNames } from './cities';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -104,6 +105,8 @@ function parseDecision(text: string): Decision {
   return { thought: String(d.thought ?? '').slice(0, 600), action: d.action ? { agent: d.action.agent, tool: d.action.tool, input: (d.action.input && typeof d.action.input === 'object' ? d.action.input : {}) } : undefined, final: d.final };
 }
 
+let cityRe: { at: number; re: RegExp } | null = null;
+const cityRegex = () => { if (!cityRe || Date.now() - cityRe.at > 60_000) { const names = knownCityNames().map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); cityRe = { at: Date.now(), re: new RegExp(names.length ? names.join('|') : 'تهران|کرج') }; } return cityRe.re; };
 /** استخراج نام محله از پرسش آزاد (برای حالت بدون مدل) */
 export function guessNeighborhood(question: string): { name: string; city?: string } {
   const STOP = new Set(['محله', 'محلهٔ', 'محله‌ی', 'را', 'رو', 'برای', 'وضعیت', 'تحلیل', 'کن', 'کنید', 'بررسی', 'گزارش', 'بده', 'بدهید', 'چیست', 'چطور', 'است', 'در', 'شهر', 'از', 'و', 'به', 'تشخیص', 'تجویز', 'سنجه', 'گلوگاه', 'کامل', 'لطفا', 'لطفاً', 'چه', 'مشکل', 'اصلی', 'مداخله', 'مداخلات', 'پیشنهاد']);
@@ -112,7 +115,7 @@ export function guessNeighborhood(question: string): { name: string; city?: stri
   for (let n = Math.min(4, words.length); n >= 1; n--) for (let i = 0; i + n <= words.length; i++) {
     const phrase = words.slice(i, i + n).join(' ');
     const rest = words.filter((_, k) => k < i || k >= i + n).join(' ');
-    const { name, city } = splitNameAndCity(phrase, /تهران|کرج/.exec(rest)?.[0]);
+    const { name, city } = splitNameAndCity(phrase, cityRegex().exec(rest)?.[0]);
     const r = resolveNeighborhood(name, city);
     const conf = r.best?.confidence ?? 0;
     if (conf > best.conf) best = { name, city, conf };
