@@ -8,7 +8,7 @@ import { BatchTab, CopilotTab } from './AgenticPhase2Tabs';
 import { ResearchTab } from './AgenticResearchTab';
 import { DashboardTab, ScenarioTab, SurveyTab } from './AgenticPhase4Tabs';
 import { FieldLearningTab } from './AgenticPhase5Tab';
-import { agenticApi, type AgenticAgent, type AgenticInfo, type AgenticRun, type AgenticRunSummary, type AgenticToolInfo, type ToolCallResponse } from '../algorithm/agenticApi';
+import { agenticApi, type AgenticAgent, type AgenticInfo, type AgenticRun, type AgenticRunSummary, type AgenticToolInfo, type StorageStatus, type ToolCallResponse } from '../algorithm/agenticApi';
 
 type Tab = 'copilot' | 'run' | 'batch' | 'research' | 'survey' | 'field' | 'scenario' | 'dashboard' | 'agents' | 'tools';
 const STATUS_FA: Record<AgenticRun['status'], { label: string; cls: string }> = {
@@ -37,6 +37,7 @@ function StepIcon({ s }: { s: string }) {
 export default function AgenticFrameworkPage() {
   const [tab, setTab] = useState<Tab>('copilot');
   const [info, setInfo] = useState<AgenticInfo | null>(null);
+  const [storage, setStorage] = useState<StorageStatus | null>(null);
   const [agents, setAgents] = useState<AgenticAgent[]>([]);
   const [tools, setTools] = useState<AgenticToolInfo[]>([]);
   const [runs, setRuns] = useState<AgenticRunSummary[]>([]);
@@ -52,6 +53,7 @@ export default function AgenticFrameworkPage() {
     try {
       const [i, a, t, r] = await Promise.all([agenticApi.info(), agenticApi.agents(), agenticApi.tools(), agenticApi.runs()]);
       setInfo(i); setAgents(a); setTools(t); setRuns(r);
+      void agenticApi.storage().then(setStorage).catch(() => undefined);
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
   }, []);
   useEffect(() => { void refresh(); }, [refresh]);
@@ -234,12 +236,12 @@ export default function AgenticFrameworkPage() {
       {tab === 'field' && <FieldLearningTab onOpenSurvey={() => setTab('survey')} />}
       {tab === 'scenario' && <ScenarioTab llmConfigured={Boolean(info?.llm?.configured)} />}
       {tab === 'dashboard' && <DashboardTab />}
-      {tab === 'tools' && <ToolsTab tools={tools} agents={agents} info={info} />}
+      {tab === 'tools' && <ToolsTab tools={tools} agents={agents} info={info} storage={storage} />}
     </div>
   );
 }
 
-function ToolsTab({ tools, agents, info }: { tools: AgenticToolInfo[]; agents: AgenticAgent[]; info: AgenticInfo | null }) {
+function ToolsTab({ tools, agents, info, storage }: { tools: AgenticToolInfo[]; agents: AgenticAgent[]; info: AgenticInfo | null; storage: StorageStatus | null }) {
   const [sel, setSel] = useState<string | null>(null);
   const [agentId, setAgentId] = useState('operator');
   const [input, setInput] = useState('{\n  "neighborhoodId": "tehran:m605"\n}');
@@ -257,6 +259,9 @@ function ToolsTab({ tools, agents, info }: { tools: AgenticToolInfo[]; agents: A
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <section className={`${card} space-y-3 text-xs`}>
+        {storage && <p className="rounded-lg bg-slate-50 p-2 text-[11px] dark:bg-wall-900">ذخیره‌سازی پایدار: {storage.sync.active
+          ? <>PostgreSQL فعال · پرونده‌های همگام {storage.sync.tracked.toLocaleString('fa-IR')} · در صف {storage.sync.pending.toLocaleString('fa-IR')}{storage.sync.failures ? ` · خطا ${storage.sync.failures.toLocaleString('fa-IR')}` : ''} · جست‌وجوی برداری {storage.memory.vectorStore === 'pgvector' ? 'در پایگاه داده' : 'درون‌برنامه‌ای'}</>
+          : <>فقط فایل محلی{storage.sync.enabled && storage.sync.lastError ? ` (اتصال به پایگاه داده ناموفق: ${storage.sync.lastError})` : ''} · جست‌وجوی ترکیبی درون‌برنامه‌ای</>}</p>}
         {info && <p className="rounded-lg bg-slate-50 p-2 text-[11px] dark:bg-wall-900">اتصال کلاینت MCP: <span dir="ltr" className="font-mono">POST {info.mcp.endpoint}</span> · سرآیند عامل: <span dir="ltr" className="font-mono">{info.mcp.agentHeader}</span> · نسخه‌ها: <span dir="ltr" className="font-mono">{Object.values(info.versions).join(' · ')}</span></p>}
         {Object.entries(groups).map(([cat, ts]) => (
           <div key={cat}>

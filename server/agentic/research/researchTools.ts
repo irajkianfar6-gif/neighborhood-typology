@@ -9,7 +9,7 @@ import { DISCOVERY_VERSION, discoverSources, getCard, listCards, verifyUrl, trus
 import { EXTRACTOR_VERSION, getTable, ingestDocument, loadContent, loadDocument, listDocuments, type DocRecord } from './documents';
 import { draftContractBatch, inferColumns, INDICATOR_LEXICON, MAPPER_VERSION, type ColumnRole } from './columns';
 import { matchUnits, MATCHER_VERSION } from './spatialMatch';
-import { indexItem, MEMORY_VERSION, searchMemory } from './memory';
+import { indexItem, MEMORY_VERSION, searchMemory, searchMemoryAsync } from './memory';
 import { gapsFromCard, GAP_RELIABILITY } from './research';
 
 const OBJ = (required: string[], properties: Record<string, JsonSchema> = {}): JsonSchema => ({ type: 'object', required, properties });
@@ -118,7 +118,7 @@ export const RESEARCH_TOOLS: ToolDef[] = [
     description: 'جست‌وجوی واژگانی (BM25) در اسناد بارگذاری‌شده و کارت‌های منبع؛ با شناسهٔ سند، صفحه و تکهٔ متن برای ارجاع.',
     inputSchema: { type: 'object', additionalProperties: false, required: ['query'], properties: { query: { type: 'string', minLength: 2, maxLength: 300 }, kind: { enum: ['document', 'source_card'] }, limit: { type: 'integer', minimum: 1, maximum: 30, default: 8 } } },
     outputSchema: OBJ(['hits']),
-    handler: async (i) => ({ version: MEMORY_VERSION, hits: searchMemory(String(i.query), { limit: Number(i.limit ?? 8), kind: i.kind as never }) }),
+    handler: async (i) => { const r = await searchMemoryAsync(String(i.query), { limit: Number(i.limit ?? 8), kind: i.kind as never }); return { version: MEMORY_VERSION, engine: r.engine, hits: r.hits }; },
     summarize: (o) => `${(o.hits as unknown[]).length} اصابت`,
   },
 ];
