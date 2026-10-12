@@ -8,7 +8,7 @@ import { BatchTab, CopilotTab } from './AgenticPhase2Tabs';
 import { ResearchTab } from './AgenticResearchTab';
 import { DashboardTab, ScenarioTab, SurveyTab } from './AgenticPhase4Tabs';
 import { FieldLearningTab } from './AgenticPhase5Tab';
-import { agenticApi, type AgenticAgent, type AgenticInfo, type AgenticRun, type AgenticRunSummary, type AgenticToolInfo, type StorageStatus, type ToolCallResponse } from '../algorithm/agenticApi';
+import { agenticApi, type AgenticAgent, type AgenticInfo, type AgenticRun, type AgenticRunSummary, type AgenticToolInfo, type StorageStatus, type AiHealth, type ToolCallResponse } from '../algorithm/agenticApi';
 
 type Tab = 'copilot' | 'run' | 'batch' | 'research' | 'survey' | 'field' | 'scenario' | 'dashboard' | 'agents' | 'tools';
 const STATUS_FA: Record<AgenticRun['status'], { label: string; cls: string }> = {
@@ -241,6 +241,20 @@ export default function AgenticFrameworkPage() {
   );
 }
 
+const AI_STATE: Record<string, string> = { closed: 'سالم', half_open: 'در حال آزمون', open: 'موقتاً کنار گذاشته شده' };
+function AiHealthLine() {
+  const [h, setH] = useState<AiHealth | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [probe, setProbe] = useState<string | null>(null);
+  useEffect(() => { void agenticApi.aiHealth().then(setH).catch(() => undefined); }, []);
+  if (!h) return null;
+  const run = async () => { setBusy(true); setProbe(null); try { const r = await agenticApi.aiProbe(); setH(r.health); setProbe(r.results.map((x) => `${x.labelFa}: ${x.ok ? `پاسخ داد (${fa(x.ms)} میلی‌ثانیه)` : 'پاسخ نداد'}`).join(' · ') || 'سرویسی پیکربندی نشده'); } catch { setProbe('آزمون ناموفق بود'); } finally { setBusy(false); } };
+  return <p className="rounded-lg bg-slate-50 p-2 text-[11px] dark:bg-wall-900">هوش مصنوعی: {!h.configured ? 'پیکربندی نشده (سامانه بدون هوش مصنوعی کار می‌کند)' : h.providers.map((p) => `${p.labelFa} ${AI_STATE[p.state] ?? p.state}${p.calls ? ` (${fa(p.ok)} موفق از ${fa(p.calls)})` : ''}`).join(' · ')}
+    {h.configured && h.providers.length < 2 && ' · سرویس پشتیبان تعریف نشده'}
+    {h.configured && <button type="button" disabled={busy} onClick={() => void run()} className="mr-2 rounded border border-slate-300 px-1.5 py-0.5 text-[10px] hover:bg-white disabled:opacity-50 dark:border-wall-700">{busy ? 'در حال آزمون…' : 'آزمون اتصال'}</button>}
+    {probe && <span className="mr-2 text-slate-600 dark:text-slate-300">{probe}</span>}</p>;
+}
+
 function ToolsTab({ tools, agents, info, storage }: { tools: AgenticToolInfo[]; agents: AgenticAgent[]; info: AgenticInfo | null; storage: StorageStatus | null }) {
   const [sel, setSel] = useState<string | null>(null);
   const [agentId, setAgentId] = useState('operator');
@@ -259,6 +273,7 @@ function ToolsTab({ tools, agents, info, storage }: { tools: AgenticToolInfo[]; 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <section className={`${card} space-y-3 text-xs`}>
+        <AiHealthLine />
         {storage && <p className="rounded-lg bg-slate-50 p-2 text-[11px] dark:bg-wall-900">ذخیره‌سازی پایدار: {storage.sync.active
           ? <>PostgreSQL فعال · پرونده‌های همگام {storage.sync.tracked.toLocaleString('fa-IR')} · در صف {storage.sync.pending.toLocaleString('fa-IR')}{storage.sync.failures ? ` · خطا ${storage.sync.failures.toLocaleString('fa-IR')}` : ''} · جست‌وجوی برداری {storage.memory.vectorStore === 'pgvector' ? 'در پایگاه داده' : 'درون‌برنامه‌ای'}</>
           : <>فقط فایل محلی{storage.sync.enabled && storage.sync.lastError ? ` (اتصال به پایگاه داده ناموفق: ${storage.sync.lastError})` : ''} · جست‌وجوی ترکیبی درون‌برنامه‌ای</>}</p>}

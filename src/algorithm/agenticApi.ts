@@ -92,6 +92,10 @@ export interface WebCandidate {
 }
 export interface WebFinding { code: string; name: string; definition: string; status: 'found' | 'not_found' | 'error'; notes: string; candidates: WebCandidate[]; sources: Array<{ url: string; title: string; snippets: string[] }>; sourceCards: string[]; effort: string; costUsd: number; cached: boolean; ms: number; error?: string }
 export interface WebResearch { id: string; createdAt: string; finishedAt: string | null; status: 'running' | 'completed' | 'failed' | 'interrupted'; neighborhoodId: string; nameFa: string; cityFa: string; district: number | null; effort: string; codes: string[]; skipped: { surveyOnly: string[]; notInContract: string[] }; findings: WebFinding[]; summary: { acceptable: number; needsReview: number; rejected: number; notFound: number; costUsd: number }; error: string | null }
+export interface AiHealth {
+  version: string; configured: boolean; anyAvailable: boolean;
+  providers: Array<{ id: string; labelFa: string; state: 'closed' | 'open' | 'half_open'; consecutiveFailures: number; calls: number; ok: number; failures: number; lastError: string | null; lastOkAt: string | null; lastLatencyMs: number | null; openedAt: string | null }>;
+}
 export interface StorageStatus {
   sync: { version: string; enabled: boolean; active: boolean; vector: boolean; tracked: number; pending: number; watching: boolean; hydrated: number; backfilled: number; failures: number; lastError: string | null; lastFlushAt: string | null };
   memory: { version: string; embedding: string; vectorStore: 'pgvector' | 'local'; chunks: number; items: number };
@@ -102,6 +106,8 @@ export interface WebStatus { configured: boolean; usage: { day: string; research
 export const agenticApi = {
   info: () => call<AgenticInfo>('/api/agentic/info'),
   storage: () => call<StorageStatus>('/api/agentic/system/storage'),
+  aiHealth: () => call<AiHealth>('/api/agentic/system/ai'),
+  aiProbe: () => call<{ results: Array<{ id: string; labelFa: string; ok: boolean; ms: number; error?: string }>; health: AiHealth }>('/api/agentic/system/ai/probe', { method: 'POST', body: '{}' }),
   tools: () => call<AgenticToolInfo[]>('/api/agentic/tools'),
   agents: () => call<AgenticAgent[]>('/api/agentic/agents'),
   runs: () => call<AgenticRunSummary[]>('/api/agentic/runs'),

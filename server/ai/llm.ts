@@ -4,14 +4,16 @@
  * کلید هرگز در مخزن ثبت نمی‌شود (در فایل ‎.env‎ که در git نادیده گرفته می‌شود بگذارید).
  * خروجی مدل فقط پیشنهاد/تفسیر است و قبل از استفاده با طرح‌واره اعتبارسنجی می‌شود.
  */
+import { complete, providers } from './gateway';
 export interface LlmConfig { baseUrl: string; apiKey: string; model: string; version: string; timeoutMs: number; configured: boolean }
 
 export function llmConfig(env: NodeJS.ProcessEnv = process.env): LlmConfig {
   const apiKey = env.ARA_ANTHROPIC_API_KEY || '';
+  const anyFallback = Boolean(env.ARA_AI_FALLBACK_API_KEY && env.ARA_AI_FALLBACK_BASE_URL && env.ARA_AI_FALLBACK_MODEL);
   return {
     baseUrl: (env.ARA_ANTHROPIC_BASE_URL || 'https://api.justwoker.icu').replace(/\/+$/, ''),
     apiKey, model: env.ARA_LLM_MODEL || 'claude-opus-4-8', version: env.ARA_ANTHROPIC_VERSION || '2023-06-01',
-    timeoutMs: Number(env.ARA_ANTHROPIC_TIMEOUT_MS || 180_000), configured: Boolean(apiKey),
+    timeoutMs: Number(env.ARA_ANTHROPIC_TIMEOUT_MS || 180_000), configured: Boolean(apiKey) || anyFallback,
   };
 }
 
@@ -20,43 +22,24 @@ export class LlmError extends Error {
 }
 
 type Fetch = typeof fetch;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** فراخوانی مدل با تلاش دوباره برای خطاهای گذرا (کانال ناموجود، ۴۲۹، ۵xx، صفحهٔ HTML) */
+/**
+ * فراخوانی مدل از راه درگاه (AIGW-v1): تلاش دوباره برای خطاهای گذرا، قطع‌کنندهٔ مدار و جایگزینی خودکار با سرویس پشتیبان.
+ * با deps.config فقط همان سرویس استفاده می‌شود (آزمون‌ها/فراخوانی صریح).
+ */
 export async function llmText(opts: { system: string; prompt: string; maxTokens?: number; temperature?: number }, deps: { fetch?: Fetch; config?: LlmConfig; retries?: number } = {}): Promise<{ text: string; model: string; usage?: unknown }> {
-  const cfg = deps.config ?? llmConfig();
-  if (!cfg.configured) throw new LlmError('AI_NOT_CONFIGURED', 'سرویس هوش مصنوعی پیکربندی نشده است.');
-  const f = deps.fetch ?? fetch;
-  const retries = deps.retries ?? 4;
-  let last = '';
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    if (attempt) await sleep(Math.min(8000, 800 * 2 ** (attempt - 1)));
-    try {
-      const res = await f(`${cfg.baseUrl}/v1/messages`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json', 'x-api-key': cfg.apiKey, 'anthropic-version': cfg.version },
-        body: JSON.stringify({ model: cfg.model, max_tokens: Math.min(opts.maxTokens ?? 4000, Number(process.env.ARA_ANTHROPIC_MAX_TOKENS || 8000)), temperature: opts.temperature ?? 0.2, system: opts.system, messages: [{ role: 'user', content: opts.prompt }] }),
-        signal: AbortSignal.timeout(cfg.timeoutMs),
-      });
-      const raw = await res.text();
-      let body: { content?: Array<{ type: string; text?: string }>; error?: { code?: string; message?: string; type?: string }; model?: string; usage?: unknown } | null = null;
-      try { body = JSON.parse(raw); } catch { body = null; }
-      if (!body) { last = `پاسخ غیر JSON (وضعیت ${res.status})`; continue; }
-      if (!res.ok || body.error) {
-        last = body.error?.message ?? `وضعیت ${res.status}`;
-        const transient = res.status === 429 || res.status >= 500 || /model_not_found|No available channel|overloaded|rate/i.test(`${body.error?.code} ${last}`);
-        if (transient) continue;
-        throw new LlmError('AI_UPSTREAM', 'سرویس هوش مصنوعی خطا داد؛ کمی بعد دوباره تلاش کنید.', last);
-      }
-      const text = (body.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
-      if (!text.trim()) { last = 'پاسخ خالی'; continue; }
-      return { text, model: body.model ?? cfg.model, usage: body.usage };
-    } catch (e) {
-      if (e instanceof LlmError) throw e;
-      last = e instanceof Error ? e.message : String(e);
-    }
+  if (deps.config && !deps.config.configured) throw new LlmError('AI_NOT_CONFIGURED', 'سرویس هوش مصنوعی پیکربندی نشده است.');
+  const list = deps.config ? [{ id: 'primary' as const, labelFa: 'سرویس اصلی', format: 'anthropic' as const, baseUrl: deps.config.baseUrl, apiKey: deps.config.apiKey, model: deps.config.model, version: deps.config.version, timeoutMs: deps.config.timeoutMs }] : providers();
+  if (!list.length) throw new LlmError('AI_NOT_CONFIGURED', 'سرویس هوش مصنوعی پیکربندی نشده است.');
+  const body = { system: opts.system, messages: [{ role: 'user', content: opts.prompt }], max_tokens: Math.min(opts.maxTokens ?? 4000, Number(process.env.ARA_ANTHROPIC_MAX_TOKENS || 8000)), temperature: opts.temperature ?? 0.2 };
+  try {
+    const r = await complete(body, { fetch: deps.fetch, retries: deps.retries, list });
+    return { text: r.text, model: r.provider.model, usage: r.usage };
+  } catch (e) {
+    const x = e as { code?: string; message?: string; detail?: unknown };
+    if (x.code === 'AI_NOT_CONFIGURED') throw new LlmError('AI_NOT_CONFIGURED', 'سرویس هوش مصنوعی پیکربندی نشده است.');
+    throw new LlmError('AI_UPSTREAM', 'سرویس هوش مصنوعی موقتاً در دسترس نیست؛ کمی بعد دوباره تلاش کنید.', x.detail ?? x.message);
   }
-  throw new LlmError('AI_UPSTREAM', 'سرویس هوش مصنوعی موقتاً در دسترس نیست؛ کمی بعد دوباره تلاش کنید.', last);
 }
 
 /** نخستین شیء JSON معتبر در متن مدل (با یا بدون ```json) */

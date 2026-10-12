@@ -12,6 +12,7 @@ import { cancelJob, enqueueBatch, enqueueCopilot, enqueueGraph, wireJobs } from 
 import { batchCsv, listBatches, loadBatch } from './batch';
 import { COPILOT_VERSION, listSessions, loadSession } from './copilot';
 import { llmConfig } from '../ai/llm';
+import { aiHealth, complete as aiComplete, providers as aiProviders } from '../ai/gateway';
 import { enqueueResearch } from './jobs';
 import { listResearch, loadResearch, RESEARCH_VERSION } from './research/research';
 import { ingestAndIndex, RESEARCH_VERSIONS } from './research/researchTools';
@@ -140,6 +141,17 @@ export function createAgenticRouter(): Router {
     if (!b.city || !Array.isArray(b.units) || !b.units.length || b.units.length > 2000) { fail(res, 400, 'INVALID_INPUT', 'city و units (۱ تا ۲۰۰۰) لازم است'); return; }
     ok(res, matchUnits(b.units as never, String(b.city)));
   });
+  // سلامت درگاه هوش مصنوعی (بدون نام مدل/برند) و آزمون دستی سرویس‌ها
+  router.get('/system/ai', (_req, res) => { ok(res, aiHealth()); });
+  router.post('/system/ai/probe', asyncRoute(async (_req, res) => {
+    const results = [];
+    for (const p of aiProviders()) {
+      const t0 = Date.now();
+      try { await aiComplete({ system: 'Reply with one word.', messages: [{ role: 'user', content: 'OK?' }], max_tokens: 8, temperature: 0 }, { list: [p], retries: 0 }); results.push({ id: p.id, labelFa: p.labelFa, ok: true, ms: Date.now() - t0 }); }
+      catch (e) { results.push({ id: p.id, labelFa: p.labelFa, ok: false, ms: Date.now() - t0, error: String((e as { detail?: unknown }).detail ?? (e as Error).message).slice(0, 200) }); }
+    }
+    ok(res, { results, health: aiHealth() });
+  }));
   // وضعیت ذخیره‌سازی پایدار (PostgreSQL) و خلاصهٔ مجموعه‌ها
   router.get('/system/storage', asyncRoute(async (_req, res) => { ok(res, { sync: pgSyncStatus(), memory: memoryStats(), collections: await pgCollectionSummary() }); }));
   router.post('/system/storage/sync', asyncRoute(async (_req, res) => { const n = await pgScan(); ok(res, { changed: n, sync: pgSyncStatus() }); }));
