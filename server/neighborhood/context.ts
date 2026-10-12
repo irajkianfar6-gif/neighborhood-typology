@@ -49,8 +49,10 @@ export async function buildNeighborhoodContext(entry: GazetteerEntry, opts: { us
   let population: PopulationEstimate = { value: null, source: 'نامعلوم', year: null, tier: 'none', method: 'none' };
   let gridWeighting: NeighborhoodContext['gridWeighting'] = 'uniform';
   const pop = cv('POP');
+  const popEstimated = pop?.geography_level === 'estimated';
   if (pop) {
-    population = { value: pop.value, source: `${pop.source_org}${pop.dataset_id ? ` / ${pop.dataset_id}` : ''}`, year: Number(pop.period_end.slice(0, 4)), tier: 'official', method: 'contract_aggregate' };
+    population = { value: pop.value, source: `${pop.source_org}${pop.dataset_id ? ` / ${pop.dataset_id}` : ''}`, year: Number(pop.period_end.slice(0, 4)), tier: popEstimated ? 'open_model' : 'official', method: popEstimated ? 'district_disaggregation_estimate' : 'contract_aggregate' };
+    if (popEstimated) warnings.push('جمعیت محله برآورد مدل‌محور از جمعیت منطقه است (DISAGG)، نه شمارش سرشماری محله');
   }
 
   if (opts.useKernel !== false && process.env.WORLDPOP_COG_PATH) {
@@ -65,7 +67,8 @@ export async function buildNeighborhoodContext(entry: GazetteerEntry, opts: { us
           grid.forEach((c, i) => { c.weight = r.cells![i]; });
           gridWeighting = 'worldpop';
         }
-        if (!pop) {
+        // برآورد مساحت‌محور ضعیف‌تر از WorldPop است؛ برآورد سهم دورهٔ پیشین قوی‌تر می‌ماند
+        if (!pop || (popEstimated && /:area:/.test(pop.dataset_id ?? ''))) {
           population = { value: Math.round(r.sum), source: `WorldPop (${r.file})`, year: worldpopYear(), tier: 'open_model', method: 'zonal_sum_100m', validFraction: r.valid_fraction };
         } else if (r.sum > 0 && Math.abs(r.sum - pop.value) / pop.value > 0.25) {
           warnings.push(`اختلاف جمعیت قراردادی (${pop.value}) و WorldPop (${Math.round(r.sum)}) بیش از ۲۵٪ است`);

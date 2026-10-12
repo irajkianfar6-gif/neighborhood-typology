@@ -1,4 +1,5 @@
 /** API فریمورک ایجنتیک — زیر /api/agentic نصب می‌شود (REST + MCP) */
+import { type DisaggInput, estimateFromDistrict, listEstimates, worldpopWeights } from './research/disaggregate';
 import express, { type NextFunction, type Request, type Response, Router } from 'express';
 import { AGENT_POLICY_VERSION, AGENTS } from './agents';
 import { CRITIC_VERSION } from './critic';
@@ -124,6 +125,18 @@ export function createAgenticRouter(): Router {
     catch (e) { fail(res, 400, 'INVALID_INPUT', e instanceof Error ? e.message : String(e)); }
   });
   router.get('/documents', (req, res) => { ok(res, listDocuments(Number(req.query.limit ?? 30))); });
+  // ---------- DISAGG-v1: برآورد شفاف منطقه → محله (فقط شمارشی‌ها؛ با تأیید کارشناس) ----------
+  router.get('/estimates', (req, res) => { ok(res, listEstimates(Number(req.query.limit ?? 30))); });
+  router.post('/estimates/district', asyncRoute(async (req, res) => {
+    const b = (req.body ?? {}) as Partial<DisaggInput>;
+    if (!b.city || b.district === undefined || !b.code || b.value === undefined || !b.periodEnd || !b.sourceOrg) { fail(res, 400, 'INVALID_INPUT', 'city، district، code، value، periodEnd و sourceOrg لازم است'); return; }
+    try {
+      const method = (['prior_share', 'covariate', 'area', 'auto'] as const).find((m) => m === b.method) ?? 'auto';
+      const covariate = b.covariate ?? (method === 'auto' || method === 'covariate' ? await worldpopWeights(String(b.city), b.district) : null) ?? undefined;
+      const rec = estimateFromDistrict({ city: String(b.city), district: b.district, code: String(b.code), value: Number(b.value), periodEnd: String(b.periodEnd), sourceOrg: String(b.sourceOrg).slice(0, 100), method, covariate, dryRun: b.dryRun !== false, uploadedBy: String(req.header('x-ara-agent') ?? 'operator') });
+      ok(res, rec, rec.batchId ? 201 : 200);
+    } catch (e) { fail(res, 400, 'INVALID_INPUT', e instanceof Error ? e.message : String(e)); }
+  }));
   router.get('/documents/:id', (req, res) => {
     const d = loadDocument(req.params.id); if (!d) { fail(res, 404, 'NOT_FOUND', 'سند یافت نشد'); return; }
     const c = loadContent(d.docId); const city = String(req.query.city ?? 'تهران');
