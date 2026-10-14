@@ -8,7 +8,7 @@
 # syntax=docker/dockerfile:1
 
 # ---------- مرحله ۱: ساخت UI ----------
-FROM node:22-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 WORKDIR /app
 ENV NODE_OPTIONS=--max-old-space-size=4096
 COPY package.json package-lock.json ./
@@ -24,20 +24,21 @@ RUN set -eux; mkdir -p /app/registry-src; \
     ls -l /app/registry-src
 
 # ---------- مرحله ۲: اجرا ----------
-FROM node:22-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 ENV NODE_ENV=production \
     SCI_PORT=4001 \
     PYTHONUNBUFFERED=1 \
     PYTHONUTF8=1 \
-    KERNEL_PYTHON=python3
+    KERNEL_PYTHON=python3 \
+    PATH="/opt/ara-venv/bin:$PATH"
 
 # Python برای سه worker ماهواره‌ای و سرویس محاسبات kernel لازم است.
 # rasterio/numpy → پردازش COG و رندر تایل؛ shapely → اعتبارسنجی مرز در kernel.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 python3-pip python3-venv ca-certificates \
+ && apt-get install -y --no-install-recommends python3 python3-pip python3-venv ca-certificates poppler-utils \
  && rm -rf /var/lib/apt/lists/* \
- && rm -f /usr/lib/python3*/EXTERNALLY-MANAGED || true
+ && python3 -m venv /opt/ara-venv
 
 # pyproj برای اعتبارسنجی مرز و zonal stats در CRS متریک الزامی است
 COPY kernel/requirements.txt /tmp/kernel-requirements.txt
