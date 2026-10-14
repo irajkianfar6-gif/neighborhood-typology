@@ -1,0 +1,27 @@
+# Render Free + external Neon database. No paid database or disk is provisioned.
+services:
+  - type: web
+    name: neighborhood-typology-api
+    runtime: docker
+    plan: free
+    region: virginia
+    repo: https://github.com/irajkianfar6-gif/neighborhood-typology
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SCI_PORT
+        value: "10000"
+      - key: KERNEL_PYTHON
+        value: python3
+      - key: ARA_ALLOWED_ORIGINS
+        value: https://neighborhood-typology.irajkianfar6.workers.dev
+      - key: ARA_STORAGE
+        value: postgres
+      - key: ARA_PG_POOL_MAX
+        value: "2"
+      - key: DATABASE_URL
+        sync: false
