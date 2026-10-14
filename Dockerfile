@@ -73,7 +73,8 @@ RUN ln -s /app/dist /app/public && mkdir -p /app/server/data && chown -R node:no
 
 USER node
 EXPOSE 4001
-VOLUME ["/app/server/data"]
+# Persistent storage is configured by the deployment platform (or docker-compose).
+# Do not declare VOLUME here: Railway rejects Dockerfile VOLUME instructions.
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.SCI_PORT||4001)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
