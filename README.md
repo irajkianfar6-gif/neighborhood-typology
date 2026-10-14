@@ -106,3 +106,8 @@ Every worker result carries the following pre-ML checks:
 | Temporal anomaly | robust median/MAD series has no outlier | anomaly is a review warning; fewer than five observations is not applicable |
 
 Run the complete offline gate with `npm run ci:satellite`. It runs TypeScript contracts, synthetic Rasterio QA/AOI/grid fixtures, COG validation, and writes `artifacts/satellite-validation-report.json`; the GitHub workflow uploads that report for every satellite-related change. No provider network access is required by CI.
+
+## Cloudflare Pages
+
+Dependency installation uses npm and `package-lock.json`; do not commit a second Bun lockfile.
+See [راهنمای استقرار Cloudflare Pages](docs/CLOUDFLARE_PAGES_FA.md) for build settings and the separate API requirement.
